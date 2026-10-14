@@ -317,16 +317,73 @@ if modo_escuro:
 
     /* Centralização e Cores do Spinner no Modo Escuro */
     [data-testid="stSpinner"],
-    .stSpinner {
-        background-color: rgba(22, 27, 34, 0.94) !important;
+    .stSpinner,
+    .stCacheSpinner,
+    div[data-testid="stSpinner"] {
+        background-color: #161b22 !important;
+        background: #161b22 !important;
+        background-image: none !important;
         border: 1px solid #30363d !important;
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
         color: #f0f2f6 !important;
     }
-    [data-testid="stSpinner"] p,
-    [data-testid="stSpinner"] span,
-    [data-testid="stSpinner"] div {
+    [data-testid="stSpinner"] *,
+    .stSpinner *,
+    .stCacheSpinner * {
+        background: transparent !important;
+        background-image: none !important;
         color: #f0f2f6 !important;
+    }
+    [data-testid="stSpinner"] svg,
+    .stSpinner svg {
+        stroke: #58a6ff !important;
+        color: #58a6ff !important;
+        fill: none !important;
+    }
+
+    /* Tabela / Grid Estruturado no Modo Escuro */
+    [data-testid="stMarkdownContainer"] table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        margin: 1rem 0 !important;
+        border: 1px solid #30363d !important;
+        border-radius: 6px !important;
+    }
+    [data-testid="stMarkdownContainer"] table thead tr {
+        background-color: #161b22 !important;
+        border-bottom: 2px solid #30363d !important;
+    }
+    [data-testid="stMarkdownContainer"] table th {
+        padding: 10px 14px !important;
+        font-weight: 600 !important;
+        color: #f0f2f6 !important;
+        text-align: left !important;
+        border-right: 1px solid #21262d !important;
+    }
+    [data-testid="stMarkdownContainer"] table th:nth-child(2) {
+        text-align: center !important;
+    }
+    [data-testid="stMarkdownContainer"] table td {
+        border-bottom: 1px solid #21262d !important;
+        border-right: 1px solid #21262d !important;
+        padding: 12px 14px !important;
+        vertical-align: top !important;
+        color: #c9d1d9 !important;
+        line-height: 1.6 !important;
+    }
+    [data-testid="stMarkdownContainer"] table td:last-child,
+    [data-testid="stMarkdownContainer"] table th:last-child {
+        border-right: none !important;
+    }
+    [data-testid="stMarkdownContainer"] table td:nth-child(2) {
+        text-align: center !important;
+        color: #8b949e !important;
+    }
+    [data-testid="stMarkdownContainer"] table tbody tr:nth-child(even) {
+        background-color: rgba(22, 27, 34, 0.45) !important;
+    }
+    [data-testid="stMarkdownContainer"] table tbody tr:hover {
+        background-color: rgba(110, 118, 129, 0.12) !important;
     }
     """
 else:
@@ -680,16 +737,73 @@ else:
 
     /* Centralização e Cores do Spinner no Modo Claro */
     [data-testid="stSpinner"],
-    .stSpinner {
-        background-color: rgba(255, 255, 255, 0.94) !important;
+    .stSpinner,
+    .stCacheSpinner,
+    div[data-testid="stSpinner"] {
+        background-color: #ffffff !important;
+        background: #ffffff !important;
+        background-image: none !important;
         border: 1px solid #cbd5e1 !important;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05) !important;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06) !important;
         color: #0f172a !important;
     }
-    [data-testid="stSpinner"] p,
-    [data-testid="stSpinner"] span,
-    [data-testid="stSpinner"] div {
+    [data-testid="stSpinner"] *,
+    .stSpinner *,
+    .stCacheSpinner * {
+        background: transparent !important;
+        background-image: none !important;
         color: #0f172a !important;
+    }
+    [data-testid="stSpinner"] svg,
+    .stSpinner svg {
+        stroke: #0284c7 !important;
+        color: #0284c7 !important;
+        fill: none !important;
+    }
+
+    /* Tabela / Grid Estruturado no Modo Claro */
+    [data-testid="stMarkdownContainer"] table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        margin: 1rem 0 !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 6px !important;
+    }
+    [data-testid="stMarkdownContainer"] table thead tr {
+        background-color: #f1f5f9 !important;
+        border-bottom: 2px solid #cbd5e1 !important;
+    }
+    [data-testid="stMarkdownContainer"] table th {
+        padding: 10px 14px !important;
+        font-weight: 600 !important;
+        color: #0f172a !important;
+        text-align: left !important;
+        border-right: 1px solid #e2e8f0 !important;
+    }
+    [data-testid="stMarkdownContainer"] table th:nth-child(2) {
+        text-align: center !important;
+    }
+    [data-testid="stMarkdownContainer"] table td {
+        border-bottom: 1px solid #e2e8f0 !important;
+        border-right: 1px solid #e2e8f0 !important;
+        padding: 12px 14px !important;
+        vertical-align: top !important;
+        color: #1e293b !important;
+        line-height: 1.6 !important;
+    }
+    [data-testid="stMarkdownContainer"] table td:last-child,
+    [data-testid="stMarkdownContainer"] table th:last-child {
+        border-right: none !important;
+    }
+    [data-testid="stMarkdownContainer"] table td:nth-child(2) {
+        text-align: center !important;
+        color: #64748b !important;
+    }
+    [data-testid="stMarkdownContainer"] table tbody tr:nth-child(even) {
+        background-color: rgba(248, 250, 252, 0.7) !important;
+    }
+    [data-testid="stMarkdownContainer"] table tbody tr:hover {
+        background-color: rgba(241, 245, 249, 0.9) !important;
     }
     """
 
@@ -2001,13 +2115,9 @@ else:
 
     st.subheader("🏷️ 6. Histórico de Versões e Changelog Técnico")
     st.markdown("""
-<style>
-div[data-testid="stMarkdownContainer"] table td { vertical-align: top; }
-</style>
-
 | Versão | Data | Principais Mudanças e Evolução Metodológica |
 | :--- | :---: | :--- |
-| **v2.2.0** | **14/10/2026** | **Experiência Analítica Dual & Calibração Visual:**<br>• Nova visualização de distribuição em modo duplo: *Faixas de Risco Forense* (visão intuitiva com contagens e percentuais por categoria) e *Histograma Contínuo* (visão técnica detalhada até 12σ) com seletor e ajuda contextual explicativa `(?)`.<br>• *Viewport* dinâmico inteligente no gráfico de dispersão multivariada (calibrado no 99,5º percentil), eliminando a aglomeração causada por seções com horários extremos.<br>• Desacoplamento geométrico das anotações de significância (+2σ e +3σ), eliminando sobreposições de texto.<br>• Sincronização do manifesto de módulos dinâmicos e conformidade com diretrizes de governança e LGPD. |
+| **v2.2.0** | **14/10/2026** | **Experiência Analítica Dual & Calibração Visual:**<br>• Nova visualização de distribuição em modo duplo: *Faixas de Risco Forense* (visão intuitiva com contagens e percentuais por categoria) e *Histograma Contínuo* (visão técnica detalhada até 12σ) com seletor e ajuda contextual explicativa (?).<br>• *Viewport* dinâmico inteligente no gráfico de dispersão multivariada (calibrado no 99,5º percentil), eliminando a aglomeração causada por seções com horários extremos.<br>• Desacoplamento geométrico das anotações de significância (+2σ e +3σ), eliminando sobreposições de texto.<br>• Sincronização do manifesto de módulos dinâmicos e conformidade com diretrizes de governança e LGPD. |
 | **v2.1.0** | **14/10/2026** | **Implementação do Motor Estatístico de Spiegelhalter (2005):**<br>• Substituição de regras heurísticas e pesos arbitrários por inferência estatística baseada em desvios padronizados (*z*-scores em sigmas σ).<br>• Adoção da técnica *Leave-One-Out* municipal para eliminação de viés e falsos alarmes.<br>• Estimativa robusta da superdispersão τ² intra-UF via MAD.<br>• Métricas multivariadas compostas (Norma Euclidiana L2) e novos diagnósticos objetivos de alerta.<br>• Identificação formal de versionamento em toda a plataforma. |
 | **v2.0.0** | **13/10/2026** | **Auditoria Nacional Consolidada (27 UFs):**<br>• Processamento paralelo e decodificação ASN.1 dos 497.895 BUs e logs de eventos do TSE em escala nacional.<br>• Arquitetura SQLite WAL de alta performance com baixo consumo de memória RAM.<br>• Suporte nativo a Tema Claro/Escuro instantâneo e layout responsivo. |
 | **v1.0.0** | **11/10/2026** | Protótipo inicial de extração de dados abertos do TSE e ranking exploratório. |
