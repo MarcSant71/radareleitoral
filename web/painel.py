@@ -334,6 +334,14 @@ if modo_escuro:
         background-image: none !important;
         color: #f0f2f6 !important;
     }
+    [data-testid="stSpinnerIcon"],
+    [data-testid="stSpinner"] [data-testid="stSpinnerIcon"],
+    .stSpinner [data-testid="stSpinnerIcon"],
+    .stCacheSpinner [data-testid="stSpinnerIcon"] {
+        border-color: rgba(88, 166, 255, 0.25) !important;
+        border-top-color: #58a6ff !important;
+        border-width: 2.5px !important;
+    }
     [data-testid="stSpinner"] svg,
     .stSpinner svg {
         stroke: #58a6ff !important;
@@ -753,6 +761,14 @@ else:
         background: transparent !important;
         background-image: none !important;
         color: #0f172a !important;
+    }
+    [data-testid="stSpinnerIcon"],
+    [data-testid="stSpinner"] [data-testid="stSpinnerIcon"],
+    .stSpinner [data-testid="stSpinnerIcon"],
+    .stCacheSpinner [data-testid="stSpinnerIcon"] {
+        border-color: rgba(2, 132, 199, 0.25) !important;
+        border-top-color: #0284c7 !important;
+        border-width: 2.5px !important;
     }
     [data-testid="stSpinner"] svg,
     .stSpinner svg {
