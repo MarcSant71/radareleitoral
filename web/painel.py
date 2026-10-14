@@ -1995,12 +1995,25 @@ else:
 
     ### 🏷️ 6. Histórico de Versões e Changelog Técnico
 
-    | Versão | Data | Principais Mudanças e Evolução Metodológica |
-    | :--- | :---: | :--- |
-    | **v2.2.0** | **14/10/2026** | **Experiência Analítica Dual & Calibração Visual:**<br>• Nova visualização de distribuição em modo duplo: *Faixas de Risco Forense* (visão intuitiva e direta com contagens e percentuais por categoria) e *Histograma Contínuo* (visão técnica aprofundada até 12σ) com seletor e ajuda contextual explicativa.<br>• *Viewport* dinâmico inteligente no gráfico de dispersão multivariada (calibrado no 99,5º percentil), eliminando a aglomeração causada por outliers extremos.<br>• Desacoplamento geométrico das anotações de significância ($+2\sigma$ e $+3\sigma$), eliminando 100% das sobreposições textuais.<br>• Sincronização do manifesto de módulos dinâmicos e conformidade com diretrizes de governança e LGPD. |
-    | **v2.1.0** | **14/10/2026** | **Implementação do Motor Estatístico de Spiegelhalter (2005):**<br>• Substituição de regras heurísticas e pesos arbitrários aditivos por inferência estatística baseada em desvios padronizados ($z$-scores em sigmas $\sigma$).<br>• Adoção da técnica *Leave-One-Out* municipal para eliminação de viés e falsos alarmes.<br>• Estimativa robusta da superdispersão $\tau^2$ intra-UF via MAD.<br>• Métricas multivariadas compostas (Norma Euclidiana L2) e novos diagnósticos objetivos de alerta.<br>• Identificação formal de versionamento em toda a plataforma. |
-    | **v2.0.0** | **13/10/2026** | **Auditoria Nacional Consolidada (27 UFs):**<br>• Processamento paralelo e decodificação ASN.1 dos 497.895 BUs e logs de eventos do TSE.<br>• Arquitetura SQLite WAL de alta performance com baixo consumo de memória RAM.<br>• Suporte nativo a Tema Claro/Escuro instantâneo e layout responsivo. |
-    | **v1.0.0** | **11/10/2026** | Protótipo inicial de extração de dados abertos do TSE e ranking exploratório. |
+    * **v2.2.0 (14/10/2026) — Experiência Analítica Dual & Calibração Visual:**
+      * **Modo Duplo de Distribuição:** Nova visualização com alternância entre *Faixas de Risco Forense* (visão intuitiva com contagens e percentuais por categoria) e *Histograma Contínuo* (visão técnica até 12σ) com seletor e ajuda contextual explicativa `(?)`.
+      * **Viewport Dinâmico:** Ancoragem inteligente no 99,5º percentil no gráfico de dispersão multivariada, eliminando a aglomeração causada por seções com horários extremos.
+      * **Geometria Anti-Colisão:** Desacoplamento espacial das anotações de significância (+2σ e +3σ), eliminando 100% das sobreposições de texto.
+      * **Sincronização de Assets:** Sincronização do manifesto de módulos dinâmicos e conformidade com diretrizes de governança e LGPD.
+
+    * **v2.1.0 (14/10/2026) — Implementação do Motor Estatístico de Spiegelhalter (2005):**
+      * **Inferência Estatística Rigorosa:** Substituição de regras heurísticas e pesos arbitrários por inferência estatística baseada em desvios padronizados ($z$-scores em sigmas $\sigma$).
+      * **Normalização Leave-One-Out:** Adoção da técnica de exclusão da própria seção para eliminação de viés e falsos alarmes municipais.
+      * **Sobredispersão Residual ($\tau^2$):** Estimativa robusta da superdispersão intra-estadual via MAD.
+      * **Métricas Multivariadas Compostas:** Integração pela Norma Euclidiana $L_2$ e novos diagnósticos objetivos de alerta.
+
+    * **v2.0.0 (13/10/2026) — Auditoria Nacional Consolidada (27 UFs):**
+      * **Processamento Paralelo:** Decodificação ASN.1 dos 497.895 BUs e logs de eventos do TSE em escala nacional.
+      * **Arquitetura de Alta Performance:** Banco de dados SQLite WAL com baixo consumo de memória RAM.
+      * **Interface Moderna:** Suporte nativo a Tema Claro/Escuro instantâneo e design fluido para desktop, tablet e mobile.
+
+    * **v1.0.0 (11/10/2026) — Protótipo Inicial:**
+      * Protótipo inicial de extração de dados abertos do TSE e ranking exploratório.
     """)
 
     st.markdown("---")
