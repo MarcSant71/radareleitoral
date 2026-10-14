@@ -973,35 +973,51 @@ css_global = """
         align-items: stretch !important;
     }
 
-    /* Padrão (Desktop): colunas fluidas com min-width seguro */
+    div.st-key-kpi_metrics [data-testid="stColumn"],
+    div.st-key-kpi_metrics .stColumn {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    div.st-key-kpi_metrics [data-testid="stColumn"] > div,
+    div.st-key-kpi_metrics [data-testid="stColumn"] [data-testid="stElementContainer"],
+    div.st-key-kpi_metrics [data-testid="stColumn"] [data-testid="stMetric"] {
+        flex: 1 1 auto !important;
+        height: 100% !important;
+    }
+
+    /* Padrão (Desktop): 5 colunas simétricas de largura rigorosamente idêntica */
     div.st-key-kpi_metrics [data-testid="stColumn"],
     div.st-key-kpi_metrics [data-testid="column"],
     div.st-key-kpi_metrics .stColumn {
-        flex: 1 1 175px !important;
-        min-width: 155px !important;
+        flex: 0 0 calc(20% - 0.55rem) !important;
+        max-width: calc(20% - 0.55rem) !important;
+        min-width: 0px !important;
         box-sizing: border-box !important;
     }
 
-    /* Tablets e telas médias (entre 768px e 1150px): 3 colunas em cima, 2 embaixo */
+    /* Tablets e telas médias (entre 768px e 1150px): 3 colunas simétricas (sem esticar a última linha) */
     @media (max-width: 1150px) and (min-width: 768px) {
         div.st-key-kpi_metrics [data-testid="stColumn"],
         div.st-key-kpi_metrics [data-testid="column"],
         div.st-key-kpi_metrics .stColumn {
-            flex: 1 1 calc(33.333% - 0.65rem) !important;
-            min-width: 150px !important;
+            flex: 0 0 calc(33.333% - 0.45rem) !important;
+            max-width: calc(33.333% - 0.45rem) !important;
+            min-width: 0px !important;
         }
     }
 
-    /* Celulares e telas estreitas (entre 420px e 767px): 2 colunas lado a lado */
+    /* Celulares e telas estreitas (entre 420px e 767px): grid simétrica de 2 colunas */
     @media (max-width: 767px) and (min-width: 420px) {
         div.st-key-kpi_metrics [data-testid="stColumn"],
         div.st-key-kpi_metrics [data-testid="column"],
         div.st-key-kpi_metrics .stColumn {
-            flex: 1 1 calc(50% - 0.4rem) !important;
-            min-width: 135px !important;
+            flex: 0 0 calc(50% - 0.35rem) !important;
+            max-width: calc(50% - 0.35rem) !important;
+            min-width: 0px !important;
         }
         [data-testid="stMetric"] {
-            min-height: 105px !important;
+            min-height: 118px !important;
             padding: 8px 10px !important;
         }
         [data-testid="stMetricLabel"] {
@@ -1024,8 +1040,13 @@ css_global = """
         div.st-key-kpi_metrics [data-testid="stColumn"],
         div.st-key-kpi_metrics [data-testid="column"],
         div.st-key-kpi_metrics .stColumn {
-            flex: 1 1 100% !important;
+            flex: 0 0 100% !important;
+            max-width: 100% !important;
             min-width: 100% !important;
+        }
+        [data-testid="stMetric"] {
+            min-height: 118px !important;
+            padding: 8px 10px !important;
         }
     }
 
