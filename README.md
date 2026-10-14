@@ -11,7 +11,7 @@ O projeto é guiado pelo princípio da **total transparência e reprodutibilidad
 * **Análise Forense Temporal:** Mapeamento segundo a segundo de cada voto depositado em cada urna do país, identificando votos registrados após as 17:00 (encerramento regulamentar).
 * **Auditoria de Habilitação do Eleitor:** Métricas de biometria com sucesso vs. liberação manual pelo mesário (código de habilitação manual) e sua correlação com horários estendidos.
 * **Indicador de Ociosidade e Cadência:** Cálculo da taxa de fluxo (segundos por eleitor) e detecção de ociosidades anômalas antes das 17:00 seguidas de picos atípicos.
-* **Indicador Composto de Suspeição (Score 0–100):** Algoritmo heurístico multifatorial ponderando discrepâncias de horário, votação ultrarrápida (< 45s) e desvios de comparecimento.
+* **Motor Estatístico de Spiegelhalter (2005):** Inferência matemática rigorosa com Z-scores ajustados para superdispersão residual (tau² via MAD) e baselines municipais calculados via Leave-One-Out.
 * **Mapa Interativo e Filtros Dinâmicos:** Navegação geográfica por Região, Estado (UF), Município, Zona e Seção eleitoral.
 * **Exportação Completa:** Download dos dados filtrados em CSV ou visualização detalhada de cada urna com links diretos de auditoria.
 
@@ -25,7 +25,8 @@ O projeto é estruturado com clara separação entre a plataforma de visualizaç
 Eleicao2026/
 │
 ├── web/                       # [PRODUÇÃO] Aplicação web servida ao público
-│   ├── painel.py              # Interface analítica completa em Streamlit
+│   ├── painel.py              # Interface analítica completa em Streamlit (v2.1.0)
+│   ├── estatistica.py         # Motor de inferência estatística de Spiegelhalter (2005)
 │   └── db.py                  # Camada de conexão e consultas SQLite otimizada com WAL
 │
 ├── pipeline/                  # [MOTOR DE AUDITORIA] Scripts de extração do TSE

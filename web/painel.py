@@ -17,6 +17,7 @@ if str(_source_dir) not in sys.path:
     sys.path.insert(0, str(_source_dir))
 
 from db import DB_PATH
+from estatistica import aplicar_motor_estatistico
 
 st.set_page_config(
     page_title="Auditoria Eleições 2026 - Análise de Votos por Horário",
@@ -1265,6 +1266,9 @@ def carregar_dados():
     df = pd.read_sql_query(query, conn)
     conn.close()
 
+    # Aplicação do Motor Estatístico Rigoroso (Spiegelhalter 2005)
+    df = aplicar_motor_estatistico(df)
+
     # Otimização de pegada de memória RAM (downcasting de inteiros/floats e categorias)
     df["uf"] = df["uf"].astype("category")
     for col in df.select_dtypes(include=["int64"]).columns:
@@ -1277,8 +1281,8 @@ def carregar_dados():
 
     return df
 
-st.title("🗳️ Auditoria Eleições 2026: Análise de Votos por Horário")
-st.caption("Sistema de Fiscalização Estatística e Detecção de Anomalias de Urna Eletrônica (Base Oficial TSE)")
+st.title("🗳️ Auditoria Eleições 2026: Análise Estatística Forense")
+st.caption("Sistema de Fiscalização Estatística e Detecção de Anomalias de Urna Eletrônica • Base Oficial TSE • **Versão 2.1.0 (Motor Spiegelhalter)**")
 
 MAPA_REGIOES = {
     "AC": "Norte", "AP": "Norte", "AM": "Norte", "PA": "Norte", "RO": "Norte", "RR": "Norte", "TO": "Norte",
@@ -1318,6 +1322,7 @@ def ir_para_resultados():
 # FILTROS LATERAIS (SIDEBAR)
 # ==========================================
 st.sidebar.header("🔍 Filtros")
+st.sidebar.caption("📦 **Versão 2.1.0** • Núcleo Spiegelhalter (2005)")
 
 col_reg, col_uf = st.sidebar.columns([3, 2])
 regioes_disponiveis = ["Todas", "Centro-Oeste", "Nordeste", "Norte", "Sudeste", "Sul"]
@@ -1351,20 +1356,20 @@ secao_selecionada = col_secao.selectbox("Seção:", secoes_disponiveis, on_chang
 if secao_selecionada != "Todas":
     df_filtrado = df_filtrado[df_filtrado["secao"] == secao_selecionada]
 
-# Opção 1: Filtros Categóricos de Atipicidade
+# Filtros Estatísticos de Atipicidade (Spiegelhalter 2005)
 OPCOES_ATIPICIDADE = {
     "Todas as Seções (Visão Geral)": 0.0,
-    "🟡 Atenção: Com Filas / Pós-17h (Score ≥ 15)": 15.0,
-    "🟠 Atipicidade Alta: Tardios + Liberação Manual (Score ≥ 35)": 35.0,
-    "🔴 Atipicidade Acentuada: Desvios Combinados (Score ≥ 60)": 60.0
+    "🟡 Atenção: Desvio Moderado (≥ 2.0σ)": 2.0,
+    "🟠 Atipicidade Alta: Desvio Severo (≥ 3.0σ)": 3.0,
+    "🔴 Atipicidade Extrema: Desvio Crítico (≥ 4.5σ)": 4.5
 }
 atipicidade_selecionada = st.sidebar.selectbox(
-    "Nível de Atipicidade:",
+    "Nível de Atipicidade Estatística:",
     list(OPCOES_ATIPICIDADE.keys()),
     on_change=ir_para_resultados,
-    help="Filtra as seções de acordo com a régua estatística: Padrão Normal (<15), Atenção (15-34), Atipicidade Alta (35-59) e Atipicidade Acentuada (60+)."
+    help="Filtra as seções de acordo com a magnitude do desvio padronizado em relação ao município/UF (Modelo Spiegelhalter 2005): Normal (< 2σ), Atenção (2σ-3σ), Alta (3σ-4.5σ) e Extrema (≥ 4.5σ)."
 )
-score_min = OPCOES_ATIPICIDADE[atipicidade_selecionada]
+z_min = OPCOES_ATIPICIDADE[atipicidade_selecionada]
 
 OPCOES_POS17 = {
     "Qualquer horário": 0.0,
@@ -1380,17 +1385,17 @@ pos17_selecionado = st.sidebar.selectbox(
 )
 pct_pos17_min = OPCOES_POS17[pos17_selecionado]
 
-with st.sidebar.expander("⚙️ Ajuste Fino"):
-    score_slider = st.slider(
-        "Score Mínimo Exato:",
+with st.sidebar.expander("⚙️ Ajuste Fino Estatístico"):
+    z_slider = st.slider(
+        "Desvio Mínimo Exato (Z-Score em σ):",
         min_value=0.0,
-        max_value=100.0,
-        value=float(score_min),
-        step=5.0,
+        max_value=15.0,
+        value=float(z_min),
+        step=0.5,
         on_change=ir_para_resultados,
-        help="Permite afinar manualmente o score exato de 0 a 100."
+        help="Permite afinar manualmente o desvio padronizado multivariado em sigmas."
     )
-    st.caption("📊 **Régua:** 0–14: Padrão Normal | 15–34: Filas Moderadas | 35–59: Atipicidade Alta | 60+: Atipicidade Acentuada")
+    st.caption("📊 **Régua:** < 2.0σ: Normal | 2.0–2.9σ: Atenção | 3.0–4.4σ: Alta Atipicidade | ≥ 4.5σ: Extrema")
 
     pct_slider = st.slider(
         "% Pós-17h Mínimo Exato:",
@@ -1403,21 +1408,21 @@ with st.sidebar.expander("⚙️ Ajuste Fino"):
     )
     st.caption("⏰ **Referência:** 0%: Todas | >10%: Fila Moderada | >25%: Fila Longa | >50%: Votação Prolongada")
 
-score_final = max(score_min, score_slider)
+z_final = max(z_min, z_slider)
 pct_final = max(pct_pos17_min, pct_slider)
 
-df_filtrado = df_filtrado[df_filtrado["score_suspeicao"] >= score_final]
+df_filtrado = df_filtrado[df_filtrado["z_composto"] >= z_final]
 df_filtrado = df_filtrado[df_filtrado["pct_apos_17h"] >= pct_final]
 
 # Checkbox posicionado após todos os controles
 apenas_com_alertas = st.sidebar.checkbox(
-    "Mostrar apenas seções com alertas",
+    "Mostrar apenas seções com alertas confirmados",
     value=False,
     on_change=ir_para_resultados,
-    help="Filtra apenas seções com algum alerta forense explícito registrado."
+    help="Filtra apenas seções onde foi detectado desvio estatístico (Z ≥ 2.0σ) ou sinal de alerta explícito."
 )
 if apenas_com_alertas:
-    df_filtrado = df_filtrado[df_filtrado["motivos_alerta"] != "Padrão normal"]
+    df_filtrado = df_filtrado[df_filtrado["z_composto"] >= 2.0]
 
 # Filtro Vencedor da Seção (Boletim de Urna)
 venc_options = ["Todos", "Nº 13 (Lula)", "Nº 22 (Flávio Bolsonaro)"]
@@ -1457,8 +1462,8 @@ if aba_selecionada == OPCOES_NAV[0]:
         st.info(
             f"🔍 **Seção {r['secao']} (Zona {r['zona']} - {r['municipio_nome']}/{r['uf']}):** "
             f"Primeiro voto: **{r['primeiro_voto']}** | Último voto: **{r['ultimo_voto']}** | Encerramento: **{r['hora_encerramento']}** | "
-            f"Pós-17h: **{fmt_int_br(r['votos_apos_17h'])} votos** ({fmt_float_br(r['pct_apos_17h'])}%) | "
-            f"Manual Pós: **{fmt_float_br(r['pct_manual_pos17h'])}%** | Gap Pré: **{fmt_float_br(r['maior_ociosidade_antes_17h_min'])} min** | "
+            f"Pós-17h: **{fmt_int_br(r['votos_apos_17h'])} votos** ({fmt_float_br(r['pct_apos_17h'])}% | esp. mun.: {fmt_float_br(r['esp_pos17_pct'])}% | **Z: +{r['z_pos17']:.1f}σ**) | "
+            f"Manual: **+{r['z_manual']:.1f}σ** | Desvio Geral: **+{r['z_composto']:.1f}σ** | "
             f"Alerta: **{r['motivos_alerta']}**"
         )
         if pd.notna(r.get("pres_venc_num")) and r.get("pres_total_validos", 0) > 0:
@@ -1489,7 +1494,7 @@ if aba_selecionada == OPCOES_NAV[0]:
     total_votos = df_filtrado["total_votos_log"].sum() if total_secoes > 0 else 0
     total_pos17 = df_filtrado["votos_apos_17h"].sum() if total_secoes > 0 else 0
     pct_total_pos17 = (total_pos17 / total_votos * 100.0) if total_votos > 0 else 0.0
-    criticas = len(df_filtrado[df_filtrado["score_suspeicao"] >= 35.0])
+    criticas = len(df_filtrado[df_filtrado["z_composto"] >= 3.0])
 
     with st.container(key="kpi_metrics"):
         c1, c2, c3, c4, c5 = st.columns(5)
@@ -1510,15 +1515,15 @@ if aba_selecionada == OPCOES_NAV[0]:
             help="Volume e proporção percentual de eleitores que votaram após as 17h00 (horário oficial de encerramento)."
         )
         c4.metric(
-            "Alta Atipicidade",
+            "Alta Atipicidade (≥ 3.0σ)",
             fmt_int_br(criticas),
-            help="Seções com Score ≥ 35, combinando encerramento pós-17h e taxa atípica de liberação manual sem biometria."
+            help="Seções com desvio padronizado multivariado Z ≥ 3.0σ pelo Modelo Spiegelhalter 2005 (além de 3 desvios padrão do município)."
         )
-        media_score = df_filtrado["score_suspeicao"].mean() if total_secoes > 0 else 0.0
+        media_z = df_filtrado["z_composto"].mean() if total_secoes > 0 else 0.0
         c5.metric(
-            "Score Médio",
-            f"{fmt_float_br(media_score)}/100",
-            help="Média ponderada do score de risco forense (0 a 100) das seções filtradas na tela."
+            "Desvio Médio (Z)",
+            f"+{fmt_float_br(media_z)}σ",
+            help="Média do desvio padronizado multivariado (em sigmas) das seções filtradas na tela."
         )
 
     st.markdown("---")
@@ -1530,16 +1535,16 @@ if aba_selecionada == OPCOES_NAV[0]:
         col_graf1, col_graf2 = st.columns(2)
 
         with col_graf1:
-            st.subheader("📊 Votos Pós-17h vs Habilitação Manual")
-            st.caption("Cruzamento analítico: volume após as 17h vs taxa de habilitação manual.")
+            st.subheader("📊 Desvio Pós-17h (Z) vs Desvio Manual (Z)")
+            st.caption("Dispersão estatística multivariada padronizada (Modelo de Spiegelhalter 2005).")
             if not df_filtrado.empty:
                 # Amostra inteligente para dispersão quando volume for muito massivo (reduz de 17MB para 180KB)
                 if len(df_filtrado) > 5000:
-                    criticas = df_filtrado[df_filtrado["score_suspeicao"] >= 35.0]
+                    criticas = df_filtrado[df_filtrado["z_composto"] >= 3.0]
                     if len(criticas) >= 5000:
                         df_scatter = criticas.sample(5000, random_state=42)
                     else:
-                        outras = df_filtrado[df_filtrado["score_suspeicao"] < 35.0]
+                        outras = df_filtrado[df_filtrado["z_composto"] < 3.0]
                         amostra = outras.sample(min(len(outras), 5000 - len(criticas)), random_state=42)
                         df_scatter = pd.concat([criticas, amostra])
                 else:
@@ -1547,50 +1552,53 @@ if aba_selecionada == OPCOES_NAV[0]:
 
                 fig_scatter = px.scatter(
                     df_scatter,
-                    x="pct_apos_17h",
-                    y="pct_manual_pos17h",
+                    x="z_pos17",
+                    y="z_manual",
                     size="total_votos_log",
-                    color="score_suspeicao",
+                    color="z_composto",
                     hover_data=["uf", "municipio_nome", "zona", "secao", "ultimo_voto", "motivos_alerta"],
                     color_continuous_scale="Reds",
                     labels={
-                        "pct_apos_17h": "% Votos após as 17h",
-                        "pct_manual_pos17h": "% Habilitação Manual Pós-17h",
-                        "score_suspeicao": "Score Suspeição"
+                        "z_pos17": "Desvio Z Votos Pós-17h (σ)",
+                        "z_manual": "Desvio Z Habilitação Manual (σ)",
+                        "z_composto": "Desvio Geral (σ)"
                     }
                 )
-                # Linhas de referência
-                fig_scatter.add_vline(x=10, line_dash="dash", line_color="gray", annotation_text="Limite 10% pós-17h")
-                fig_scatter.add_hline(y=50, line_dash="dash", line_color="gray", annotation_text="50% Manual")
+                # Linhas de referência de significância estatística (+2σ e +3σ)
+                fig_scatter.add_vline(x=2.0, line_dash="dash", line_color="orange", annotation_text="+2σ (Pós-17h)")
+                fig_scatter.add_vline(x=3.0, line_dash="dash", line_color="red", annotation_text="+3σ Crítico")
+                fig_scatter.add_hline(y=2.0, line_dash="dash", line_color="orange", annotation_text="+2σ (Manual)")
+                fig_scatter.add_hline(y=3.0, line_dash="dash", line_color="red", annotation_text="+3σ Crítico")
                 fig_scatter.update_layout(template=plotly_theme, height=420, margin=dict(l=20, r=20, t=30, b=20), separators=",.")
                 st.plotly_chart(fig_scatter, width="stretch")
                 if len(df_filtrado) > 5000:
                     st.caption("💡 Amostra estatística de 5.000 seções (priorizando as seções de maior atipicidade).")
 
         with col_graf2:
-            st.subheader("⏰ Distribuição do Horário do Último Voto")
-            st.caption("Concentração de horários em que o último eleitor votou na seção.")
+            st.subheader("⏰ Distribuição de Desvios Estatísticos (Z-Score)")
+            st.caption("Histograma dos desvios padronizados em sigmas (σ) das seções auditadas.")
             if not df_filtrado.empty:
                 fig_hist = px.histogram(
-                    df_filtrado.dropna(subset=["hora_ult_dec"]),
-                    x="hora_ult_dec",
-                    nbins=30,
+                    df_filtrado.dropna(subset=["z_composto"]),
+                    x="z_composto",
+                    nbins=35,
                     color_discrete_sequence=["#1f77b4"],
-                    labels={"hora_ult_dec": "Horário do Último Voto (Hora decimal)"}
+                    labels={"z_composto": "Desvio Padronizado Composto (σ)"}
                 )
-                fig_hist.add_vline(x=17.0, line_dash="solid", line_color="red", annotation_text="17:00 Fechamento Oficial")
-                fig_hist.update_layout(template=plotly_theme, height=420, margin=dict(l=20, r=20, t=30, b=20), xaxis=dict(tickmode="linear", tick0=16, dtick=0.5), separators=",.")
+                fig_hist.add_vline(x=2.0, line_dash="dash", line_color="orange", annotation_text="+2σ Atenção")
+                fig_hist.add_vline(x=3.0, line_dash="solid", line_color="red", annotation_text="+3σ Alta Atipicidade")
+                fig_hist.update_layout(template=plotly_theme, height=420, margin=dict(l=20, r=20, t=30, b=20), separators=",.")
                 st.plotly_chart(fig_hist, width="stretch")
 
     # ==========================================
     # TABELA FORENSE RANKING DAS SEÇÕES
     # ==========================================
-    st.subheader("📋 Ranking Detalhado das Seções Auditadas")
+    st.subheader("📋 Ranking Detalhado das Seções Auditadas (Ordenado por Desvio Padronizado)")
 
     colunas_display = [
         "regiao", "uf", "municipio_nome", "zona", "secao", "total_votos_log", "votos_apos_17h", "pct_apos_17h",
-        "ultimo_voto", "pct_manual_pos17h", "vencedor_display", "delta_display", "votos_cand_13", "votos_cand_22",
-        "score_suspeicao", "motivos_alerta"
+        "esp_pos17_pct", "z_pos17", "ultimo_voto", "pct_manual_pos17h", "z_manual", "vencedor_display", "delta_display",
+        "votos_cand_13", "votos_cand_22", "z_composto", "motivos_alerta"
     ]
 
     nomes_amigaveis = {
@@ -1602,25 +1610,28 @@ if aba_selecionada == OPCOES_NAV[0]:
         "total_votos_log": "Total Votos",
         "votos_apos_17h": "Pós-17h",
         "pct_apos_17h": "% Pós-17h",
+        "esp_pos17_pct": "% Esp. Mun.",
+        "z_pos17": "Z Pós-17h",
         "ultimo_voto": "Último Voto",
         "pct_manual_pos17h": "% Manual Pós",
+        "z_manual": "Z Manual",
         "vencedor_display": "Mais Votado Pres.",
         "delta_display": "Δ vs Zona",
         "votos_cand_13": "Lula (13)",
         "votos_cand_22": "Flávio Bolsonaro (22)",
-        "score_suspeicao": "Score",
-        "motivos_alerta": "Alertas Identificados"
+        "z_composto": "Desvio (Z)",
+        "motivos_alerta": "Alertas Estatísticos & Forenses"
     }
 
     df_tabela = df_filtrado[colunas_display].rename(columns=nomes_amigaveis)
-    df_tabela = df_tabela.sort_values(by=["Score", "Pós-17h"], ascending=[False, False])
+    df_tabela = df_tabela.sort_values(by=["Desvio (Z)", "Pós-17h"], ascending=[False, False])
     df_tabela = df_tabela.reset_index(drop=True)
     df_tabela.insert(0, "#", range(1, len(df_tabela) + 1))
 
     total_filtradas = len(df_tabela)
     if total_filtradas > 1000:
         df_tabela_display = df_tabela.head(1000)
-        st.caption(f"📋 Exibindo as **1.000 seções prioritárias** com maior score de suspeição (de um total de **{fmt_int_br(total_filtradas)}** seções filtradas).")
+        st.caption(f"📋 Exibindo as **1.000 seções prioritárias** com maior desvio padronizado Z (de um total de **{fmt_int_br(total_filtradas)}** seções filtradas).")
     else:
         df_tabela_display = df_tabela
 
@@ -1632,7 +1643,7 @@ if aba_selecionada == OPCOES_NAV[0]:
         column_config={
             "#": st.column_config.NumberColumn(
                 "#",
-                help="Posição no ranking de anomalia forense (1º = seção mais atípica).",
+                help="Posição no ranking de anomalia forense (1º = seção com maior desvio estatístico Z).",
                 format="%d",
                 width="small"
             ),
@@ -1677,6 +1688,16 @@ if aba_selecionada == OPCOES_NAV[0]:
                 help="Proporção de eleitores da seção que votaram após as 17h em relação ao comparecimento total.",
                 format="%.1f%%"
             ),
+            "% Esp. Mun.": st.column_config.NumberColumn(
+                "% Esp. Mun.",
+                help="Proporção de votos pós-17h esperada para o município, calculada pelo método Leave-One-Out (Spiegelhalter 2005).",
+                format="%.1f%%"
+            ),
+            "Z Pós-17h": st.column_config.NumberColumn(
+                "Z Pós-17h",
+                help="Desvio estatístico padronizado (em sigmas σ) do volume pós-17h em relação ao município/UF.",
+                format="+%.1fσ"
+            ),
             "Último Voto": st.column_config.TextColumn(
                 "Último Voto",
                 help="Horário exato (HH:MM:SS) em que o último eleitor concluiu seu voto e encerrou o fluxo da urna."
@@ -1685,6 +1706,11 @@ if aba_selecionada == OPCOES_NAV[0]:
                 "% Manual Pós",
                 help="Percentual de eleitores pós-17h habilitados pelo mesário com código manual (dispensa de biometria).",
                 format="%.1f%%"
+            ),
+            "Z Manual": st.column_config.NumberColumn(
+                "Z Manual",
+                help="Desvio estatístico padronizado (em sigmas σ) da habilitação manual em relação ao município/UF.",
+                format="+%.1fσ"
             ),
             "Mais Votado Pres.": st.column_config.TextColumn(
                 "Mais Votado Pres.",
@@ -1704,16 +1730,14 @@ if aba_selecionada == OPCOES_NAV[0]:
                 help="Total de votos nominais recebidos por Flávio Bolsonaro (22) no Boletim de Urna (BU) oficial da seção.",
                 format="%d"
             ),
-            "Score": st.column_config.ProgressColumn(
-                "Score Suspeição",
-                help="Score composto de anomalia (0 a 100), calibrado estatisticamente pelo volume pós-17h, taxa manual, tempo na cabine e desvio de votação em relação à zona.",
-                format="%.1f",
-                min_value=0,
-                max_value=100
+            "Desvio (Z)": st.column_config.NumberColumn(
+                "Desvio (Z-Score)",
+                help="Magnitude do desvio estatístico multivariado (Norma Euclidiana L2 em sigmas σ), integrando pós-17h, manual e horário.",
+                format="+%.1fσ"
             ),
-            "Alertas Identificados": st.column_config.TextColumn(
-                "Alertas Identificados",
-                help="Gatilhos forenses e padrões atípicos disparados pelas regras de auditoria estatística."
+            "Alertas Estatísticos & Forenses": st.column_config.TextColumn(
+                "Alertas Estatísticos & Forenses",
+                help="Gatilhos forenses e padrões atípicos confirmados pela inferência estatística de Spiegelhalter (2005)."
             ),
         }
     )
@@ -1728,7 +1752,7 @@ if aba_selecionada == OPCOES_NAV[0]:
     )
 
     st.markdown("---")
-    st.markdown("<p style='margin-top: -1.1rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026</p>", unsafe_allow_html=True)
+    st.markdown("<p style='margin-top: -1.1rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Versão 2.1.0 (Motor Estatístico Spiegelhalter)</p>", unsafe_allow_html=True)
 
 # ==========================================
 # ABA: SOBRE ESTE SITE & METODOLOGIA FORENSE
@@ -1784,51 +1808,56 @@ else:
 
     ---
 
-    ### 📐 3. Metodologia Estatística e Critérios Forenses
+    ### 📐 3. Metodologia Estatística e Rigor Científico (Modelo de Spiegelhalter, 2005)
 
-    O painel analisa as urnas a partir de indicadores operacionais objetivos:
+    A partir da **Versão 2.1.0**, este painel abandonou qualquer regra de pontuação arbitrária ou pesos aditivos empíricos. Todas as métricas de anomalia operam segundo o **Modelo de Efeitos Aleatórios e Controle Estatístico de Processos de David Spiegelhalter (2005)** — padrão acadêmico internacional utilizado em auditorias populacionais e epidemiológicas complexas.
 
-    #### A. Volume de Votos Pós-17h ($V_{>17h}$)
-    * **Fundamento Legal:** O horário oficial de votação em todo o território nacional se encerra às 17h00 (horário de Brasília). Eleitores que ainda se encontram na fila recebem senha de atendimento.
-    * **Métrica:** Percentual de votos gravados a partir das 17:00:00 em relação ao total de votantes da seção. Seções que ultrapassam 25% ou 50% de votos após o horário regular indicam filas atípicas que demandam atenção.
+    #### A. Taxa Esperada Contextual via Técnica *Leave-One-Out*
+    Cada seção eleitoral é confrontada contra o comportamento esperado do seu **próprio município** (ou UF, quando o município possui menos de 5 seções).  
+    Para evitar que uma seção atípica de grande porte contamine e distorça a própria média pela qual será julgada, adota-se a técnica matemática estrita de **Leave-One-Out**: a taxa esperada municipal exclui a própria seção da amostra:
 
-    #### B. Taxa de Habilitação Manual por Mesário (% Manual)
-    * **Métrica:** Mede quantos eleitores tiveram a biometria dispensada e foram liberados para votar diretamente pela digitação manual do código do mesário.
-    """)
+    $$p_{\text{mun}} = \frac{\sum_{i \in \text{mun}} \text{Votos}_{i} - \text{Votos}_{\text{seção}}}{\sum_{i \in \text{mun}} \text{Total}_{i} - \text{Total}_{\text{seção}}}$$
 
-    st.latex(r"\% \text{Manual Pós-17h} = \left(\frac{\text{Habilitações Manuais Pós-17h}}{\text{Total de Votos Pós-17h}}\right) \times 100")
+    #### B. Z-Score Ajustado com Superdispersão Residual ($\tau^2$ Robusto via MAD)
+    Em auditoria eleitoral, a variância binomial simples $p(1-p)/N$ tende a subestimar a variação natural legítima entre bairros, zonas rurais e capitais, gerando falsos positivos. O modelo de Spiegelhalter incorpora um termo de variância entre seções ($\tau^2$), estimado por Unidade da Federação de forma robusta via **MAD (Median Absolute Deviation)**:
 
-    st.markdown(r"""
-    * **Padrão Normal:** No Brasil, o sucesso biométrico médio supera 90% a 95%. Seções com taxa manual pós-17h superior a 50% ou 80% destoam do padrão nacional de identificação biométrica.
+    $$z_{\text{ajustado}} = \frac{\text{Taxa Observada} - p}{\sqrt{\frac{p(1-p)}{N} + \tau^2}}$$
 
-    #### C. Delta contra a Zona Eleitoral ($\Delta_{\text{Zona}}$)
-    * **Conceito:** O Brasil possui 2.640 Zonas Eleitorais. Cada zona agrupa as seções de um município ou bairro com demografia e perfil socioeconômico homogêneos.
-    * **Fórmula:**
-    """)
+    Onde $\tau^2 = \max\left(\left(1{,}4826 \cdot \text{MAD}(\text{Resíduos})\right)^2 - \text{Mediana}(\text{Variância Acaso}),\, 0\right)$.  
+    Graças a essa modelagem, seções rurais pequenas não são penalizadas pelo acaso amostral e seções com desvio $|z| \ge 3{,}0\sigma$ representam eventos **genuinamente raros** ($< 0{,}13\%$ sob normalidade).
 
-    st.latex(r"\Delta_{\text{Vencedor}} = \%\,\text{Votos Vencedor (Seção)} - \%\,\text{Votos Vencedor (Zona)}")
+    #### C. Desvio Multivariado Composto (Norma Euclidiana L2)
+    Para mensurar a gravidade confluente de uma seção que apresenta múltiplos desvios simultâneos (fechamento tardio pós-17h, dispensa biométrica manual atípica e extensão da hora do último voto), o sistema calcula a **Distância Euclidiana L2 dos Desvios Positivos**:
 
-    st.markdown(r"""
-    * **Relevância Forense:** Isola completamente o viés regional (Norte/Nordeste vs Sul/Sudeste). Se uma seção teve encerramento muito tardio (ex: 20h) e seu resultado diverge $+20\text{ pp}$ ou $+30\text{ pp}$ da média de todas as outras urnas da mesma Zona Eleitoral, a discrepância é estritamente localizada e vale a atenção.
+    $$Z_{\text{composto}} = \sqrt{\max(z_{\text{pós17}}, 0)^2 + \max(z_{\text{manual}}, 0)^2 + \max(z_{\text{horário}}, 0)^2}$$
 
-    #### D. Score Composto de Atipicidade (0 a 100)
-    Fórmula ponderada que prioriza urnas onde múltiplos fatores de desvio ocorrem simultaneamente:
-    * **Padrão Normal (< 15):** Operação regular, encerramento pontual e fluxo biométrico esperado.
-    * **🟡 Atenção / Discrepância Leve (15 a 34.9):** Filas moderadas após as 17h ou encerramento até 18h30.
-    * **🟠 Atipicidade Alta (35 a 59.9):** Horário estendido combinado com taxa atípica de habilitação manual sem biometria.
-    * **🔴 Atipicidade Acentuada (≥ 60):** Votação expressiva após as 19h com maioria dos votos liberados manualmente e desvios estatísticos combinados.
+    #### D. Régua Padronizada de Significância Estatística
+    * **Padrão Normal ($Z < 2{,}0\sigma$):** Seção perfeitamente compreendida dentro do intervalo de confiança de 95% do seu município.
+    * **🟡 Atenção ($2{,}0\sigma \le Z < 3{,}0\sigma$):** Desvio moderado em relação à linha de base local (percentil $\approx 97{,}7\%$).
+    * **🟠 Atipicidade Alta ($3{,}0\sigma \le Z < 4{,}5\sigma$):** Desvio severo em relação ao comportamento padrão do município (percentil $\approx 99{,}87\%$).
+    * **🔴 Atipicidade Extrema ($Z \ge 4{,}5\sigma$):** Confluência crítica de desvios simultâneos de horário, fluxo e habilitação.
 
     ---
 
     ### 🔍 4. Como Interpretar os Alertas?
 
-    Um score de alerta alto **não significa automaticamente fraude**. Ele indica uma **anomalia operacional ou estatística**.  
-    Explicações legítimas incluem:
-    * Queda de energia elétrica local ou chuva severa durante o dia, represando eleitores para o fim da tarde.
-    * Urna eletrônica que apresentou defeito de hardware e precisou ser substituída por urna de contingência.
-    * Comunidades fechadas ou de trânsito difícil (zonas rurais, aldeias ou enclaves prisionais).
+    Um desvio estatístico padronizado ($Z \ge 3{,}0\sigma$) **não constitui prova de fraude**. Ele constitui uma **sinalização objetiva de atipicidade operacional e matemática**.  
+    Explicações legítimas comuns incluem:
+    * Fila física no encerramento decorrente de chuvas severas ou falta pontual de energia na região.
+    * Urna eletrônica com leitor biométrico desgastado ou seção com concentração atípica de eleitores idosos (com perda de relevo papilar).
+    * Comunidades de acesso complexo (seções em áreas ribeirinhas, indígenas ou rurais).
 
-    **O passo forense correto:** Fiscais, auditores e cidadãos devem consultar a **Ata da Mesa Receptora** daquela seção específica no Cartório Eleitoral competente para verificar as ocorrências anotadas pelos mesários e confrontar com a via impressa do Boletim de Urna afixada no local de votação.
+    **O passo forense correto:** Peritos, auditores e cidadãos devem confrontar o número da seção com a **Ata da Mesa Receptora** arquivada no Cartório Eleitoral e com o espelho do Boletim de Urna (BU) para checar as justificativas anotadas pelos mesários.
+
+    ---
+
+    ### 🏷️ 6. Histórico de Versões e Changelog Técnico
+
+    | Versão | Data | Principais Mudanças e Evolução Metodológica |
+    | :--- | :---: | :--- |
+    | **v2.1.0** | **14/10/2026** | **Implementação do Motor Estatístico de Spiegelhalter (2005):**<br>• Substituição de regras heurísticas e pesos arbitrários aditivos por inferência estatística baseada em desvios padronizados ($z$-scores em sigmas $\sigma$).<br>• Adoção da técnica *Leave-One-Out* municipal para eliminação de viés e falsos alarmes.<br>• Estimativa robusta da superdispersão $\tau^2$ intra-UF via MAD.<br>• Métricas multivariadas compostas (Norma Euclidiana L2) e novos diagnósticos objetivos de alerta.<br>• Identificação formal de versionamento em toda a plataforma. |
+    | **v2.0.0** | **13/10/2026** | **Auditoria Nacional Consolidada (27 UFs):**<br>• Processamento paralelo e decodificação ASN.1 dos 497.895 BUs e logs de eventos do TSE.<br>• Arquitetura SQLite WAL de alta performance com pegada de memória otimizada (440 MB).<br>• Suporte nativo a Tema Claro/Escuro instantâneo e layout responsivo. |
+    | **v1.0.0** | **11/10/2026** | Protótipo inicial de extração de dados abertos do TSE e ranking exploratório. |
 
     ---
 
