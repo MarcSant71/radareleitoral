@@ -1297,6 +1297,24 @@ css_global = """
             transform: translate(-50%, -50%) scale(1);
         }
     }
+
+    /* Fórmulas Matemáticas (KaTeX): isolamento, respiro e responsividade sem encavalar */
+    .stApp .katex-display {
+        display: block !important;
+        margin: 1.4rem auto !important;
+        padding: 0.85rem 1.25rem !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        text-align: center !important;
+        line-height: normal !important;
+        background-color: rgba(125, 125, 125, 0.04) !important;
+        border: 1px solid rgba(125, 125, 125, 0.15) !important;
+        border-radius: 8px !important;
+    }
+    .stApp .katex {
+        font-size: 1.12rem !important;
+        line-height: normal !important;
+    }
 """
 
 st.markdown(f"<style>\n{css_global}\n{css_tema}\n</style>", unsafe_allow_html=True)
@@ -2065,32 +2083,104 @@ else:
 
     ### 📐 3. Metodologia Estatística e Rigor Científico (Modelo de Spiegelhalter, 2005)
 
-    A partir da **Versão 2.1.0**, este painel abandonou qualquer regra de pontuação arbitrária ou pesos aditivos empíricos. Todas as métricas de anomalia operam segundo o **Modelo de Efeitos Aleatórios e Controle Estatístico de Processos de David Spiegelhalter (2005)** — padrão acadêmico internacional utilizado em auditorias populacionais e epidemiológicas complexas.
+    A partir da **Versão 2.1.0**, este painel substituiu regras heurísticas ou pesos arbitrários pelo **Modelo de Efeitos Aleatórios e Controle Estatístico de Processos de David Spiegelhalter (2005)** — padrão acadêmico internacional utilizado em auditorias populacionais, epidemiológicas e de controle de qualidade hospitalar.
 
-    #### A. Taxa Esperada Contextual via Técnica *Leave-One-Out*
-    Cada seção eleitoral é confrontada contra o comportamento esperado do seu **próprio município** (ou UF, quando o município possui menos de 5 seções).  
-    Para evitar que uma seção atípica de grande porte contamine e distorça a própria média pela qual será julgada, adota-se a técnica matemática estrita de **Leave-One-Out**: a taxa esperada municipal exclui a própria seção da amostra:
+    ---
 
-    $$p_{\text{mun}} = \frac{\sum_{i \in \text{mun}} \text{Votos}_{i} - \text{Votos}_{\text{seção}}}{\sum_{i \in \text{mun}} \text{Total}_{i} - \text{Total}_{\text{seção}}}$$
+    #### 💡 Intuição Prática: O que é o "Sigma" ($\sigma$) e o $Z$-Score?
 
-    #### B. Z-Score Ajustado com Superdispersão Residual ($\tau^2$ Robusto via MAD)
-    Em auditoria eleitoral, a variância binomial simples $p(1-p)/N$ tende a subestimar a variação natural legítima entre bairros, zonas rurais e capitais, gerando falsos positivos. O modelo de Spiegelhalter incorpora um termo de variância entre seções ($\tau^2$), estimado por Unidade da Federação de forma robusta via **MAD (Median Absolute Deviation)**:
+    Em vez de comparar percentuais brutos isolados — o que geraria distorções entre cidades de portes diferentes —, o painel mede **a quantos desvios-padrão (sigmas $\sigma$) uma seção eleitoral se afastou do comportamento esperado do seu município**:
 
-    $$z_{\text{ajustado}} = \frac{\text{Taxa Observada} - p}{\sqrt{\frac{p(1-p)}{N} + \tau^2}}$$
+    * **A Analogia da Altura:** Imagine a altura dos homens adultos no Brasil. A média é de 1,75 m, com uma variação comum de 7 cm (1 sigma):
+      * Um homem de 1,82 m (+1$\sigma$) é alto, mas perfeitamente comum no dia a dia.
+      * Um homem de 1,89 m (+2$\sigma$) já é uma exceção notável (presente em apenas ~2,3% da população).
+      * Um homem de 2,05 m (+4,3$\sigma$) é uma raridade extrema (como um jogador de basquete profissional).
 
-    Onde $\tau^2 = \max\left(\left(1{,}4826 \cdot \text{MAD}(\text{Resíduos})\right)^2 - \text{Mediana}(\text{Variância Acaso}),\, 0\right)$.  
-    Graças a essa modelagem, seções rurais pequenas não são penalizadas pelo acaso amostral e seções com desvio $|z| \ge 3{,}0\sigma$ representam eventos **genuinamente raros** ($< 0{,}13\%$ sob normalidade).
+    Na auditoria eleitoral, a lógica é idêntica: se na cidade a média foi de 2% de votos pós-17h, uma seção registrar 3% (+0,8$\sigma$) é uma oscilação natural de fila. Porém, uma seção da mesma cidade registrar 25% de votos tardios (+4,5$\sigma$) equivale estatisticamente a encontrar alguém de 2,15 m de altura na rua — um evento estatisticamente raro que justifica a conferência da ata física do cartório.
 
-    #### C. Desvio Multivariado Composto (Norma Euclidiana L2)
-    Para mensurar a gravidade confluente de uma seção que apresenta múltiplos desvios simultâneos (fechamento tardio pós-17h, dispensa biométrica manual atípica e extensão da hora do último voto), o sistema calcula a **Distância Euclidiana L2 dos Desvios Positivos**:
+    ---
 
-    $$Z_{\text{composto}} = \sqrt{\max(z_{\text{pós17}}, 0)^2 + \max(z_{\text{manual}}, 0)^2 + \max(z_{\text{horário}}, 0)^2}$$
+    #### A. Comparação Justa via Técnica *Leave-One-Out* (Exclusão da Própria Seção)
+
+    Cada seção é avaliada estritamente em relação à realidade do seu **próprio município**. Seções ribeirinhas ou rurais não são comparadas a capitais cosmopolitas.
+
+    * **Eliminação de Viés:** Se uma seção atípica de grande porte apresentasse um volume extremo de votos tardios, incluí-la na média municipal puxaria a régua toda para cima, "mascarando" a sua própria anomalia.
+    * A técnica *Leave-One-Out* ("deixar-um-de-fora") calcula a média de referência da cidade **excluindo temporariamente a própria seção em avaliação**, garantindo que a régua nunca seja contaminada pelo objeto da auditoria.
+
+    **Fórmula da Taxa Esperada Municipal:**
+
+    $$
+    p_{\text{mun}} = \frac{\sum_{i \in \text{mun}} \text{Votos}_{i} - \text{Votos}_{\text{secao}}}{\sum_{i \in \text{mun}} \text{Total}_{i} - \text{Total}_{\text{secao}}}
+    $$
+
+    ---
+
+    #### B. $Z$-Score Ajustado com Superdispersão Residual ($\tau^2$ de Spiegelhalter)
+
+    Modelos estatísticos simplistas tratam eleitores como moedas matemáticas perfeitamente idênticas. No mundo real, existem fatores operacionais legítimos: chuvas torrenciais em um bairro, lentidão de transporte ou oscilação de energia em zonas rurais.
+
+    * **O que é o parâmetro $\tau^2$ (tau ao quadrado)?**  
+      Ele quantifica e absorve a "variação natural legítima" que existe entre diferentes bairros e cidades do estado. Isso evita que pequenas seções de 80 eleitores no interior disparem falsos alarmes por mero efeito do acaso amostral.
+
+    * **O que é o MAD (Desvio Absoluto da Mediana) e por que ele é usado?**  
+      Na estatística comum, a média e o desvio padrão tradicional são facilmente enganados por um único número absurdo (por exemplo: se um bilionário entrar em uma padaria, a "renda média" de todos os clientes vira milhões de reais em um segundo).  
+      O **MAD** funciona como uma **régua blindada contra distorções**: em vez de calcular médias que podem ser puxadas por valores extremos, ele mede a dispersão típica olhando apenas para o valor central (a mediana). Dessa forma, se uma única urna na capital tiver um problema bizarro que a faça fechar às 23h, esse caso isolado **não contamina nem distorce a régua de medição** de todas as outras urnas do estado.
+
+    * **Resultado (O que significa o $Z$?):**  
+      O **$Z$** (chamado na ciência de *$Z$-score* ou escore padronizado) funciona como um **termômetro de atipicidade**: ele é a nota final que indica quantos passos (sigmas $\sigma$) a urna se afastou do comportamento esperado.
+      * **$Z = 0$:** A seção operou exatamente na média da sua cidade (temperatura normal de 36,5 °C).
+      * **$Z < 2{,}0\sigma$:** Variação comum do dia a dia, dentro da normalidade.
+      * **$Z \ge 3{,}0\sigma$:** O termômetro entra em zona crítica: a seção funcionou de maneira totalmente atípica em relação a todas as outras urnas da mesma cidade, com menos de 0,13% de chance de ocorrer por mero acaso sob condições normais.
+
+    **Fórmula do $Z$-Score Ajustado de Spiegelhalter:**
+
+    $$
+    z_{\text{ajustado}} = \frac{\text{Taxa Observada} - p_{\text{mun}}}{\sqrt{\frac{p_{\text{mun}}(1 - p_{\text{mun}})}{N} + \tau^2}}
+    $$
+
+    **Fórmula da Superdispersão Residual ($\tau^2$ Robusto via MAD):**
+
+    $$
+    \tau^2 = \max\left(\left(1{,}4826 \cdot \text{MAD}\right)^2 - \text{Mediana}(\text{Variancia Acaso}),\, 0\right)
+    $$
+
+    ---
+
+    #### C. Desvio Multivariado Composto (Norma Euclidiana $L_2$)
+
+    Em vez de avaliar os indicadores de forma fragmentada, o sistema aplica uma distância geométrica no espaço de desvios:
+    * Se uma urna teve apenas um leve atraso pós-17h (+1,2$\sigma$), ela permanece dentro do raio de normalidade.
+    * Se teve apenas uma leve elevação de biometria manual (+1,2$\sigma$), também segue no padrão aceitável.
+    * Porém, se a mesma urna combinou atraso severo (+3$\sigma$) **e** biometria manual muito acima da média (+3$\sigma$), o afastamento conjunto pela hipotenusa dispara para $\sqrt{3^2 + 3^2} = 4{,}24\sigma$!  
+    A **Norma $L_2$** calcula a distância em linha reta do ponto onde a urna operou até o centro da normalidade da eleição.
+
+    **Fórmula da Norma Euclidiana $L_2$:**
+
+    $$
+    Z_{\text{composto}} = \sqrt{\max(z_{\text{pos17}}, 0)^2 + \max(z_{\text{manual}}, 0)^2 + \max(z_{\text{horario}}, 0)^2}
+    $$
+
+    ---
 
     #### D. Régua Padronizada de Significância Estatística
     * **Padrão Normal ($Z < 2{,}0\sigma$):** Seção perfeitamente compreendida dentro do intervalo de confiança de 95% do seu município.
     * **🟡 Atenção ($2{,}0\sigma \le Z < 3{,}0\sigma$):** Desvio moderado em relação à linha de base local (percentil $\approx 97{,}7\%$).
-    * **🟠 Atipicidade Alta ($3{,}0\sigma \le Z < 4{,}5\sigma$):** Desvio severo em relação ao comportamento padrão do município (percentil $\approx 99{,}87\%$).
+    * **🟠 Alta Atipicidade ($3{,}0\sigma \le Z < 4{,}5\sigma$):** Desvio severo em relação ao comportamento padrão do município (percentil $\approx 99{,}87\%$).
     * **🔴 Atipicidade Extrema ($Z \ge 4{,}5\sigma$):** Confluência crítica de desvios simultâneos de horário, fluxo e habilitação.
+
+    ---
+
+    #### 🎯 Como Interpretar os Gráficos em Poucos Segundos
+
+    1. **Gráfico de Dispersão Multivariada ($Z$ Pós-17h vs $Z$ Manual):**
+       * **Concentração Inferior Esquerda:** Reúne mais de 95% das seções brasileiras. São os círculos que operaram rigorosamente dentro do padrão esperado para suas cidades.
+       * **Linhas de Demarcação (+2$\sigma$ amarela e +3$\sigma$ vermelha):** Indicam os limites de significância estatística. Círculos posicionados além da linha vermelha (seja para a direita ou para cima) operaram com taxas significativamente superiores ao restante do município.
+       * **Canto Superior Direito:** Representa a confluência mais crítica da fiscalização — urnas que acumularam fechamento tardio com alta taxa de habilitação sem biometria.
+
+    2. **Gráfico de Distribuição (Modo Faixas de Risco):**
+       * **Barra Azul (Normal, < 2$\sigma$):** Confirma a estabilidade e regularidade da imensa maioria das urnas auditadas no país.
+       * **Barra Amarela (Atenção, 2 a 3$\sigma$):** Seções com atipicidades operacionais moderadas (geralmente explicadas por dinâmica local de filas).
+       * **Barras Laranja e Vermelha ($\ge 3\sigma$):** O foco prioritário da auditoria. Evidencia com clareza o volume exato e a proporção de urnas que demandam verificação cruzada com a Ata da Mesa Receptora e o Boletim de Urna (BU).
 
     ---
 
