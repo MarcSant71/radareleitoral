@@ -1322,7 +1322,6 @@ def ir_para_resultados():
 # FILTROS LATERAIS (SIDEBAR)
 # ==========================================
 st.sidebar.header("🔍 Filtros")
-st.sidebar.caption("📦 **Versão 2.1.0** • Núcleo Spiegelhalter (2005)")
 
 col_reg, col_uf = st.sidebar.columns([3, 2])
 regioes_disponiveis = ["Todas", "Centro-Oeste", "Nordeste", "Norte", "Sudeste", "Sul"]
@@ -1564,12 +1563,29 @@ if aba_selecionada == OPCOES_NAV[0]:
                         "z_composto": "Desvio Geral (σ)"
                     }
                 )
-                # Linhas de referência de significância estatística (+2σ e +3σ)
-                fig_scatter.add_vline(x=2.0, line_dash="dash", line_color="orange", annotation_text="+2σ (Pós-17h)")
-                fig_scatter.add_vline(x=3.0, line_dash="dash", line_color="red", annotation_text="+3σ Crítico")
-                fig_scatter.add_hline(y=2.0, line_dash="dash", line_color="orange", annotation_text="+2σ (Manual)")
-                fig_scatter.add_hline(y=3.0, line_dash="dash", line_color="red", annotation_text="+3σ Crítico")
-                fig_scatter.update_layout(template=plotly_theme, height=420, margin=dict(l=20, r=20, t=30, b=20), separators=",.")
+                # Linhas de referência de significância estatística (+2σ e +3σ) com geometria anti-colisão
+                fig_scatter.add_vline(
+                    x=2.0, line_dash="dot", line_color="#f59e0b",
+                    annotation_text="+2σ", annotation_position="top left",
+                    annotation_font=dict(size=10, color="#f59e0b")
+                )
+                fig_scatter.add_vline(
+                    x=3.0, line_dash="dash", line_color="#ef4444",
+                    annotation_text="+3σ Crítico", annotation_position="top right",
+                    annotation_yshift=-25,
+                    annotation_font=dict(size=11, color="#ef4444")
+                )
+                fig_scatter.add_hline(
+                    y=2.0, line_dash="dot", line_color="#f59e0b",
+                    annotation_text="+2σ", annotation_position="top left",
+                    annotation_font=dict(size=10, color="#f59e0b")
+                )
+                fig_scatter.add_hline(
+                    y=3.0, line_dash="dash", line_color="#ef4444",
+                    annotation_text="+3σ Crítico", annotation_position="top right",
+                    annotation_font=dict(size=11, color="#ef4444")
+                )
+                fig_scatter.update_layout(template=plotly_theme, height=420, margin=dict(l=20, r=20, t=40, b=20), separators=",.")
                 st.plotly_chart(fig_scatter, width="stretch")
                 if len(df_filtrado) > 5000:
                     st.caption("💡 Amostra estatística de 5.000 seções (priorizando as seções de maior atipicidade).")
@@ -1585,9 +1601,18 @@ if aba_selecionada == OPCOES_NAV[0]:
                     color_discrete_sequence=["#1f77b4"],
                     labels={"z_composto": "Desvio Padronizado Composto (σ)"}
                 )
-                fig_hist.add_vline(x=2.0, line_dash="dash", line_color="orange", annotation_text="+2σ Atenção")
-                fig_hist.add_vline(x=3.0, line_dash="solid", line_color="red", annotation_text="+3σ Alta Atipicidade")
-                fig_hist.update_layout(template=plotly_theme, height=420, margin=dict(l=20, r=20, t=30, b=20), separators=",.")
+                fig_hist.add_vline(
+                    x=2.0, line_dash="dash", line_color="#f59e0b",
+                    annotation_text="+2σ Atenção", annotation_position="top left",
+                    annotation_font=dict(size=10, color="#f59e0b")
+                )
+                fig_hist.add_vline(
+                    x=3.0, line_dash="solid", line_color="#ef4444",
+                    annotation_text="+3σ Crítico", annotation_position="top right",
+                    annotation_yshift=-26,
+                    annotation_font=dict(size=11, color="#ef4444")
+                )
+                fig_hist.update_layout(template=plotly_theme, height=420, margin=dict(l=20, r=20, t=40, b=20), separators=",.")
                 st.plotly_chart(fig_hist, width="stretch")
 
     # ==========================================
