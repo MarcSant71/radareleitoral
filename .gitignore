@@ -31,3 +31,6 @@ scripts/
 .vscode/
 .idea/
 .DS_Store
+
+# Documentação e notas de infraestrutura local (privadas)
+*.local.md
