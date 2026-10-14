@@ -1100,37 +1100,58 @@ css_global = """
         flex-direction: row !important;
         align-items: center !important;
         justify-content: center !important;
-        width: max-content !important;
+        width: auto !important;
         max-width: 90vw !important;
-        padding: 0.85rem 1.75rem !important;
+        padding: 0.85rem 1.65rem !important;
         border-radius: 9999px !important;
         backdrop-filter: blur(16px) !important;
         -webkit-backdrop-filter: blur(16px) !important;
         white-space: nowrap !important;
         animation: spinnerFadeInScale 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
         pointer-events: auto !important;
+        box-sizing: border-box !important;
     }
-    [data-testid="stSpinner"] > div {
-        display: flex !important;
+    [data-testid="stSpinner"] > div,
+    .stSpinner > div {
+        display: inline-flex !important;
         flex-direction: row !important;
         align-items: center !important;
         justify-content: center !important;
         gap: 0.75rem !important;
         width: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
         white-space: nowrap !important;
     }
-    [data-testid="stSpinner"] [data-testid="stMarkdownContainer"] {
+    [data-testid="stSpinner"] [data-testid="stMarkdownContainer"],
+    .stSpinner [data-testid="stMarkdownContainer"],
+    [data-testid="stSpinner"] div[role="status"],
+    .stSpinner div[role="status"],
+    [data-testid="stSpinner"] div.e1dfnxdh2,
+    .stSpinner div.e1dfnxdh2 {
+        display: inline-flex !important;
+        align-items: center !important;
         white-space: nowrap !important;
         width: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    [data-testid="stSpinnerIcon"],
+    [data-testid="stSpinner"] span,
+    .stSpinner span {
+        flex-shrink: 0 !important;
+        margin: 0 !important;
+        vertical-align: middle !important;
     }
     [data-testid="stSpinner"] p,
-    [data-testid="stSpinner"] span,
-    [data-testid="stSpinner"] div {
+    .stSpinner p {
         font-weight: 600 !important;
         font-size: 1.05rem !important;
         margin: 0 !important;
+        padding: 0 !important;
         line-height: 1.2 !important;
         white-space: nowrap !important;
+        display: inline-block !important;
     }
     @keyframes spinnerFadeInScale {
         from {
