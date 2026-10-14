@@ -965,31 +965,38 @@ css_global = """
     /* ========================================================
        RESPONSIVIDADE DOS CARDS DE KPI (MÉTRICAS DO CABEÇALHO)
        ======================================================== */
-    div.st-key-kpi_metrics [data-testid="stHorizontalBlock"] {
+    div.st-key-kpi_metrics [data-testid="stHorizontalBlock"],
+    div.st-key-kpi_metrics .stHorizontalBlock {
         display: flex !important;
         flex-wrap: wrap !important;
         gap: 0.65rem !important;
         align-items: stretch !important;
     }
 
-    /* Padrão (Desktop grande): 5 colunas fluidas */
-    div.st-key-kpi_metrics [data-testid="column"] {
-        flex: 1 1 calc(20% - 0.65rem) !important;
-        min-width: 170px !important;
+    /* Padrão (Desktop): colunas fluidas com min-width seguro */
+    div.st-key-kpi_metrics [data-testid="stColumn"],
+    div.st-key-kpi_metrics [data-testid="column"],
+    div.st-key-kpi_metrics .stColumn {
+        flex: 1 1 175px !important;
+        min-width: 155px !important;
         box-sizing: border-box !important;
     }
 
     /* Tablets e telas médias (entre 768px e 1150px): 3 colunas em cima, 2 embaixo */
     @media (max-width: 1150px) and (min-width: 768px) {
-        div.st-key-kpi_metrics [data-testid="column"] {
+        div.st-key-kpi_metrics [data-testid="stColumn"],
+        div.st-key-kpi_metrics [data-testid="column"],
+        div.st-key-kpi_metrics .stColumn {
             flex: 1 1 calc(33.333% - 0.65rem) !important;
-            min-width: 155px !important;
+            min-width: 150px !important;
         }
     }
 
     /* Celulares e telas estreitas (entre 420px e 767px): 2 colunas lado a lado */
     @media (max-width: 767px) and (min-width: 420px) {
-        div.st-key-kpi_metrics [data-testid="column"] {
+        div.st-key-kpi_metrics [data-testid="stColumn"],
+        div.st-key-kpi_metrics [data-testid="column"],
+        div.st-key-kpi_metrics .stColumn {
             flex: 1 1 calc(50% - 0.4rem) !important;
             min-width: 135px !important;
         }
@@ -1014,7 +1021,9 @@ css_global = """
 
     /* Celulares muito estreitos (< 420px): 1 coluna por linha */
     @media (max-width: 419px) {
-        div.st-key-kpi_metrics [data-testid="column"] {
+        div.st-key-kpi_metrics [data-testid="stColumn"],
+        div.st-key-kpi_metrics [data-testid="column"],
+        div.st-key-kpi_metrics .stColumn {
             flex: 1 1 100% !important;
             min-width: 100% !important;
         }
@@ -1023,19 +1032,24 @@ css_global = """
     /* ========================================================
        RESPONSIVIDADE DOS GRÁFICOS (EM TELAS MENORES FICAM 1 POR LINHA)
        ======================================================== */
-    div.st-key-graficos_container [data-testid="stHorizontalBlock"] {
+    div.st-key-graficos_container [data-testid="stHorizontalBlock"],
+    div.st-key-graficos_container .stHorizontalBlock {
         display: flex !important;
         flex-wrap: wrap !important;
         gap: 1rem !important;
     }
 
-    div.st-key-graficos_container [data-testid="column"] {
+    div.st-key-graficos_container [data-testid="stColumn"],
+    div.st-key-graficos_container [data-testid="column"],
+    div.st-key-graficos_container .stColumn {
         flex: 1 1 calc(50% - 0.5rem) !important;
         min-width: 320px !important;
     }
 
     @media (max-width: 850px) {
-        div.st-key-graficos_container [data-testid="column"] {
+        div.st-key-graficos_container [data-testid="stColumn"],
+        div.st-key-graficos_container [data-testid="column"],
+        div.st-key-graficos_container .stColumn {
             flex: 1 1 100% !important;
             min-width: 100% !important;
         }
