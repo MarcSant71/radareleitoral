@@ -915,13 +915,14 @@ css_global = """
         flex-direction: column !important;
         justify-content: flex-start !important;
         padding: 10px 14px !important;
+        box-sizing: border-box !important;
     }
     [data-testid="stMetricLabel"] {
         display: flex !important;
         align-items: flex-start !important;
         justify-content: space-between !important;
         width: 100% !important;
-        min-height: 2.6rem !important;
+        min-height: 2.5rem !important;
         margin-bottom: 0.15rem !important;
     }
     [data-testid="stMetricLabel"] > div {
@@ -934,10 +935,12 @@ css_global = """
         text-overflow: clip !important;
     }
     [data-testid="stMetricLabel"] p {
-        font-size: 0.98rem !important;
+        font-size: 0.95rem !important;
         font-weight: 600 !important;
-        line-height: 1.22 !important;
+        line-height: 1.2 !important;
         white-space: normal !important;
+        word-break: normal !important;
+        overflow-wrap: normal !important;
         margin-bottom: 0 !important;
     }
     [data-testid="stMetricLabel"] .stTooltipIcon,
@@ -957,6 +960,85 @@ css_global = """
     [data-testid="stMetricDelta"], [data-testid="stMetricDelta"] * {
         font-size: 0.92rem !important;
         font-weight: 600 !important;
+    }
+
+    /* ========================================================
+       RESPONSIVIDADE DOS CARDS DE KPI (MÉTRICAS DO CABEÇALHO)
+       ======================================================== */
+    div.st-key-kpi_metrics [data-testid="stHorizontalBlock"] {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 0.65rem !important;
+        align-items: stretch !important;
+    }
+
+    /* Padrão (Desktop grande): 5 colunas fluidas */
+    div.st-key-kpi_metrics [data-testid="column"] {
+        flex: 1 1 calc(20% - 0.65rem) !important;
+        min-width: 170px !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Tablets e telas médias (entre 768px e 1150px): 3 colunas em cima, 2 embaixo */
+    @media (max-width: 1150px) and (min-width: 768px) {
+        div.st-key-kpi_metrics [data-testid="column"] {
+            flex: 1 1 calc(33.333% - 0.65rem) !important;
+            min-width: 155px !important;
+        }
+    }
+
+    /* Celulares e telas estreitas (entre 420px e 767px): 2 colunas lado a lado */
+    @media (max-width: 767px) and (min-width: 420px) {
+        div.st-key-kpi_metrics [data-testid="column"] {
+            flex: 1 1 calc(50% - 0.4rem) !important;
+            min-width: 135px !important;
+        }
+        [data-testid="stMetric"] {
+            min-height: 105px !important;
+            padding: 8px 10px !important;
+        }
+        [data-testid="stMetricLabel"] {
+            min-height: 2.2rem !important;
+        }
+        [data-testid="stMetricValue"], [data-testid="stMetricValue"] * {
+            font-size: 1.30rem !important;
+        }
+        [data-testid="stMetricLabel"] p {
+            font-size: 0.82rem !important;
+            line-height: 1.15 !important;
+        }
+        [data-testid="stMetricDelta"], [data-testid="stMetricDelta"] * {
+            font-size: 0.80rem !important;
+        }
+    }
+
+    /* Celulares muito estreitos (< 420px): 1 coluna por linha */
+    @media (max-width: 419px) {
+        div.st-key-kpi_metrics [data-testid="column"] {
+            flex: 1 1 100% !important;
+            min-width: 100% !important;
+        }
+    }
+
+    /* ========================================================
+       RESPONSIVIDADE DOS GRÁFICOS (EM TELAS MENORES FICAM 1 POR LINHA)
+       ======================================================== */
+    div.st-key-graficos_container [data-testid="stHorizontalBlock"] {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 1rem !important;
+    }
+
+    div.st-key-graficos_container [data-testid="column"] {
+        flex: 1 1 calc(50% - 0.5rem) !important;
+        min-width: 320px !important;
+    }
+
+    @media (max-width: 850px) {
+        div.st-key-graficos_container [data-testid="column"] {
+            flex: 1 1 100% !important;
+            min-width: 100% !important;
+        }
     }
 
     /* Centralização Dinâmica do Spinner ("Processando, aguarde...") no centro geométrico da tela */
@@ -1353,94 +1435,96 @@ if aba_selecionada == OPCOES_NAV[0]:
     pct_total_pos17 = (total_pos17 / total_votos * 100.0) if total_votos > 0 else 0.0
     criticas = len(df_filtrado[df_filtrado["score_suspeicao"] >= 35.0])
 
-    c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric(
-        "Seções Filtradas",
-        fmt_int_br(total_secoes),
-        help="Quantidade total de seções eleitorais que atendem aos filtros selecionados na barra lateral."
-    )
-    c2.metric(
-        "Total de Votos",
-        fmt_int_br(total_votos),
-        help="Soma dos votos oficiais registrados nos arquivos de log das urnas para as seções selecionadas."
-    )
-    c3.metric(
-        "Votos Pós-17h",
-        fmt_int_br(total_pos17),
-        f"{fmt_float_br(pct_total_pos17)}% do total",
-        help="Volume e proporção percentual de eleitores que votaram após as 17h00 (horário oficial de encerramento)."
-    )
-    c4.metric(
-        "Alta Atipicidade",
-        fmt_int_br(criticas),
-        help="Seções com Score ≥ 35, combinando encerramento pós-17h e taxa atípica de liberação manual sem biometria."
-    )
-    media_score = df_filtrado["score_suspeicao"].mean() if total_secoes > 0 else 0.0
-    c5.metric(
-        "Score Médio",
-        f"{fmt_float_br(media_score)}/100",
-        help="Média ponderada do score de risco forense (0 a 100) das seções filtradas na tela."
-    )
+    with st.container(key="kpi_metrics"):
+        c1, c2, c3, c4, c5 = st.columns(5)
+        c1.metric(
+            "Seções Filtradas",
+            fmt_int_br(total_secoes),
+            help="Quantidade total de seções eleitorais que atendem aos filtros selecionados na barra lateral."
+        )
+        c2.metric(
+            "Total de Votos",
+            fmt_int_br(total_votos),
+            help="Soma dos votos oficiais registrados nos arquivos de log das urnas para as seções selecionadas."
+        )
+        c3.metric(
+            "Votos Pós-17h",
+            fmt_int_br(total_pos17),
+            f"{fmt_float_br(pct_total_pos17)}% do total",
+            help="Volume e proporção percentual de eleitores que votaram após as 17h00 (horário oficial de encerramento)."
+        )
+        c4.metric(
+            "Alta Atipicidade",
+            fmt_int_br(criticas),
+            help="Seções com Score ≥ 35, combinando encerramento pós-17h e taxa atípica de liberação manual sem biometria."
+        )
+        media_score = df_filtrado["score_suspeicao"].mean() if total_secoes > 0 else 0.0
+        c5.metric(
+            "Score Médio",
+            f"{fmt_float_br(media_score)}/100",
+            help="Média ponderada do score de risco forense (0 a 100) das seções filtradas na tela."
+        )
 
     st.markdown("---")
 
     # ==========================================
     # GRÁFICOS ANALÍTICOS (ALINHAMENTO SIMÉTRICO)
     # ==========================================
-    col_graf1, col_graf2 = st.columns(2)
+    with st.container(key="graficos_container"):
+        col_graf1, col_graf2 = st.columns(2)
 
-    with col_graf1:
-        st.subheader("📊 Votos Pós-17h vs Habilitação Manual")
-        st.caption("Cruzamento analítico: volume após as 17h vs taxa de habilitação manual.")
-        if not df_filtrado.empty:
-            # Amostra inteligente para dispersão quando volume for muito massivo (reduz de 17MB para 180KB)
-            if len(df_filtrado) > 5000:
-                criticas = df_filtrado[df_filtrado["score_suspeicao"] >= 35.0]
-                if len(criticas) >= 5000:
-                    df_scatter = criticas.sample(5000, random_state=42)
+        with col_graf1:
+            st.subheader("📊 Votos Pós-17h vs Habilitação Manual")
+            st.caption("Cruzamento analítico: volume após as 17h vs taxa de habilitação manual.")
+            if not df_filtrado.empty:
+                # Amostra inteligente para dispersão quando volume for muito massivo (reduz de 17MB para 180KB)
+                if len(df_filtrado) > 5000:
+                    criticas = df_filtrado[df_filtrado["score_suspeicao"] >= 35.0]
+                    if len(criticas) >= 5000:
+                        df_scatter = criticas.sample(5000, random_state=42)
+                    else:
+                        outras = df_filtrado[df_filtrado["score_suspeicao"] < 35.0]
+                        amostra = outras.sample(min(len(outras), 5000 - len(criticas)), random_state=42)
+                        df_scatter = pd.concat([criticas, amostra])
                 else:
-                    outras = df_filtrado[df_filtrado["score_suspeicao"] < 35.0]
-                    amostra = outras.sample(min(len(outras), 5000 - len(criticas)), random_state=42)
-                    df_scatter = pd.concat([criticas, amostra])
-            else:
-                df_scatter = df_filtrado
+                    df_scatter = df_filtrado
 
-            fig_scatter = px.scatter(
-                df_scatter,
-                x="pct_apos_17h",
-                y="pct_manual_pos17h",
-                size="total_votos_log",
-                color="score_suspeicao",
-                hover_data=["uf", "municipio_nome", "zona", "secao", "ultimo_voto", "motivos_alerta"],
-                color_continuous_scale="Reds",
-                labels={
-                    "pct_apos_17h": "% Votos após as 17h",
-                    "pct_manual_pos17h": "% Habilitação Manual Pós-17h",
-                    "score_suspeicao": "Score Suspeição"
-                }
-            )
-            # Linhas de referência
-            fig_scatter.add_vline(x=10, line_dash="dash", line_color="gray", annotation_text="Limite 10% pós-17h")
-            fig_scatter.add_hline(y=50, line_dash="dash", line_color="gray", annotation_text="50% Manual")
-            fig_scatter.update_layout(template=plotly_theme, height=420, margin=dict(l=20, r=20, t=30, b=20), separators=",.")
-            st.plotly_chart(fig_scatter, width="stretch")
-            if len(df_filtrado) > 5000:
-                st.caption("💡 Amostra estatística de 5.000 seções (priorizando as seções de maior atipicidade).")
+                fig_scatter = px.scatter(
+                    df_scatter,
+                    x="pct_apos_17h",
+                    y="pct_manual_pos17h",
+                    size="total_votos_log",
+                    color="score_suspeicao",
+                    hover_data=["uf", "municipio_nome", "zona", "secao", "ultimo_voto", "motivos_alerta"],
+                    color_continuous_scale="Reds",
+                    labels={
+                        "pct_apos_17h": "% Votos após as 17h",
+                        "pct_manual_pos17h": "% Habilitação Manual Pós-17h",
+                        "score_suspeicao": "Score Suspeição"
+                    }
+                )
+                # Linhas de referência
+                fig_scatter.add_vline(x=10, line_dash="dash", line_color="gray", annotation_text="Limite 10% pós-17h")
+                fig_scatter.add_hline(y=50, line_dash="dash", line_color="gray", annotation_text="50% Manual")
+                fig_scatter.update_layout(template=plotly_theme, height=420, margin=dict(l=20, r=20, t=30, b=20), separators=",.")
+                st.plotly_chart(fig_scatter, width="stretch")
+                if len(df_filtrado) > 5000:
+                    st.caption("💡 Amostra estatística de 5.000 seções (priorizando as seções de maior atipicidade).")
 
-    with col_graf2:
-        st.subheader("⏰ Distribuição do Horário do Último Voto")
-        st.caption("Concentração de horários em que o último eleitor votou na seção.")
-        if not df_filtrado.empty:
-            fig_hist = px.histogram(
-                df_filtrado.dropna(subset=["hora_ult_dec"]),
-                x="hora_ult_dec",
-                nbins=30,
-                color_discrete_sequence=["#1f77b4"],
-                labels={"hora_ult_dec": "Horário do Último Voto (Hora decimal)"}
-            )
-            fig_hist.add_vline(x=17.0, line_dash="solid", line_color="red", annotation_text="17:00 Fechamento Oficial")
-            fig_hist.update_layout(template=plotly_theme, height=420, margin=dict(l=20, r=20, t=30, b=20), xaxis=dict(tickmode="linear", tick0=16, dtick=0.5), separators=",.")
-            st.plotly_chart(fig_hist, width="stretch")
+        with col_graf2:
+            st.subheader("⏰ Distribuição do Horário do Último Voto")
+            st.caption("Concentração de horários em que o último eleitor votou na seção.")
+            if not df_filtrado.empty:
+                fig_hist = px.histogram(
+                    df_filtrado.dropna(subset=["hora_ult_dec"]),
+                    x="hora_ult_dec",
+                    nbins=30,
+                    color_discrete_sequence=["#1f77b4"],
+                    labels={"hora_ult_dec": "Horário do Último Voto (Hora decimal)"}
+                )
+                fig_hist.add_vline(x=17.0, line_dash="solid", line_color="red", annotation_text="17:00 Fechamento Oficial")
+                fig_hist.update_layout(template=plotly_theme, height=420, margin=dict(l=20, r=20, t=30, b=20), xaxis=dict(tickmode="linear", tick0=16, dtick=0.5), separators=",.")
+                st.plotly_chart(fig_hist, width="stretch")
 
     # ==========================================
     # TABELA FORENSE RANKING DAS SEÇÕES
