@@ -1269,7 +1269,7 @@ def carregar_dados():
     # Aplicação do Motor Estatístico Rigoroso (Spiegelhalter 2005)
     df = aplicar_motor_estatistico(df)
 
-    # Otimização de pegada de memória RAM (downcasting de inteiros/floats e categorias)
+    # Otimização de consumo de memória RAM (downcasting de inteiros/floats e categorias)
     df["uf"] = df["uf"].astype("category")
     for col in df.select_dtypes(include=["int64"]).columns:
         df[col] = pd.to_numeric(df[col], downcast="integer")
@@ -1876,16 +1876,6 @@ else:
 
     ---
 
-    ### 🏷️ 6. Histórico de Versões e Changelog Técnico
-
-    | Versão | Data | Principais Mudanças e Evolução Metodológica |
-    | :--- | :---: | :--- |
-    | **v2.1.0** | **14/10/2026** | **Implementação do Motor Estatístico de Spiegelhalter (2005):**<br>• Substituição de regras heurísticas e pesos arbitrários aditivos por inferência estatística baseada em desvios padronizados ($z$-scores em sigmas $\sigma$).<br>• Adoção da técnica *Leave-One-Out* municipal para eliminação de viés e falsos alarmes.<br>• Estimativa robusta da superdispersão $\tau^2$ intra-UF via MAD.<br>• Métricas multivariadas compostas (Norma Euclidiana L2) e novos diagnósticos objetivos de alerta.<br>• Identificação formal de versionamento em toda a plataforma. |
-    | **v2.0.0** | **13/10/2026** | **Auditoria Nacional Consolidada (27 UFs):**<br>• Processamento paralelo e decodificação ASN.1 dos 497.895 BUs e logs de eventos do TSE.<br>• Arquitetura SQLite WAL de alta performance com pegada de memória otimizada (440 MB).<br>• Suporte nativo a Tema Claro/Escuro instantâneo e layout responsivo. |
-    | **v1.0.0** | **11/10/2026** | Protótipo inicial de extração de dados abertos do TSE e ranking exploratório. |
-
-    ---
-
     ### 🛡️ 5. Privacidade, Proteção de Dados (LGPD) e Cookies de Navegação
 
     Este site segue com rigor as diretrizes da **Lei Geral de Proteção de Dados Pessoais (LGPD - Lei Federal nº 13.709/2018)** e as normas constitucionais de publicidade e transparência da administração pública:
@@ -1905,6 +1895,16 @@ else:
 
     4. **Canal de Transparência e Exercício de Direitos:**  
        * Em observância ao Art. 18 da LGPD, o titular de dados que desejar esclarecimentos adicionais sobre o tratamento de informações técnicas de navegação ou governança deste site pode entrar em contato diretamente pelo e-mail: [contato@dominiodigital.dev.br](mailto:contato@dominiodigital.dev.br).
+
+    ---
+
+    ### 🏷️ 6. Histórico de Versões e Changelog Técnico
+
+    | Versão | Data | Principais Mudanças e Evolução Metodológica |
+    | :--- | :---: | :--- |
+    | **v2.1.0** | **14/10/2026** | **Implementação do Motor Estatístico de Spiegelhalter (2005):**<br>• Substituição de regras heurísticas e pesos arbitrários aditivos por inferência estatística baseada em desvios padronizados ($z$-scores em sigmas $\sigma$).<br>• Adoção da técnica *Leave-One-Out* municipal para eliminação de viés e falsos alarmes.<br>• Estimativa robusta da superdispersão $\tau^2$ intra-UF via MAD.<br>• Métricas multivariadas compostas (Norma Euclidiana L2) e novos diagnósticos objetivos de alerta.<br>• Identificação formal de versionamento em toda a plataforma. |
+    | **v2.0.0** | **13/10/2026** | **Auditoria Nacional Consolidada (27 UFs):**<br>• Processamento paralelo e decodificação ASN.1 dos 497.895 BUs e logs de eventos do TSE.<br>• Arquitetura SQLite WAL de alta performance com baixo consumo de memória RAM (440 MB).<br>• Suporte nativo a Tema Claro/Escuro instantâneo e layout responsivo. |
+    | **v1.0.0** | **11/10/2026** | Protótipo inicial de extração de dados abertos do TSE e ranking exploratório. |
     """)
 
     st.markdown("---")
