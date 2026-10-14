@@ -1585,35 +1585,124 @@ if aba_selecionada == OPCOES_NAV[0]:
                     annotation_text="+3σ Crítico", annotation_position="top right",
                     annotation_font=dict(size=11, color="#ef4444")
                 )
+                # Viewport dinâmico focado nos 99.5% dos dados, evitando compressão por outliers extremos
+                q995_x = float(df_scatter["z_pos17"].quantile(0.995)) if len(df_scatter) > 10 else 20.0
+                q995_y = float(df_scatter["z_manual"].quantile(0.995)) if len(df_scatter) > 10 else 12.0
+                x_max = max(15.0, min(30.0, q995_x + 2.0))
+                y_max = max(10.0, min(20.0, q995_y + 2.0))
+                fig_scatter.update_xaxes(range=[-1.5, x_max])
+                fig_scatter.update_yaxes(range=[-1.5, y_max])
+
                 fig_scatter.update_layout(template=plotly_theme, height=420, margin=dict(l=20, r=20, t=40, b=20), separators=",.")
                 st.plotly_chart(fig_scatter, width="stretch")
                 if len(df_filtrado) > 5000:
-                    st.caption("💡 Amostra estatística de 5.000 seções (priorizando as seções de maior atipicidade).")
+                    st.caption("💡 Amostra estatística de 5.000 seções (priorizando as seções de maior atipicidade). Pan e zoom habilitados.")
 
         with col_graf2:
-            st.subheader("⏰ Distribuição de Desvios Estatísticos (Z-Score)")
-            st.caption("Histograma dos desvios padronizados em sigmas (σ) das seções auditadas.")
-            if not df_filtrado.empty:
-                fig_hist = px.histogram(
-                    df_filtrado.dropna(subset=["z_composto"]),
-                    x="z_composto",
-                    nbins=35,
-                    color_discrete_sequence=["#1f77b4"],
-                    labels={"z_composto": "Desvio Padronizado Composto (σ)"}
+            col_t2, col_opt = st.columns([1, 1])
+            with col_t2:
+                st.subheader("📊 Distribuição de Anomalias")
+            with col_opt:
+                modo_distribuicao = st.radio(
+                    "Modo de Visualização:",
+                    options=["📊 Faixas de Risco", "🔬 Histograma (Z)"],
+                    index=0,
+                    horizontal=True,
+                    label_visibility="collapsed",
+                    key="modo_dist_toggle"
                 )
-                fig_hist.add_vline(
-                    x=2.0, line_dash="dash", line_color="#f59e0b",
-                    annotation_text="+2σ Atenção", annotation_position="top left",
-                    annotation_font=dict(size=10, color="#f59e0b")
-                )
-                fig_hist.add_vline(
-                    x=3.0, line_dash="solid", line_color="#ef4444",
-                    annotation_text="+3σ Crítico", annotation_position="top right",
-                    annotation_yshift=-26,
-                    annotation_font=dict(size=11, color="#ef4444")
-                )
-                fig_hist.update_layout(template=plotly_theme, height=420, margin=dict(l=20, r=20, t=40, b=20), separators=",.")
-                st.plotly_chart(fig_hist, width="stretch")
+
+            if modo_distribuicao == "📊 Faixas de Risco":
+                st.caption("Classificação das seções pelo desvio padronizado multivariado (Modelo Spiegelhalter).")
+                if not df_filtrado.empty:
+                    total_s = len(df_filtrado)
+                    c_normal = int((df_filtrado["z_composto"] < 2.0).sum())
+                    c_atencao = int(((df_filtrado["z_composto"] >= 2.0) & (df_filtrado["z_composto"] < 3.0)).sum())
+                    c_alta = int(((df_filtrado["z_composto"] >= 3.0) & (df_filtrado["z_composto"] < 4.5)).sum())
+                    c_extrema = int((df_filtrado["z_composto"] >= 4.5).sum())
+
+                    p_normal = c_normal * 100.0 / total_s
+                    p_atencao = c_atencao * 100.0 / total_s
+                    p_alta = c_alta * 100.0 / total_s
+                    p_extrema = c_extrema * 100.0 / total_s
+
+                    df_cat = pd.DataFrame({
+                        "Faixa": [
+                            "Normal (< 2σ)",
+                            "Atenção (2-3σ)",
+                            "Alta Atipicidade (3-4.5σ)",
+                            "Anomalia Extrema (≥ 4.5σ)"
+                        ],
+                        "Qtd": [c_normal, c_atencao, c_alta, c_extrema],
+                        "Rotulo": [
+                            f"{p_normal:.1f}%<br>({fmt_int_br(c_normal)})",
+                            f"{p_atencao:.1f}%<br>({fmt_int_br(c_atencao)})",
+                            f"{p_alta:.1f}%<br>({fmt_int_br(c_alta)})",
+                            f"{p_extrema:.1f}%<br>({fmt_int_br(c_extrema)})"
+                        ]
+                    })
+
+                    cores_map = {
+                        "Normal (< 2σ)": "#3b82f6",
+                        "Atenção (2-3σ)": "#f59e0b",
+                        "Alta Atipicidade (3-4.5σ)": "#f97316",
+                        "Anomalia Extrema (≥ 4.5σ)": "#ef4444"
+                    }
+
+                    fig_cat = px.bar(
+                        df_cat,
+                        x="Faixa",
+                        y="Qtd",
+                        text="Rotulo",
+                        color="Faixa",
+                        color_discrete_map=cores_map,
+                        labels={"Faixa": "Nível de Significância Forense", "Qtd": "Quantidade de Seções"}
+                    )
+                    fig_cat.update_traces(
+                        textposition="outside",
+                        cliponaxis=False,
+                        textfont=dict(size=12, color="#f0f2f6")
+                    )
+                    fig_cat.update_layout(
+                        template=plotly_theme,
+                        height=420,
+                        showlegend=False,
+                        margin=dict(l=20, r=20, t=55, b=20),
+                        separators=",."
+                    )
+                    st.plotly_chart(fig_cat, width="stretch")
+            else:
+                st.caption("Histograma contínuo dos desvios padronizados em sigmas (σ) até 12σ.")
+                if not df_filtrado.empty:
+                    z_valid = df_filtrado["z_composto"].dropna()
+                    z_plot = z_valid.clip(0.0, 12.0)
+                    fig_hist = px.histogram(
+                        z_plot,
+                        x="z_composto",
+                        nbins=30,
+                        range_x=[0.0, 12.0],
+                        color_discrete_sequence=["#3b82f6"],
+                        labels={"z_composto": "Desvio Padronizado Composto (σ)"}
+                    )
+                    fig_hist.add_vline(
+                        x=2.0, line_dash="dash", line_color="#f59e0b",
+                        annotation_text="+2σ Atenção", annotation_position="top left",
+                        annotation_font=dict(size=10, color="#f59e0b")
+                    )
+                    fig_hist.add_vline(
+                        x=3.0, line_dash="solid", line_color="#ef4444",
+                        annotation_text="+3σ Crítico", annotation_position="top right",
+                        annotation_yshift=-26,
+                        annotation_font=dict(size=11, color="#ef4444")
+                    )
+                    fig_hist.update_layout(
+                        template=plotly_theme,
+                        height=420,
+                        margin=dict(l=20, r=20, t=40, b=20),
+                        separators=",."
+                    )
+                    st.plotly_chart(fig_hist, width="stretch")
+                    st.caption("💡 Exibição focada no intervalo de 0 a 12σ (onde se concentram 98,3% das seções). Casos extremos são consolidados na borda direita.")
 
     # ==========================================
     # TABELA FORENSE RANKING DAS SEÇÕES
