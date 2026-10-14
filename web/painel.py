@@ -2170,7 +2170,7 @@ else:
 
     ---
 
-    #### 🎯 Como Interpretar os Gráficos em Poucos Segundos
+    #### 🎯 Como Interpretar os Gráficos?
 
     1. **Gráfico de Dispersão Multivariada ($Z$ Pós-17h vs $Z$ Manual):**
        * **Concentração Inferior Esquerda:** Reúne mais de 95% das seções brasileiras. São os círculos que operaram rigorosamente dentro do padrão esperado para suas cidades.
