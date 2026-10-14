@@ -1282,7 +1282,7 @@ def carregar_dados():
     return df
 
 st.title("🗳️ Auditoria Eleições 2026: Análise Estatística Forense")
-st.caption("Sistema de Fiscalização Estatística e Detecção de Anomalias de Urna Eletrônica • Base Oficial TSE • **Versão 2.1.0 (Motor Spiegelhalter)**")
+st.caption("Sistema de Fiscalização Estatística e Detecção de Anomalias de Urna Eletrônica • Base Oficial TSE • **Versão 2.1.0**")
 
 MAPA_REGIOES = {
     "AC": "Norte", "AP": "Norte", "AM": "Norte", "PA": "Norte", "RO": "Norte", "RR": "Norte", "TO": "Norte",
@@ -1777,7 +1777,7 @@ if aba_selecionada == OPCOES_NAV[0]:
     )
 
     st.markdown("---")
-    st.markdown("<p style='margin-top: -1.1rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Versão 2.1.0 (Motor Estatístico Spiegelhalter)</p>", unsafe_allow_html=True)
+    st.markdown("<p style='margin-top: -1.1rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Versão 2.1.0</p>", unsafe_allow_html=True)
 
 # ==========================================
 # ABA: SOBRE ESTE SITE & METODOLOGIA FORENSE
@@ -1903,10 +1903,10 @@ else:
     | Versão | Data | Principais Mudanças e Evolução Metodológica |
     | :--- | :---: | :--- |
     | **v2.1.0** | **14/10/2026** | **Implementação do Motor Estatístico de Spiegelhalter (2005):**<br>• Substituição de regras heurísticas e pesos arbitrários aditivos por inferência estatística baseada em desvios padronizados ($z$-scores em sigmas $\sigma$).<br>• Adoção da técnica *Leave-One-Out* municipal para eliminação de viés e falsos alarmes.<br>• Estimativa robusta da superdispersão $\tau^2$ intra-UF via MAD.<br>• Métricas multivariadas compostas (Norma Euclidiana L2) e novos diagnósticos objetivos de alerta.<br>• Identificação formal de versionamento em toda a plataforma. |
-    | **v2.0.0** | **13/10/2026** | **Auditoria Nacional Consolidada (27 UFs):**<br>• Processamento paralelo e decodificação ASN.1 dos 497.895 BUs e logs de eventos do TSE.<br>• Arquitetura SQLite WAL de alta performance com baixo consumo de memória RAM (440 MB).<br>• Suporte nativo a Tema Claro/Escuro instantâneo e layout responsivo. |
+    | **v2.0.0** | **13/10/2026** | **Auditoria Nacional Consolidada (27 UFs):**<br>• Processamento paralelo e decodificação ASN.1 dos 497.895 BUs e logs de eventos do TSE.<br>• Arquitetura SQLite WAL de alta performance com baixo consumo de memória RAM.<br>• Suporte nativo a Tema Claro/Escuro instantâneo e layout responsivo. |
     | **v1.0.0** | **11/10/2026** | Protótipo inicial de extração de dados abertos do TSE e ranking exploratório. |
     """)
 
     st.markdown("---")
-    st.markdown("<p style='margin-top: -1.1rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026</p>", unsafe_allow_html=True)
+    st.markdown("<p style='margin-top: -1.1rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Versão 2.1.0</p>", unsafe_allow_html=True)
 
