@@ -25,7 +25,7 @@ O projeto é estruturado com clara separação entre a plataforma de visualizaç
 Eleicao2026/
 │
 ├── web/                       # [PRODUÇÃO] Aplicação web servida ao público
-│   ├── painel.py              # Interface analítica completa em Streamlit (v2.1.0)
+│   ├── painel.py              # Interface analítica completa em Streamlit (v2.2.0)
 │   ├── estatistica.py         # Motor de inferência estatística de Spiegelhalter (2005)
 │   └── db.py                  # Camada de conexão e consultas SQLite otimizada com WAL
 │
