@@ -1,0 +1,42 @@
+services:
+  painel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: eleicoes2026_painel
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    environment:
+      - DATABASE_PATH=/app/db/eleicoes2026.db
+    volumes:
+      - ./db:/app/db
+      - ./web:/app/web
+      - ./index.html:/usr/local/lib/python3.11/site-packages/streamlit/static/index.html:ro
+      - ./og_preview.png:/usr/local/lib/python3.11/site-packages/streamlit/static/og_preview.png:ro
+    networks:
+      - app-network
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: eleicoes2026_proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - painel
+    networks:
+      - app-network
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  app-network:
+    driver: bridge

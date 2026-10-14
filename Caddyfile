@@ -1,0 +1,7 @@
+eleicao2026.dominiodigital.dev.br {
+    reverse_proxy painel:8501
+}
+
+:80 {
+    reverse_proxy painel:8501
+}

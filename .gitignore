@@ -1,0 +1,33 @@
+# Ambientes virtuais e Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# Banco de dados SQLite de grande porte (178MB excede o limite de 100MB do GitHub!)
+# Deve ser transferido para a VPS via SCP/rsync ou baixado separadamente.
+db/*.db
+db/*.db-wal
+db/*.db-shm
+
+# Dados brutos, compactados e temporários
+dados_brutos/
+antigos/
+*.zip
+*.tar.gz
+deploy_package.tar.gz
+*.log
+*.pdf
+
+# Scripts locais e operacionais (Windows/deploy)
+scripts/
+*.cmd
+*.bat
+
+# Streamlit e IDEs
+.streamlit/secrets.toml
+.vscode/
+.idea/
+.DS_Store

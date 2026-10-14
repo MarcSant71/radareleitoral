@@ -1,0 +1,15 @@
+__pycache__
+*.pyc
+.git
+.gitignore
+antigos
+scripts
+pipeline
+dados_brutos
+*.zip
+*.log
+*.pdf
+*.db-wal
+*.db-shm
+.vscode
+.idea
