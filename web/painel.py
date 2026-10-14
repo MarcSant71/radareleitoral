@@ -505,17 +505,20 @@ else:
     [data-testid="stMetricLabel"] span {
         color: #334155 !important;
     }
-    /* Ícone de ajuda (?) legível e escuro no modo claro */
+    /* Ícone de ajuda (?) legível e nítido no modo claro (sem preenchimento sólido) */
     .stApp .stTooltipIcon svg,
     .stApp .stTooltipHoverTarget svg,
-    .stApp [data-testid="stTooltipIcon"] svg,
-    .stApp [data-testid="stMetric"] svg,
-    .stApp [data-testid="stMetricLabel"] svg,
-    .stApp svg.icon {
+    .stApp [data-testid="stTooltipIcon"] svg {
         color: #475569 !important;
         stroke: #475569 !important;
-        fill: #475569 !important;
-        opacity: 0.9 !important;
+        fill: none !important;
+        opacity: 0.85 !important;
+    }
+    .stApp .stTooltipIcon svg *,
+    .stApp .stTooltipHoverTarget svg *,
+    .stApp [data-testid="stTooltipIcon"] svg * {
+        stroke: #475569 !important;
+        fill: none !important;
     }
     /* Conteúdo flutuante do tooltip */
     [data-testid="stTooltipContent"],
