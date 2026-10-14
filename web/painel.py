@@ -1172,7 +1172,7 @@ def fmt_float_br(val, decimals=1, force_sign=False) -> str:
     except (ValueError, TypeError):
         return str(val)
 
-@st.cache_data(show_spinner="Carregando base de dados da eleição...")
+@st.cache_data(show_spinner="Processando, aguarde...")
 def carregar_dados():
     if not DB_PATH.exists():
         return pd.DataFrame()
