@@ -1531,6 +1531,25 @@ if aba_selecionada == OPCOES_NAV[0]:
     # GRÁFICOS ANALÍTICOS (ALINHAMENTO SIMÉTRICO)
     # ==========================================
     with st.container(key="graficos_container"):
+        c_top1, c_top2 = st.columns([1, 1])
+        with c_top1:
+            st.markdown("<p style='font-size: 0.92rem; font-weight: 500; color: #8b949e; margin-top: 14px; margin-bottom: 0;'>📈 Modelagem Estatística Multivariada (Spiegelhalter 2005)</p>", unsafe_allow_html=True)
+        with c_top2:
+            modo_distribuicao = st.radio(
+                "Tipo de Gráfico (Distribuição):",
+                options=["📊 Faixas de Risco", "🔬 Histograma (Z)"],
+                index=0,
+                horizontal=True,
+                help=(
+                    "Escolha como prefere visualizar a distribuição das urnas:\n\n"
+                    "• 📊 Faixas de Risco (Recomendado): Visão simples e direta que agrupa as seções em 4 níveis "
+                    "(Normal, Atenção, Alta Atipicidade e Anomalia Extrema), mostrando o total e a porcentagem de urnas em cada grupo.\n\n"
+                    "• 🔬 Histograma (Z): Curva matemática detalhada dos desvios em sigmas (σ), "
+                    "ideal para quem deseja auditar tecnicamente a frequência e a intensidade dos desvios."
+                ),
+                key="modo_dist_toggle"
+            )
+
         col_graf1, col_graf2 = st.columns(2)
 
         with col_graf1:
@@ -1596,27 +1615,10 @@ if aba_selecionada == OPCOES_NAV[0]:
                 fig_scatter.update_layout(template=plotly_theme, height=420, margin=dict(l=20, r=20, t=40, b=20), separators=",.")
                 st.plotly_chart(fig_scatter, width="stretch")
                 if len(df_filtrado) > 5000:
-                    st.caption("💡 Amostra estatística de 5.000 seções (priorizando as seções de maior atipicidade). Pan e zoom habilitados.")
+                    st.caption("*💡 Amostra estatística de 5.000 seções (priorizando as seções de maior atipicidade). Pan e zoom habilitados.*")
 
         with col_graf2:
-            col_t2, col_opt = st.columns([1, 1])
-            with col_t2:
-                st.subheader("📊 Distribuição de Anomalias")
-            with col_opt:
-                modo_distribuicao = st.radio(
-                    "Tipo de Gráfico:",
-                    options=["📊 Faixas de Risco", "🔬 Histograma (Z)"],
-                    index=0,
-                    horizontal=True,
-                    help=(
-                        "Escolha como prefere visualizar a distribuição das urnas:\n\n"
-                        "• 📊 Faixas de Risco (Recomendado): Visão simples e direta que agrupa as seções em 4 níveis "
-                        "(Normal, Atenção, Alta Atipicidade e Anomalia Extrema), mostrando o total e a porcentagem de urnas em cada grupo.\n\n"
-                        "• 🔬 Histograma (Z): Curva matemática detalhada dos desvios em sigmas (σ), "
-                        "ideal para quem deseja auditar tecnicamente a frequência e a intensidade dos desvios."
-                    ),
-                    key="modo_dist_toggle"
-                )
+            st.subheader("📊 Distribuição de Anomalias")
 
             if modo_distribuicao == "📊 Faixas de Risco":
                 st.caption("Classificação das seções pelo desvio padronizado multivariado (Modelo Spiegelhalter).")
@@ -1708,7 +1710,7 @@ if aba_selecionada == OPCOES_NAV[0]:
                         separators=",."
                     )
                     st.plotly_chart(fig_hist, width="stretch")
-                    st.caption("💡 Exibição focada no intervalo de 0 a 12σ (onde se concentram 98,3% das seções). Casos extremos são consolidados na borda direita.")
+                    st.caption("*💡 Exibição focada no intervalo de 0 a 12σ (onde se concentram 98,3% das seções). Casos extremos são consolidados na borda direita.*")
 
     # ==========================================
     # TABELA FORENSE RANKING DAS SEÇÕES
@@ -1996,59 +1998,16 @@ else:
 
     st.subheader("🏷️ 6. Histórico de Versões e Changelog Técnico")
     st.markdown("""
-<div style="overflow-x: auto;">
-<table style="width: 100%; border-collapse: collapse; margin-top: 0.8rem; font-size: 0.92rem;">
-  <thead>
-    <tr style="border-bottom: 2px solid #30363d; text-align: left;">
-      <th style="padding: 10px 14px; width: 12%; font-weight: 600;">Versão</th>
-      <th style="padding: 10px 14px; width: 14%; text-align: center; font-weight: 600;">Data</th>
-      <th style="padding: 10px 14px; font-weight: 600;">Principais Mudanças e Evolução Metodológica</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr style="border-bottom: 1px solid #21262d;">
-      <td style="padding: 12px 14px; vertical-align: top; font-weight: bold; white-space: nowrap;">v2.2.0</td>
-      <td style="padding: 12px 14px; vertical-align: top; text-align: center; color: #8b949e; white-space: nowrap;">14/10/2026</td>
-      <td style="padding: 12px 14px; vertical-align: top; line-height: 1.6;">
-        <strong>Experiência Analítica Dual &amp; Calibração Visual:</strong><br>
-        • Nova visualização de distribuição em modo duplo: <em>Faixas de Risco Forense</em> (visão intuitiva com contagens e percentuais por categoria) e <em>Histograma Contínuo</em> (visão técnica detalhada até 12σ) com seletor e ajuda contextual explicativa <code>(?)</code>.<br>
-        • <em>Viewport</em> dinâmico inteligente no gráfico de dispersão multivariada (calibrado no 99,5º percentil), eliminando a aglomeração causada por seções com horários extremos.<br>
-        • Desacoplamento geométrico das anotações de significância (+2σ e +3σ), eliminando sobreposições de texto.<br>
-        • Sincronização do manifesto de módulos dinâmicos e conformidade com diretrizes de governança e LGPD.
-      </td>
-    </tr>
-    <tr style="border-bottom: 1px solid #21262d;">
-      <td style="padding: 12px 14px; vertical-align: top; font-weight: bold; white-space: nowrap;">v2.1.0</td>
-      <td style="padding: 12px 14px; vertical-align: top; text-align: center; color: #8b949e; white-space: nowrap;">14/10/2026</td>
-      <td style="padding: 12px 14px; vertical-align: top; line-height: 1.6;">
-        <strong>Implementação do Motor Estatístico de Spiegelhalter (2005):</strong><br>
-        • Substituição de regras heurísticas e pesos arbitrários por inferência estatística baseada em desvios padronizados (<em>z</em>-scores em sigmas σ).<br>
-        • Adoção da técnica <em>Leave-One-Out</em> municipal para eliminação de viés e falsos alarmes.<br>
-        • Estimativa robusta da superdispersão τ² intra-UF via MAD.<br>
-        • Métricas multivariadas compostas (Norma Euclidiana L2) e novos diagnósticos objetivos de alerta.<br>
-        • Identificação formal de versionamento em toda a plataforma.
-      </td>
-    </tr>
-    <tr style="border-bottom: 1px solid #21262d;">
-      <td style="padding: 12px 14px; vertical-align: top; font-weight: bold; white-space: nowrap;">v2.0.0</td>
-      <td style="padding: 12px 14px; vertical-align: top; text-align: center; color: #8b949e; white-space: nowrap;">13/10/2026</td>
-      <td style="padding: 12px 14px; vertical-align: top; line-height: 1.6;">
-        <strong>Auditoria Nacional Consolidada (27 UFs):</strong><br>
-        • Processamento paralelo e decodificação ASN.1 dos 497.895 BUs e logs de eventos do TSE em escala nacional.<br>
-        • Arquitetura SQLite WAL de alta performance com baixo consumo de memória RAM.<br>
-        • Suporte nativo a Tema Claro/Escuro instantâneo e layout responsivo.
-      </td>
-    </tr>
-    <tr>
-      <td style="padding: 12px 14px; vertical-align: top; font-weight: bold; white-space: nowrap;">v1.0.0</td>
-      <td style="padding: 12px 14px; vertical-align: top; text-align: center; color: #8b949e; white-space: nowrap;">11/10/2026</td>
-      <td style="padding: 12px 14px; vertical-align: top; line-height: 1.6;">
-        Protótipo inicial de extração de dados abertos do TSE e ranking exploratório.
-      </td>
-    </tr>
-  </tbody>
-</table>
-</div>
+<style>
+div[data-testid="stMarkdownContainer"] table td { vertical-align: top; }
+</style>
+
+| Versão | Data | Principais Mudanças e Evolução Metodológica |
+| :--- | :---: | :--- |
+| **v2.2.0** | **14/10/2026** | **Experiência Analítica Dual & Calibração Visual:**<br>• Nova visualização de distribuição em modo duplo: *Faixas de Risco Forense* (visão intuitiva com contagens e percentuais por categoria) e *Histograma Contínuo* (visão técnica detalhada até 12σ) com seletor e ajuda contextual explicativa `(?)`.<br>• *Viewport* dinâmico inteligente no gráfico de dispersão multivariada (calibrado no 99,5º percentil), eliminando a aglomeração causada por seções com horários extremos.<br>• Desacoplamento geométrico das anotações de significância (+2σ e +3σ), eliminando sobreposições de texto.<br>• Sincronização do manifesto de módulos dinâmicos e conformidade com diretrizes de governança e LGPD. |
+| **v2.1.0** | **14/10/2026** | **Implementação do Motor Estatístico de Spiegelhalter (2005):**<br>• Substituição de regras heurísticas e pesos arbitrários por inferência estatística baseada em desvios padronizados (*z*-scores em sigmas σ).<br>• Adoção da técnica *Leave-One-Out* municipal para eliminação de viés e falsos alarmes.<br>• Estimativa robusta da superdispersão τ² intra-UF via MAD.<br>• Métricas multivariadas compostas (Norma Euclidiana L2) e novos diagnósticos objetivos de alerta.<br>• Identificação formal de versionamento em toda a plataforma. |
+| **v2.0.0** | **13/10/2026** | **Auditoria Nacional Consolidada (27 UFs):**<br>• Processamento paralelo e decodificação ASN.1 dos 497.895 BUs e logs de eventos do TSE em escala nacional.<br>• Arquitetura SQLite WAL de alta performance com baixo consumo de memória RAM.<br>• Suporte nativo a Tema Claro/Escuro instantâneo e layout responsivo. |
+| **v1.0.0** | **11/10/2026** | Protótipo inicial de extração de dados abertos do TSE e ranking exploratório. |
 """, unsafe_allow_html=True)
 
     st.markdown("---")
