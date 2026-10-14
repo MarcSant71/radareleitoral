@@ -1126,6 +1126,17 @@ def carregar_dados():
     """
     df = pd.read_sql_query(query, conn)
     conn.close()
+
+    # Otimização de pegada de memória RAM (downcasting de inteiros/floats e categorias)
+    df["uf"] = df["uf"].astype("category")
+    for col in df.select_dtypes(include=["int64"]).columns:
+        df[col] = pd.to_numeric(df[col], downcast="integer")
+    for col in df.select_dtypes(include=["float64"]).columns:
+        df[col] = pd.to_numeric(df[col], downcast="float")
+
+    import gc
+    gc.collect()
+
     return df
 
 st.title("🗳️ Auditoria Eleições 2026: Análise de Votos por Horário")
@@ -1146,8 +1157,8 @@ if df.empty:
     st.info("Execute o arquivo `atualizar_dados.cmd` para sincronizar os dados brutos e consolidar o banco.")
     st.stop()
 
-# Adiciona coluna de região
-df["regiao"] = df["uf"].map(MAPA_REGIOES).fillna("Outra")
+# Adiciona coluna de região como categoria leve
+df["regiao"] = df["uf"].map(MAPA_REGIOES).fillna("Outra").astype("category")
 
 OPCOES_NAV = [
     "📊 Painel de Auditoria & Ranking Forense",
