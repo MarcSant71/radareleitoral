@@ -1992,29 +1992,64 @@ else:
        * Em observância ao Art. 18 da LGPD, o titular de dados que desejar esclarecimentos adicionais sobre o tratamento de informações técnicas de navegação ou governança deste site pode entrar em contato diretamente pelo e-mail: [contato@dominiodigital.dev.br](mailto:contato@dominiodigital.dev.br).
 
     ---
-
-    ### 🏷️ 6. Histórico de Versões e Changelog Técnico
-
-    * **v2.2.0 (14/10/2026) — Experiência Analítica Dual & Calibração Visual:**
-      * **Modo Duplo de Distribuição:** Nova visualização com alternância entre *Faixas de Risco Forense* (visão intuitiva com contagens e percentuais por categoria) e *Histograma Contínuo* (visão técnica até 12σ) com seletor e ajuda contextual explicativa `(?)`.
-      * **Viewport Dinâmico:** Ancoragem inteligente no 99,5º percentil no gráfico de dispersão multivariada, eliminando a aglomeração causada por seções com horários extremos.
-      * **Geometria Anti-Colisão:** Desacoplamento espacial das anotações de significância (+2σ e +3σ), eliminando 100% das sobreposições de texto.
-      * **Sincronização de Assets:** Sincronização do manifesto de módulos dinâmicos e conformidade com diretrizes de governança e LGPD.
-
-    * **v2.1.0 (14/10/2026) — Implementação do Motor Estatístico de Spiegelhalter (2005):**
-      * **Inferência Estatística Rigorosa:** Substituição de regras heurísticas e pesos arbitrários por inferência estatística baseada em desvios padronizados ($z$-scores em sigmas $\sigma$).
-      * **Normalização Leave-One-Out:** Adoção da técnica de exclusão da própria seção para eliminação de viés e falsos alarmes municipais.
-      * **Sobredispersão Residual ($\tau^2$):** Estimativa robusta da superdispersão intra-estadual via MAD.
-      * **Métricas Multivariadas Compostas:** Integração pela Norma Euclidiana $L_2$ e novos diagnósticos objetivos de alerta.
-
-    * **v2.0.0 (13/10/2026) — Auditoria Nacional Consolidada (27 UFs):**
-      * **Processamento Paralelo:** Decodificação ASN.1 dos 497.895 BUs e logs de eventos do TSE em escala nacional.
-      * **Arquitetura de Alta Performance:** Banco de dados SQLite WAL com baixo consumo de memória RAM.
-      * **Interface Moderna:** Suporte nativo a Tema Claro/Escuro instantâneo e design fluido para desktop, tablet e mobile.
-
-    * **v1.0.0 (11/10/2026) — Protótipo Inicial:**
-      * Protótipo inicial de extração de dados abertos do TSE e ranking exploratório.
     """)
+
+    st.subheader("🏷️ 6. Histórico de Versões e Changelog Técnico")
+    st.markdown("""
+<div style="overflow-x: auto;">
+<table style="width: 100%; border-collapse: collapse; margin-top: 0.8rem; font-size: 0.92rem;">
+  <thead>
+    <tr style="border-bottom: 2px solid #30363d; text-align: left;">
+      <th style="padding: 10px 14px; width: 12%; font-weight: 600;">Versão</th>
+      <th style="padding: 10px 14px; width: 14%; text-align: center; font-weight: 600;">Data</th>
+      <th style="padding: 10px 14px; font-weight: 600;">Principais Mudanças e Evolução Metodológica</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style="border-bottom: 1px solid #21262d;">
+      <td style="padding: 12px 14px; vertical-align: top; font-weight: bold; white-space: nowrap;">v2.2.0</td>
+      <td style="padding: 12px 14px; vertical-align: top; text-align: center; color: #8b949e; white-space: nowrap;">14/10/2026</td>
+      <td style="padding: 12px 14px; vertical-align: top; line-height: 1.6;">
+        <strong>Experiência Analítica Dual &amp; Calibração Visual:</strong><br>
+        • Nova visualização de distribuição em modo duplo: <em>Faixas de Risco Forense</em> (visão intuitiva com contagens e percentuais por categoria) e <em>Histograma Contínuo</em> (visão técnica detalhada até 12σ) com seletor e ajuda contextual explicativa <code>(?)</code>.<br>
+        • <em>Viewport</em> dinâmico inteligente no gráfico de dispersão multivariada (calibrado no 99,5º percentil), eliminando a aglomeração causada por seções com horários extremos.<br>
+        • Desacoplamento geométrico das anotações de significância (+2σ e +3σ), eliminando sobreposições de texto.<br>
+        • Sincronização do manifesto de módulos dinâmicos e conformidade com diretrizes de governança e LGPD.
+      </td>
+    </tr>
+    <tr style="border-bottom: 1px solid #21262d;">
+      <td style="padding: 12px 14px; vertical-align: top; font-weight: bold; white-space: nowrap;">v2.1.0</td>
+      <td style="padding: 12px 14px; vertical-align: top; text-align: center; color: #8b949e; white-space: nowrap;">14/10/2026</td>
+      <td style="padding: 12px 14px; vertical-align: top; line-height: 1.6;">
+        <strong>Implementação do Motor Estatístico de Spiegelhalter (2005):</strong><br>
+        • Substituição de regras heurísticas e pesos arbitrários por inferência estatística baseada em desvios padronizados (<em>z</em>-scores em sigmas σ).<br>
+        • Adoção da técnica <em>Leave-One-Out</em> municipal para eliminação de viés e falsos alarmes.<br>
+        • Estimativa robusta da superdispersão τ² intra-UF via MAD.<br>
+        • Métricas multivariadas compostas (Norma Euclidiana L2) e novos diagnósticos objetivos de alerta.<br>
+        • Identificação formal de versionamento em toda a plataforma.
+      </td>
+    </tr>
+    <tr style="border-bottom: 1px solid #21262d;">
+      <td style="padding: 12px 14px; vertical-align: top; font-weight: bold; white-space: nowrap;">v2.0.0</td>
+      <td style="padding: 12px 14px; vertical-align: top; text-align: center; color: #8b949e; white-space: nowrap;">13/10/2026</td>
+      <td style="padding: 12px 14px; vertical-align: top; line-height: 1.6;">
+        <strong>Auditoria Nacional Consolidada (27 UFs):</strong><br>
+        • Processamento paralelo e decodificação ASN.1 dos 497.895 BUs e logs de eventos do TSE em escala nacional.<br>
+        • Arquitetura SQLite WAL de alta performance com baixo consumo de memória RAM.<br>
+        • Suporte nativo a Tema Claro/Escuro instantâneo e layout responsivo.
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 12px 14px; vertical-align: top; font-weight: bold; white-space: nowrap;">v1.0.0</td>
+      <td style="padding: 12px 14px; vertical-align: top; text-align: center; color: #8b949e; white-space: nowrap;">11/10/2026</td>
+      <td style="padding: 12px 14px; vertical-align: top; line-height: 1.6;">
+        Protótipo inicial de extração de dados abertos do TSE e ranking exploratório.
+      </td>
+    </tr>
+  </tbody>
+</table>
+</div>
+""", unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("<p style='margin-top: -1.1rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Versão 2.2.0</p>", unsafe_allow_html=True)
