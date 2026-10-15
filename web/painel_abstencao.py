@@ -26,7 +26,7 @@ COR_DESTAQUE_AZUL = "#2f6fb5"
 COR_NEUTRA_PONTOS = "#8b949e"
 COR_BARRA_ESCURA = "#33415c"
 COR_ALARME_AMARELO = "#e0a33a"
-AMOSTRA_FUNDO_MAX = 15_000
+AMOSTRA_FUNDO_MAX = 5_000
 
 
 def pct_br(val, casas=1) -> str:
@@ -362,7 +362,7 @@ def renderizar_metodologia_abstencao(modo_escuro: bool = True, plotly_theme: str
     * Confrontar o espelho do **Boletim de Urna (BU)** impresso na seção com a base digital oficial.
 
     ---
-    <p style='margin-top: 0.6rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Painel de Abstenção & Comparecimento • Versão 2.4.0</p>
+    <p style='margin-top: 0.6rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Painel de Abstenção & Comparecimento • Versão 2.4.1</p>
     """, unsafe_allow_html=True)
 
 
@@ -495,13 +495,11 @@ def renderizar_painel_abstencao(
     df_filtrado["f_man"] = f_man
     df_filtrado["n_criterios"] = n_crit
 
-    # Rótulo amigável dos critérios cumpridos
-    partes = pd.concat([
-        f_abst.map({True: "Baixa Abstenção", False: ""}),
-        f_17.map({True: "Voto Pós-17h", False: ""}),
-        f_man.map({True: "Liberação Manual", False: ""})
-    ], axis=1)
-    df_filtrado["criterios_rotulo"] = partes.apply(lambda r: " · ".join(x for x in r if x), axis=1)
+    # Rótulo amigável vetorizado dos critérios cumpridos (substitui apply lento de 500k linhas)
+    rotulo = np.where(f_abst, "Baixa Abstenção", "")
+    rotulo = np.where(f_17, np.where(rotulo != "", rotulo + " · Voto Pós-17h", "Voto Pós-17h"), rotulo)
+    rotulo = np.where(f_man, np.where(rotulo != "", rotulo + " · Liberação Manual", "Liberação Manual"), rotulo)
+    df_filtrado["criterios_rotulo"] = rotulo
     df_filtrado["sinalizada"] = n_crit >= criterios_cumpridos_opcao
 
     # Score Cruzado: Menor valor entre os dois critérios selecionados (só é alto se ambos forem extremos)
@@ -584,7 +582,8 @@ def renderizar_painel_abstencao(
     hora_media_ponderada = (df_filtrado["hora_ult_dec"] * df_filtrado["total_votos_log"]).sum() / tot_votos_log if tot_votos_log > 0 else 17.0
     dp_minutos = (df_filtrado["hora_ult_dec"].std() * 60.0) if secoes_com_log > 1 else 0.0
     pct_secoes_pos17 = ((df_filtrado["votos_apos_17h"] > 0).sum() * 100.0 / max(secoes_com_log, 1))
-    corr_abst_hora = df_filtrado["pct_abstencao"].rank().corr(df_filtrado["hora_ult_dec"].rank()) if secoes_com_log > 10 else 0.0
+    df_amostra_corr = df_filtrado.sample(20_000, random_state=42) if secoes_com_log > 20_000 else df_filtrado
+    corr_abst_hora = df_amostra_corr["pct_abstencao"].rank().corr(df_amostra_corr["hora_ult_dec"].rank()) if secoes_com_log > 10 else 0.0
     qtd_cruzamento = int((df_filtrado["score_cruzado"] >= limite_cruzamento).sum())
 
     # Métricas de Biometria
@@ -593,7 +592,7 @@ def renderizar_painel_abstencao(
     pct_sem_digital_geral = ((tot_votos_log - tot_bio_sucesso) * 100.0 / tot_votos_log) if tot_votos_log > 0 else 0.0
     pct_manual_geral = (tot_bio_manual * 100.0 / tot_votos_log) if tot_votos_log > 0 else 0.0
     dp_sem_digital = df_filtrado["pct_manual_calc"].std() if secoes_com_log > 1 else 0.0
-    corr_abst_manual = df_filtrado["pct_abstencao"].rank().corr(df_filtrado["pct_manual_calc"].rank()) if secoes_com_log > 10 else 0.0
+    corr_abst_manual = df_amostra_corr["pct_abstencao"].rank().corr(df_amostra_corr["pct_manual_calc"].rank()) if secoes_com_log > 10 else 0.0
     qtd_z3_sem_digital = int((df_filtrado["z_manual"] >= 3.0).sum())
     qtd_z3_manual = int((df_filtrado["z_manual"] >= 3.0).sum())
 
@@ -953,30 +952,54 @@ def renderizar_painel_abstencao(
 
             col_h_hist1, col_h_hist2 = st.columns(2)
             with col_h_hist1:
-                fig_h1 = px.histogram(
-                    df_hora,
-                    x="hora_ult_dec",
-                    nbins=40,
-                    template=plotly_theme,
-                    color_discrete_sequence=[COR_BARRA_ESCURA],
-                    title="Distribuição do Horário do Último Voto"
-                )
+                v_h1 = df_hora["hora_ult_dec"].dropna().to_numpy()
+                counts_h1, edges_h1 = np.histogram(v_h1, bins=40)
+                centers_h1 = (edges_h1[:-1] + edges_h1[1:]) / 2
+                widths_h1 = np.diff(edges_h1)
+
+                fig_h1 = go.Figure(go.Bar(
+                    x=centers_h1,
+                    y=counts_h1,
+                    width=widths_h1,
+                    marker_color=COR_BARRA_ESCURA,
+                    marker_line_width=0,
+                    hovertemplate="Hora %{x:.2f}: %{y:,} seções<extra></extra>"
+                ))
                 fig_h1.add_vline(x=17.0, line_dash="dash", line_color=COR_DESTAQUE_VERMELHO, annotation_text="17h00")
-                fig_h1.update_layout(xaxis_title="Hora Decimal", yaxis_title="Seções", height=340, margin=dict(l=10, r=10, t=40, b=10))
+                fig_h1.update_layout(
+                    template=plotly_theme,
+                    title="Distribuição do Horário do Último Voto",
+                    xaxis_title="Hora Decimal",
+                    yaxis_title="Seções",
+                    height=340,
+                    margin=dict(l=10, r=10, t=40, b=10)
+                )
                 st.plotly_chart(fig_h1, use_container_width=True)
 
             with col_h_hist2:
                 df_tardias = df_hora[df_hora["votos_apos_17h"] > 0]
-                fig_h2 = px.histogram(
-                    df_tardias,
-                    x="pct_apos_17h",
-                    nbins=35,
+                v_h2 = df_tardias["pct_apos_17h"].dropna().to_numpy()
+                counts_h2, edges_h2 = np.histogram(v_h2, bins=35)
+                centers_h2 = (edges_h2[:-1] + edges_h2[1:]) / 2
+                widths_h2 = np.diff(edges_h2)
+
+                fig_h2 = go.Figure(go.Bar(
+                    x=centers_h2,
+                    y=counts_h2,
+                    width=widths_h2,
+                    marker_color=COR_DESTAQUE_VERMELHO,
+                    marker_line_width=0,
+                    hovertemplate="% Pós-17h: %{x:.1f}%: %{y:,} seções<extra></extra>"
+                ))
+                fig_h2.update_layout(
                     template=plotly_theme,
-                    color_discrete_sequence=[COR_DESTAQUE_VERMELHO],
-                    log_y=True,
-                    title="Proporção Pós-17h nas Seções c/ Fila (Escala Log)"
+                    title="Proporção Pós-17h nas Seções c/ Fila (Escala Log)",
+                    xaxis_title="% Votos Pós-17h",
+                    yaxis_title="Seções (Log)",
+                    yaxis_type="log",
+                    height=340,
+                    margin=dict(l=10, r=10, t=40, b=10)
                 )
-                fig_h2.update_layout(xaxis_title="% Votos Pós-17h", yaxis_title="Seções (Log)", height=340, margin=dict(l=10, r=10, t=40, b=10))
                 st.plotly_chart(fig_h2, use_container_width=True)
 
             st.markdown("**Top Seções com Maior Proporção de Votos Após às 17h:**")

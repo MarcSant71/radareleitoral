@@ -23,10 +23,6 @@ import painel_abstencao
 import painel_auditoria
 import painel_governanca
 
-importlib.reload(estatistica)
-importlib.reload(painel_abstencao)
-importlib.reload(painel_auditoria)
-importlib.reload(painel_governanca)
 
 from estatistica import aplicar_motor_estatistico, aplicar_motor_abstencao
 from painel_abstencao import renderizar_painel_abstencao
@@ -1734,7 +1730,7 @@ def carregar_dados():
     return df
 
 st.title("🗳️ Eleições 2026: Ciência de Dados & Estatística Eleitoral")
-st.caption("Plataforma de Ciência de Dados e Análise Estatística da Votação • Base Oficial TSE • **Versão 2.4.0**")
+st.caption("Plataforma de Ciência de Dados e Análise Estatística da Votação • Base Oficial TSE • **Versão 2.4.1**")
 
 MAPA_REGIOES = {
     "AC": "Norte", "AP": "Norte", "AM": "Norte", "PA": "Norte", "RO": "Norte", "RR": "Norte", "TO": "Norte",
@@ -1794,6 +1790,7 @@ plataforma = painel_ativo
 if st.session_state.get("exibir_governanca", False):
     renderizar_painel_governanca(modo_escuro, plotly_theme)
 elif painel_ativo == "📉 Análise de Abstenção":
-    renderizar_painel_abstencao(df, modo_escuro, plotly_theme, fmt_int_br, fmt_float_br)
+    with st.spinner("Processando, aguarde..."):
+        renderizar_painel_abstencao(df, modo_escuro, plotly_theme, fmt_int_br, fmt_float_br)
 else:
     renderizar_painel_auditoria(df, modo_escuro, plotly_theme, fmt_int_br, fmt_float_br)
