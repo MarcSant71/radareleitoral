@@ -175,3 +175,79 @@ def aplicar_motor_estatistico(df: pd.DataFrame) -> pd.DataFrame:
     df["motivos_alerta"] = np.where(s_alertas != "", s_alertas, "Padrão normal (dentro de 95% do município)")
 
     return df
+
+
+def aplicar_motor_abstencao(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Executa a inferência estatística de abstenção e comparecimento:
+    - Adiciona pct_abstencao, pct_comparecimento
+    - Adiciona z_abstencao, esp_abstencao_pct (Spiegelhalter 2005)
+    - Adiciona classificações e alertas objetivos de atipicidade (ex: baixa abstenção anômala)
+    """
+    if df.empty or "total_aptos" not in df.columns:
+        return df
+
+    df = df.copy()
+
+    # Se pct_abstencao e pct_comparecimento não existirem, calcula
+    if "pct_abstencao" not in df.columns:
+        df["pct_abstencao"] = (df["faltosos_bu"] * 100.0 / np.maximum(df["total_aptos"], 1)).round(2)
+    if "pct_comparecimento" not in df.columns:
+        df["pct_comparecimento"] = (df["comparecimento_bu"] * 100.0 / np.maximum(df["total_aptos"], 1)).round(2)
+
+    # Z-scores de Proporção (Spiegelhalter 2005) para Abstenção
+    z_abst, esp_abst = calc_z_proporcao(df, "faltosos_bu", "total_aptos")
+    df["z_abstencao"] = z_abst.round(1)
+    df["esp_abstencao_pct"] = esp_abst
+
+    # Classificação de Atipicidade da Abstenção
+    condicoes = [
+        df["z_abstencao"] <= -3.0,
+        df["z_abstencao"] <= -2.0,
+        df["z_abstencao"] >= 3.0,
+        df["z_abstencao"] >= 2.0
+    ]
+    rotulos = [
+        "🚨 Baixa Abstenção Extrema (Z ≤ -3.0σ)",
+        "🔴 Baixa Abstenção Anômala (Z ≤ -2.0σ)",
+        "🟠 Alta Abstenção Extrema (Z ≥ +3.0σ)",
+        "🟡 Alta Abstenção Moderada (Z ≥ +2.0σ)"
+    ]
+    df["nivel_abstencao"] = np.select(condicoes, rotulos, default="Normal (|Z| < 2.0σ)")
+
+    # Alertas Forenses de Abstenção
+    s_alertas = pd.Series("", index=df.index, dtype=object)
+
+    def _anexar_abst(mask: pd.Series, txt_series: pd.Series):
+        nonlocal s_alertas
+        m = mask.fillna(False)
+        if m.any():
+            separador = np.where(s_alertas[m] == "", "", " | ")
+            s_alertas[m] = s_alertas[m] + separador + txt_series[m]
+
+    # Alerta 1: Baixa abstenção extrema (muito menos faltosos do que o esperado)
+    mask_baixa = df["z_abstencao"] <= -2.0
+    txt_baixa = (
+        "Baixa abstenção a " + df["z_abstencao"].astype(str) + "σ do município (obs " +
+        df["pct_abstencao"].round(1).astype(str) + "% vs esp " +
+        df["esp_abstencao_pct"].round(1).astype(str) + "%)"
+    )
+    _anexar_abst(mask_baixa, txt_baixa)
+
+    # Alerta 2: Alta abstenção extrema
+    mask_alta = df["z_abstencao"] >= 2.0
+    txt_alta = (
+        "Alta abstenção a +" + df["z_abstencao"].astype(str) + "σ do município (obs " +
+        df["pct_abstencao"].round(1).astype(str) + "% vs esp " +
+        df["esp_abstencao_pct"].round(1).astype(str) + "%)"
+    )
+    _anexar_abst(mask_alta, txt_alta)
+
+    # Alerta 3: Abstenção ínfima (≤ 5% em seções com mais de 50 eleitores)
+    mask_infima = (df["pct_abstencao"] <= 5.0) & (df["total_aptos"] >= 50)
+    txt_infima = pd.Series("Abstenção quase nula (≤ 5% dos aptos)", index=df.index)
+    _anexar_abst(mask_infima, txt_infima)
+
+    df["motivos_alerta_abst"] = np.where(s_alertas != "", s_alertas, "Padrão normal de abstenção (dentro de 95% do município)")
+
+    return df
