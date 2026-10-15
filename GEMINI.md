@@ -55,3 +55,6 @@
 - O sistema operacional local é **Windows**.
 - Utilizar exclusivamente comandos nativos do **PowerShell** (ex: `Select-String`, `Get-Content`, `scp.exe`, `ssh.exe`).
 - Não utilizar comandos de Linux no shell local.
+
+## 7. Playbook Operacional de Referência
+- Para arquitetura de referência, modelos de configuração (`Caddyfile`, `docker-compose.yml`), comandos de auditoria e automação de deploy, consulte o playbook padrão em [DEPLOY-VPS.md](file:///W:/OneDrive/Projetos/Pessoal/DEPLOY-VPS.md).
