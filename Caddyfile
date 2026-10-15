@@ -1,7 +1,22 @@
 eleicao2026.dominiodigital.dev.br {
+    header {
+        # Oculta assinatura e versao de servidores internos
+        -Server
+        -Via
+
+        # Protecoes OWASP de Borda
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    }
+
     reverse_proxy painel:8501
 }
 
 :80 {
-    reverse_proxy painel:8501
+    # Redireciona qualquer chamada HTTP ou por IP direto para o domínio seguro HTTPS
+    redir https://eleicao2026.dominiodigital.dev.br{uri} permanent
 }
+

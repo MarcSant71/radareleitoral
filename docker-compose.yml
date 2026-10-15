@@ -5,8 +5,6 @@ services:
       dockerfile: Dockerfile
     container_name: eleicoes2026_painel
     restart: unless-stopped
-    ports:
-      - "8501:8501"
     environment:
       - DATABASE_PATH=/app/db/eleicoes2026.db
     deploy:
