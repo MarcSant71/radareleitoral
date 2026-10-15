@@ -16,10 +16,22 @@ _source_dir = Path(__file__).resolve().parent
 if str(_source_dir) not in sys.path:
     sys.path.insert(0, str(_source_dir))
 
+import importlib
 from db import DB_PATH
+import estatistica
+import painel_abstencao
+import painel_auditoria
+import painel_governanca
+
+importlib.reload(estatistica)
+importlib.reload(painel_abstencao)
+importlib.reload(painel_auditoria)
+importlib.reload(painel_governanca)
+
 from estatistica import aplicar_motor_estatistico, aplicar_motor_abstencao
 from painel_abstencao import renderizar_painel_abstencao
 from painel_auditoria import renderizar_painel_auditoria
+from painel_governanca import renderizar_painel_governanca
 
 st.set_page_config(
     page_title="Eleições 2026 - Ciência de Dados & Estatística Eleitoral",
@@ -50,6 +62,10 @@ if modo_escuro:
     [data-testid="stSidebar"] {
         background-color: #161b22 !important;
         border-right: 1px solid #30363d !important;
+    }
+    [data-testid="stSidebarHeader"]::before {
+        color: #f0f2f6 !important;
+        opacity: 0.75 !important;
     }
     .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp p, .stApp span, .stApp label, [data-testid="stMarkdownContainer"] * {
         color: #f0f2f6 !important;
@@ -116,13 +132,16 @@ if modo_escuro:
         color: #f0f2f6 !important;
     }
 
-    /* 1. SELECTBOXES (DROPDOWNS) */
-    div[data-baseweb="select"] > div {
+    /* 1. SELECTBOXES (DROPDOWNS) & INPUTS */
+    div[data-baseweb="select"] > div,
+    div[data-baseweb="input"] > div {
         background-color: #21262d !important;
         border: 1px solid #30363d !important;
         color: #f0f2f6 !important;
     }
-    div[data-baseweb="select"] * {
+    div[data-baseweb="select"] *,
+    div[data-baseweb="input"] *,
+    div[data-baseweb="input"] input {
         color: #f0f2f6 !important;
         fill: #f0f2f6 !important;
     }
@@ -155,6 +174,23 @@ if modo_escuro:
         color: #ffffff !important;
     }
 
+    /* 2.1 MODAL DIALOG (MODO ESCURO) */
+    div[role="dialog"],
+    div[data-testid="stDialog"] > div {
+        background-color: #161b22 !important;
+        border: 1px solid #30363d !important;
+        color: #f0f2f6 !important;
+        border-radius: 12px !important;
+    }
+    div[role="dialog"] h2,
+    div[data-testid="stDialog"] h2 {
+        color: #f0f2f6 !important;
+    }
+    div[role="dialog"] button[aria-label="Close"],
+    div[data-testid="stDialog"] button[aria-label="Close"] {
+        color: #f0f2f6 !important;
+    }
+
     /* 3. EXPANDER */
     [data-testid="stExpander"] {
         background-color: #161b22 !important;
@@ -169,8 +205,9 @@ if modo_escuro:
         fill: #f0f2f6 !important;
     }
 
-    /* 5. CHECKBOX */
-    [data-testid="stCheckbox"] label * {
+    /* 5. CHECKBOX & RADIO */
+    [data-testid="stCheckbox"] label *,
+    [data-testid="stRadio"] label * {
         color: #f0f2f6 !important;
     }
 
@@ -282,23 +319,29 @@ if modo_escuro:
         padding: 0.1em 0.35em !important;
     }
 
-    /* 7. BOTÃO CIRCULAR DE TEMA (MODO ESCURO -> ÍCONE SOL) */
+    /* 7. BOTÕES CIRCULARES DE TEMA E AJUDA (?) (MODO ESCURO) */
     div.st-key-btn_theme_toggle [data-testid="stBaseButton-secondary"],
-    div.st-key-btn_theme_toggle button {
+    div.st-key-btn_theme_toggle button,
+    div.st-key-btn_help [data-testid="stBaseButton-secondary"],
+    div.st-key-btn_help button {
         background-color: #161b22 !important;
         border: 1px solid #30363d !important;
         box-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
         color: #f0f2f6 !important;
     }
     div.st-key-btn_theme_toggle [data-testid="stBaseButton-secondary"]:hover,
-    div.st-key-btn_theme_toggle button:hover {
+    div.st-key-btn_theme_toggle button:hover,
+    div.st-key-btn_help [data-testid="stBaseButton-secondary"]:hover,
+    div.st-key-btn_help button:hover {
         background-color: #21262d !important;
         border-color: #58a6ff !important;
         box-shadow: 0 2px 8px rgba(0,0,0,0.6) !important;
         color: #58a6ff !important;
     }
     div.st-key-btn_theme_toggle [data-testid="stBaseButton-secondary"]:focus,
-    div.st-key-btn_theme_toggle button:focus {
+    div.st-key-btn_theme_toggle button:focus,
+    div.st-key-btn_help [data-testid="stBaseButton-secondary"]:focus,
+    div.st-key-btn_help button:focus {
         outline: none !important;
         box-shadow: 0 0 0 2px #58a6ff !important;
     }
@@ -501,6 +544,10 @@ else:
         background-color: #ffffff !important;
         border-right: 1px solid #e2e8f0 !important;
     }
+    [data-testid="stSidebarHeader"]::before {
+        color: #0f172a !important;
+        opacity: 0.75 !important;
+    }
     
     /* Textos, títulos e legendas */
     .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp p, .stApp span, .stApp label, [data-testid="stMarkdownContainer"] * {
@@ -568,14 +615,17 @@ else:
         color: #0f172a !important;
     }
 
-    /* 1. SELECTBOXES (DROPDOWNS) */
-    div[data-baseweb="select"] > div {
+    /* 1. SELECTBOXES (DROPDOWNS) & INPUTS */
+    div[data-baseweb="select"] > div,
+    div[data-baseweb="input"] > div {
         background-color: #f1f5f9 !important;
         border: 1px solid #cbd5e1 !important;
         color: #0f172a !important;
         box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
     }
-    div[data-baseweb="select"] * {
+    div[data-baseweb="select"] *,
+    div[data-baseweb="input"] *,
+    div[data-baseweb="input"] input {
         color: #0f172a !important;
         fill: #0f172a !important;
     }
@@ -610,6 +660,24 @@ else:
         color: #0f172a !important;
     }
 
+    /* 2.1 MODAL DIALOG (MODO CLARO) */
+    div[role="dialog"],
+    div[data-testid="stDialog"] > div {
+        background-color: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #0f172a !important;
+        border-radius: 12px !important;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15) !important;
+    }
+    div[role="dialog"] h2,
+    div[data-testid="stDialog"] h2 {
+        color: #0f172a !important;
+    }
+    div[role="dialog"] button[aria-label="Close"],
+    div[data-testid="stDialog"] button[aria-label="Close"] {
+        color: #0f172a !important;
+    }
+
     /* 3. EXPANDER (AJUSTE FINO) */
     [data-testid="stExpander"] {
         background-color: #ffffff !important;
@@ -631,8 +699,9 @@ else:
         background-color: #ffffff !important;
     }
 
-    /* 5. CHECKBOX */
-    [data-testid="stCheckbox"] label * {
+    /* 5. CHECKBOX & RADIO */
+    [data-testid="stCheckbox"] label *,
+    [data-testid="stRadio"] label * {
         color: #0f172a !important;
     }
     [data-testid="stCheckbox"] div[role="checkbox"] {
@@ -757,23 +826,29 @@ else:
         padding: 0.1em 0.35em !important;
     }
 
-    /* 8. BOTÃO CIRCULAR DE TEMA (MODO CLARO -> ÍCONE LUA) */
+    /* 8. BOTÕES CIRCULARES DE TEMA E AJUDA (?) (MODO CLARO) */
     div.st-key-btn_theme_toggle [data-testid="stBaseButton-secondary"],
-    div.st-key-btn_theme_toggle button {
+    div.st-key-btn_theme_toggle button,
+    div.st-key-btn_help [data-testid="stBaseButton-secondary"],
+    div.st-key-btn_help button {
         background-color: #ffffff !important;
         border: 1px solid #cbd5e1 !important;
         box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
         color: #0f172a !important;
     }
     div.st-key-btn_theme_toggle [data-testid="stBaseButton-secondary"]:hover,
-    div.st-key-btn_theme_toggle button:hover {
+    div.st-key-btn_theme_toggle button:hover,
+    div.st-key-btn_help [data-testid="stBaseButton-secondary"]:hover,
+    div.st-key-btn_help button:hover {
         background-color: #f1f5f9 !important;
         border-color: #94a3b8 !important;
         box-shadow: 0 2px 8px rgba(0,0,0,0.12) !important;
         color: #0284c7 !important;
     }
     div.st-key-btn_theme_toggle [data-testid="stBaseButton-secondary"]:focus,
-    div.st-key-btn_theme_toggle button:focus {
+    div.st-key-btn_theme_toggle button:focus,
+    div.st-key-btn_help [data-testid="stBaseButton-secondary"]:focus,
+    div.st-key-btn_help button:focus {
         outline: none !important;
         box-shadow: 0 0 0 2px #0284c7 !important;
     }
@@ -1008,7 +1083,17 @@ css_global = """
         visibility: hidden !important;
     }
 
-    /* Botão Circular Minimalista de Alternância de Tema (Estilo 12axes / Vercel / GitHub) */
+    /* Botões Circulares Minimalistas no Topo Direito: Ajuda/Governança (?) e Alternância de Tema */
+    div.st-key-btn_help {
+        position: fixed !important;
+        top: 0.35rem !important;
+        right: 3.90rem !important;
+        z-index: 1000 !important;
+        width: auto !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
     div.st-key-btn_theme_toggle {
         position: fixed !important;
         top: 0.35rem !important;
@@ -1020,7 +1105,9 @@ css_global = """
         padding: 0 !important;
     }
     div.st-key-btn_theme_toggle [data-testid="stBaseButton-secondary"],
-    div.st-key-btn_theme_toggle button {
+    div.st-key-btn_theme_toggle button,
+    div.st-key-btn_help [data-testid="stBaseButton-secondary"],
+    div.st-key-btn_help button {
         width: 2.25rem !important;
         height: 2.25rem !important;
         min-width: 2.25rem !important;
@@ -1037,16 +1124,23 @@ css_global = """
         transition: transform 0.15s ease, background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease !important;
     }
     div.st-key-btn_theme_toggle [data-testid="stBaseButton-secondary"]:hover,
-    div.st-key-btn_theme_toggle button:hover {
+    div.st-key-btn_theme_toggle button:hover,
+    div.st-key-btn_help [data-testid="stBaseButton-secondary"]:hover,
+    div.st-key-btn_help button:hover {
         transform: scale(1.08) !important;
     }
     div.st-key-btn_theme_toggle [data-testid="stBaseButton-secondary"]:active,
-    div.st-key-btn_theme_toggle button:active {
+    div.st-key-btn_theme_toggle button:active,
+    div.st-key-btn_help [data-testid="stBaseButton-secondary"]:active,
+    div.st-key-btn_help button:active {
         transform: scale(0.94) !important;
     }
     div.st-key-btn_theme_toggle [data-testid="stBaseButton-secondary"] *,
-    div.st-key-btn_theme_toggle button * {
+    div.st-key-btn_theme_toggle button *,
+    div.st-key-btn_help [data-testid="stBaseButton-secondary"] *,
+    div.st-key-btn_help button * {
         font-size: 1.15rem !important;
+        font-weight: 700 !important;
         line-height: 1 !important;
         margin: 0 !important;
         padding: 0 !important;
@@ -1055,6 +1149,10 @@ css_global = """
         justify-content: center !important;
     }
     @media (max-width: 768px) {
+        div.st-key-btn_help {
+            top: 0.35rem !important;
+            right: 3.35rem !important;
+        }
         div.st-key-btn_theme_toggle {
             top: 0.35rem !important;
             right: 0.75rem !important;
@@ -1098,9 +1196,18 @@ css_global = """
         min-height: 2.75rem !important;
         display: flex !important;
         align-items: center !important;
-        justify-content: flex-end !important;
-        padding: 0 0.75rem !important;
+        justify-content: space-between !important;
+        padding: 0 0.85rem !important;
         margin: 0 !important;
+    }
+    [data-testid="stSidebarHeader"]::before {
+        content: "PAINEL" !important;
+        font-size: 0.82rem !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.05em !important;
+        text-transform: uppercase !important;
+        line-height: 1 !important;
+        margin-left: 0.15rem !important;
     }
 
     /* Conteúdo principal: respiro superior suficiente para o título NÃO encavalar com o botão >> */
@@ -1127,8 +1234,9 @@ css_global = """
     [data-testid="stSidebar"] h2 {
         margin-top: 0.2rem !important;
         padding-top: 0rem !important;
-        margin-bottom: 0.5rem !important;
-        font-size: 1.4rem !important;
+        margin-bottom: 0.45rem !important;
+        font-size: 1.25rem !important;
+        font-weight: 700 !important;
     }
 
     /* Compactação vertical da barra lateral */
@@ -1143,10 +1251,20 @@ css_global = """
         font-size: 0.84rem !important;
         margin-bottom: 0 !important;
     }
-    [data-testid="stSidebar"] div[data-baseweb="select"] > div {
+    [data-testid="stSidebar"] div[data-baseweb="select"] > div,
+    [data-testid="stSidebar"] div[data-baseweb="input"] > div {
         min-height: 2.15rem !important;
         padding-top: 2px !important;
         padding-bottom: 2px !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stRadio"] label p,
+    [data-testid="stSidebar"] [data-testid="stRadio"] label span {
+        font-size: 0.84rem !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stExpander"] [data-testid="stMarkdownContainer"] p {
+        font-size: 0.84rem !important;
+        margin-top: 0.35rem !important;
+        margin-bottom: 0.15rem !important;
     }
     [data-testid="stSidebar"] [data-testid="stExpander"] {
         margin-top: 0.2rem !important;
@@ -1396,7 +1514,7 @@ css_global = """
         justify-content: center !important;
         width: auto !important;
         max-width: 90vw !important;
-        padding: 0.85rem 1.65rem !important;
+        padding: 0.55rem 1.05rem !important;
         border-radius: 9999px !important;
         backdrop-filter: blur(16px) !important;
         -webkit-backdrop-filter: blur(16px) !important;
@@ -1411,7 +1529,7 @@ css_global = """
         flex-direction: row !important;
         align-items: center !important;
         justify-content: center !important;
-        gap: 0.75rem !important;
+        gap: 0.55rem !important;
         width: auto !important;
         margin: 0 !important;
         padding: 0 !important;
@@ -1479,7 +1597,24 @@ css_global = """
 
 st.markdown(f"<style>\n{css_global}\n{css_tema}\n</style>", unsafe_allow_html=True)
 
-# Botão circular minimalista de alternância de tema no topo direito (estilo 12axes / Vercel / GitHub)
+# Botões circulares minimalistas no topo direito: Ajuda/Governança (?) e Alternância de Tema
+if "exibir_governanca" not in st.session_state:
+    st.session_state["exibir_governanca"] = False
+
+# Sincronização via URL caso acesse ?painel=governanca
+if "painel" in st.query_params and st.query_params["painel"].lower() in ["governanca", "gov", "lgpd", "vers", "info"]:
+    st.session_state["exibir_governanca"] = True
+
+is_gov = st.session_state.get("exibir_governanca", False)
+btn_help_label = "✕" if is_gov else "?"
+btn_help_tooltip = "Fechar Governança e voltar ao painel" if is_gov else "Governança Pública, Termos da LGPD, Criptografia e Histórico de Versões"
+
+if st.button(btn_help_label, key="btn_help", help=btn_help_tooltip):
+    st.session_state["exibir_governanca"] = not is_gov
+    if not st.session_state["exibir_governanca"] and "painel" in st.query_params:
+        del st.query_params["painel"]
+    st.rerun()
+
 if st.button("🌙" if not modo_escuro else "☀️", key="btn_theme_toggle", help="Alternar tema claro / escuro"):
     st.session_state["modo_escuro"] = not modo_escuro
     st.query_params["tema"] = "escuro" if st.session_state["modo_escuro"] else "claro"
@@ -1620,18 +1755,45 @@ if df.empty:
 df["regiao"] = df["uf"].map(MAPA_REGIOES).fillna("Outra").astype("category")
 
 # ==========================================
-# SELETOR DE PLATAFORMA (SIDEBAR)
+# SELETOR DE PAINEL (SIDEBAR)
 # ==========================================
-st.sidebar.markdown("<p style='font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.7; margin-bottom: 4px;'>Plataforma</p>", unsafe_allow_html=True)
-plataforma = st.sidebar.radio(
-    "Plataforma:",
-    options=["🗳️ Auditoria de Urnas", "📉 Análise de Abstenção"],
-    index=0,
+opcoes_painel = [
+    "🗳️ Auditoria de Urnas",
+    "📉 Análise de Abstenção"
+]
+
+idx_painel_inicial = 0
+if "painel" in st.query_params:
+    qp = st.query_params["painel"].lower()
+    if "abst" in qp:
+        idx_painel_inicial = 1
+elif st.session_state.get("painel_ativo") in opcoes_painel:
+    idx_painel_inicial = opcoes_painel.index(st.session_state["painel_ativo"])
+elif st.session_state.get("plataforma_ativa") in opcoes_painel:
+    idx_painel_inicial = opcoes_painel.index(st.session_state["plataforma_ativa"])
+
+def ao_mudar_painel():
+    st.session_state["exibir_governanca"] = False
+    sel = st.session_state.get("painel_ativo")
+    if sel == "📉 Análise de Abstenção":
+        st.query_params["painel"] = "abstencao"
+    else:
+        st.query_params["painel"] = "auditoria"
+
+painel_ativo = st.sidebar.selectbox(
+    "Painel:",
+    options=opcoes_painel,
+    index=idx_painel_inicial,
     label_visibility="collapsed",
-    key="plataforma_ativa"
+    key="painel_ativo",
+    on_change=ao_mudar_painel,
+    help="Selecione o painel analítico desejado."
 )
 
-if plataforma == "📉 Análise de Abstenção":
+plataforma = painel_ativo
+if st.session_state.get("exibir_governanca", False):
+    renderizar_painel_governanca(modo_escuro, plotly_theme)
+elif painel_ativo == "📉 Análise de Abstenção":
     renderizar_painel_abstencao(df, modo_escuro, plotly_theme, fmt_int_br, fmt_float_br)
 else:
     renderizar_painel_auditoria(df, modo_escuro, plotly_theme, fmt_int_br, fmt_float_br)

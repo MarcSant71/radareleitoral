@@ -18,7 +18,7 @@ def renderizar_painel_auditoria(
 ):
     OPCOES_NAV = [
         "📊 Painel de Auditoria & Ranking Forense",
-        "ℹ️ Sobre este Site (Metodologia e Aviso Legal)"
+        "ℹ️ Metodologia & Funcionamento (Auditoria de Urnas)"
     ]
     
     if "aba" in st.query_params:
@@ -591,209 +591,146 @@ def renderizar_painel_auditoria(
         st.markdown("<p style='margin-top: -1.1rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Versão 2.3.0</p>", unsafe_allow_html=True)
     
     # ==========================================
-    # ABA: SOBRE ESTE SITE & METODOLOGIA FORENSE
+    # ABA: METODOLOGIA & FUNCIONAMENTO (URNAS)
     # ==========================================
     else:
         st.markdown(r"""
-        ## 🏛️ Sobre este Site: Metodologia, Aviso Legal e Rigor Matemático
-    
-        > ⚖️ **Declaração de Neutralidade e Transparência:**  
-        > Este site é um instrumento independente de transparência pública fundado no **Art. 5º, inciso XXXIII e Art. 37 da Constituição Federal do Brasil**, bem como na **Lei de Acesso à Informação (Lei nº 12.527/2011)** e nas resoluções de auditoria do **Tribunal Superior Eleitoral (TSE)**.  
-        > **Nenhum dado exibido aqui foi adulterado, editado ou manipulado.** Não apoiamos candidatos ou partidos políticos. Todo o sistema se baseia exclusivamente em **ciência de dados, estatística descritiva e matemática determinística**.
-    
+        ## 🗳️ Metodologia Científica & Funcionamento: Painel de Auditoria de Urnas
+
+        > 🔬 **Escopo Técnico Deste Painel:**  
+        > Este módulo é dedicado à auditoria estatística e temporal de **497.895 seções eleitorais**, analisando os arquivos oficiais de **Log de Eventos (`logd.dat`)** e **Boletins de Urna (`bu.dat`)** emitidos pelas urnas eletrônicas brasileiras sob a égide do TSE.  
+        > O objetivo é identificar **comportamentos operacionais atípicos** (votos após às 17h, liberações manuais por mesário e ociosidade) através de modelos determinísticos e inferência científica.
+
         ---
-    
-        ### 📦 1. De Onde Vêm os Dados e Como Foram Obtidos?
-    
-        Todos os dados apresentados neste painel foram extraídos dos repositórios públicos oficiais do **Tribunal Superior Eleitoral (TSE)**:
-    
-        1. **Fonte Primária:** Repositório Oficial de Dados Abertos do TSE ([dadosabertos.tse.jus.br](https://dadosabertos.tse.jus.br/)) e Portal de Resultados e Boletins de Urna da Justiça Eleitoral.
-        2. **Resoluções Aplicáveis:** Resolução TSE nº 23.673/2021, que regulamenta os procedimentos de fiscalização e auditoria do sistema eletrônico de votação.
-        3. **Volume Auditado:** **497.895 seções eleitorais** auditadas em todas as 27 Unidades da Federação (100% dos pacotes oficiais disponibilizados).
-    
-        Para cada uma das seções, dois tipos de arquivos oficiais brutos gerados pela própria Urna Eletrônica foram lidos e processados:
-    
+
+        ### 📦 1. De Onde Vêm os Dados e o que é Analisado?
+
+        Para cada seção eleitoral, dois tipos de arquivos públicos oficiais emitidos pela própria Urna Eletrônica são lidos e processados:
+
         * **1. Arquivo de Log de Eventos (`logd.dat` / `*.logd`):**  
-          Registro cronológico gravado pela urna em tempo real segundo a segundo. Cada eleitor que comparece gera registros operacionais no log: a inicialização dos sistemas, o teste de hardware, a chegada do eleitor à mesa receptora, a tentativa de leitura biométrica (ou dispensa manual com código pelo mesário), o tempo despendido na cabine e a emissão do comprovante.  
+          Registro cronológico gravado segundo a segundo. Cada eleitor que comparece gera registros operacionais no log: a inicialização dos sistemas, o teste de hardware, a chegada do eleitor à mesa receptora, a tentativa de leitura biométrica (ou dispensa manual com código pelo mesário), o tempo despendido na cabine e a emissão do comprovante.  
           *Nota Constitucional:* O log de eventos protege estritamente o sigilo constitucional do voto (Art. 14, caput, da CF/88). O log **não** registra e nem pode registrar em quem o eleitor votou; ele registra apenas o fluxo operacional e temporal da urna.
         
         * **2. Arquivo de Boletim de Urna (`bu.dat` / `*.bu`):**  
           Documento digital oficial gerado pela urna ao encerrar a votação, formatado na especificação internacional aberta **ASN.1 (Abstract Syntax Notation One - ISO/IEC 8824)**. O BU contém a totalização estática dos votos nominais por candidato, votos em branco, votos nulos, comparecimento e abstenção daquela seção específica.
-    
+
         ---
-    
-        ### 🔐 2. Como Podemos Garantir que os Dados Não Foram Manipulados?
-    
-        A integridade de cada número exibido neste painel é garantida por três pilares tecnológicos irrefutáveis:
-    
-        1. **Assinatura Digital Criptográfica do TSE:**  
-           Cada arquivo emitido pela urna eletrônica (`.bu` e `.logd`) contém um par de chaves e um resumo criptográfico (**Hash SHA-512**) assinado digitalmente com o certificado emitido pela Autoridade Certificadora da Justiça Eleitoral durante a Cerimônia Pública de Lacração dos Sistemas.  
-           *Qualquer alteração* — de um único caractere, voto ou milissegundo — romperia a assinatura digital oficial, tornando o arquivo inválido.
-        2. **Código Determinístico e Auditável:**  
-           O processamento é feito por rotinas escritas em Python utilizando bibliotecas canônicas da indústria (`asn1crypto`, `sqlite3`, `pandas`). Não há inteligência artificial com alucinações, não há modelos obscuros, não há adivinhações. O sistema apenas processa eventos reais gravados na memória da urna:
-        """)
-    
-        st.code("""
-    [Evento: Voto registrado às 18h32]          --> Incrementa contador de votos pós-17h
-    [Evento: Habilitação com código do mesário] --> Incrementa contador de dispensa biométrica manual
-        """, language="text")
-    
-        st.markdown(r"""
-        3. **Reprodutibilidade Científica 100% Pública:**  
-           Qualquer perito forense, universidade pública, partido político ou cidadão comum pode baixar os pacotes brutos diretamente dos servidores do TSE e rodar os scripts de conferência. Os números consolidados na nossa base `eleicoes2026.db` baterão exatamente, voto por voto, evento por evento.
-    
+
+        ### 📐 2. Metodologia Estatística e Rigor Científico (Modelo de Spiegelhalter, 2005)
+
+        A plataforma aplica o **Modelo de Efeitos Aleatórios e Controle Estatístico de Processos de David Spiegelhalter (2005)** — padrão acadêmico internacional utilizado em auditorias populacionais, epidemiológicas e de controle de qualidade hospitalar (*"Funnel plots for comparing institutional performance"*, *Statistics in Medicine*).
+
         ---
-    
-        ### 📐 3. Metodologia Estatística e Rigor Científico (Modelo de Spiegelhalter, 2005)
-    
-        A partir da **Versão 2.1.0**, este painel substituiu regras heurísticas ou pesos arbitrários pelo **Modelo de Efeitos Aleatórios e Controle Estatístico de Processos de David Spiegelhalter (2005)** — padrão acadêmico internacional utilizado em auditorias populacionais, epidemiológicas e de controle de qualidade hospitalar.
-    
-        ---
-    
+
         #### 💡 Intuição Prática: O que é o "Sigma" ($\sigma$) e o $Z$-Score?
-    
+
         Em vez de comparar percentuais brutos isolados — o que geraria distorções entre cidades de portes diferentes —, o painel mede **a quantos desvios-padrão (sigmas $\sigma$) uma seção eleitoral se afastou do comportamento esperado do seu município**:
-    
+
         * **A Analogia da Altura:** Imagine a altura dos homens adultos no Brasil. A média é de 1,75 m, com uma variação comum de 7 cm (1 sigma):
           * Um homem de 1,82 m (+1$\sigma$) é alto, mas perfeitamente comum no dia a dia.
           * Um homem de 1,89 m (+2$\sigma$) já é uma exceção notável (presente em apenas ~2,3% da população).
           * Um homem de 2,05 m (+4,3$\sigma$) é uma raridade extrema (como um jogador de basquete profissional).
-    
+
         Na auditoria eleitoral, a lógica é idêntica: se na cidade a média foi de 2% de votos pós-17h, uma seção registrar 3% (+0,8$\sigma$) é uma oscilação natural de fila. Porém, uma seção da mesma cidade registrar 25% de votos tardios (+4,5$\sigma$) equivale estatisticamente a encontrar alguém de 2,15 m de altura na rua — um evento estatisticamente raro que justifica a conferência da ata física do cartório.
-    
+
         ---
-    
+
         #### A. Comparação Justa via Técnica *Leave-One-Out* (Exclusão da Própria Seção)
-    
+
         Cada seção é avaliada estritamente em relação à realidade do seu **próprio município**. Seções ribeirinhas ou rurais não são comparadas a capitais cosmopolitas.
-    
+
         * **Eliminação de Viés:** Se uma seção atípica de grande porte apresentasse um volume extremo de votos tardios, incluí-la na média municipal puxaria a régua toda para cima, "mascarando" a sua própria anomalia.
         * A técnica *Leave-One-Out* ("deixar-um-de-fora") calcula a média de referência da cidade **excluindo temporariamente a própria seção em avaliação**, garantindo que a régua nunca seja contaminada pelo objeto da auditoria.
-    
+
         **Fórmula da Taxa Esperada Municipal:**
-    
+
         $$
         p_{\text{mun}} = \frac{\sum_{i \in \text{mun}} \text{Votos}_{i} - \text{Votos}_{\text{secao}}}{\sum_{i \in \text{mun}} \text{Total}_{i} - \text{Total}_{\text{secao}}}
         $$
-    
+
         ---
-    
+
         #### B. $Z$-Score Ajustado com Superdispersão Residual ($\tau^2$ de Spiegelhalter)
-    
+
         Modelos estatísticos simplistas tratam eleitores como moedas matemáticas perfeitamente idênticas. No mundo real, existem fatores operacionais legítimos: chuvas torrenciais em um bairro, lentidão de transporte ou oscilação de energia em zonas rurais.
-    
+
         * **O que é o parâmetro $\tau^2$ (tau ao quadrado)?**  
           Ele quantifica e absorve a "variação natural legítima" que existe entre diferentes bairros e cidades do estado. Isso evita que pequenas seções de 80 eleitores no interior disparem falsos alarmes por mero efeito do acaso amostral.
-    
+
         * **O que é o MAD (Desvio Absoluto da Mediana) e por que ele é usado?**  
           Na estatística comum, a média e o desvio padrão tradicional são facilmente enganados por um único número absurdo (por exemplo: se um bilionário entrar em uma padaria, a "renda média" de todos os clientes vira milhões de reais em um segundo).  
           O **MAD** funciona como uma **régua blindada contra distorções**: em vez de calcular médias que podem ser puxadas por valores extremos, ele mede a dispersão típica olhando apenas para o valor central (a mediana). Dessa forma, se uma única urna na capital tiver um problema bizarro que a faça fechar às 23h, esse caso isolado **não contamina nem distorce a régua de medição** de todas as outras urnas do estado.
-    
+
         * **Resultado (O que significa o $Z$?):**  
           O **$Z$** (chamado na ciência de *$Z$-score* ou escore padronizado) funciona como um **termômetro de atipicidade**: ele é a nota final que indica quantos passos (sigmas $\sigma$) a urna se afastou do comportamento esperado.
           * **$Z = 0$:** A seção operou exatamente na média da sua cidade (temperatura normal de 36,5 °C).
           * **$Z < 2{,}0\sigma$:** Variação comum do dia a dia, dentro da normalidade.
           * **$Z \ge 3{,}0\sigma$:** O termômetro entra em zona crítica: a seção funcionou de maneira totalmente atípica em relação a todas as outras urnas da mesma cidade, com menos de 0,13% de chance de ocorrer por mero acaso sob condições normais.
-    
+
         **Fórmula do $Z$-Score Ajustado de Spiegelhalter:**
-    
+
         $$
         z_{\text{ajustado}} = \frac{\text{Taxa Observada} - p_{\text{mun}}}{\sqrt{\frac{p_{\text{mun}}(1 - p_{\text{mun}})}{N} + \tau^2}}
         $$
-    
+
         **Fórmula da Superdispersão Residual ($\tau^2$ Robusto via MAD):**
-    
+
         $$
         \tau^2 = \max\left(\left(1{,}4826 \cdot \text{MAD}\right)^2 - \text{Mediana}(\text{Variancia Acaso}),\, 0\right)
         $$
-    
+
         ---
-    
+
         #### C. Desvio Multivariado Composto (Norma Euclidiana $L_2$)
-    
+
         Em vez de avaliar os indicadores de forma fragmentada, o sistema aplica uma distância geométrica no espaço de desvios:
         * Se uma urna teve apenas um leve atraso pós-17h (+1,2$\sigma$), ela permanece dentro do raio de normalidade.
         * Se teve apenas uma leve elevação de biometria manual (+1,2$\sigma$), também segue no padrão aceitável.
         * Porém, se a mesma urna combinou atraso severo (+3$\sigma$) **e** biometria manual muito acima da média (+3$\sigma$), o afastamento conjunto pela hipotenusa dispara para $\sqrt{3^2 + 3^2} = 4{,}24\sigma$!  
         A **Norma $L_2$** calcula a distância em linha reta do ponto onde a urna operou até o centro da normalidade da eleição.
-    
+
         **Fórmula da Norma Euclidiana $L_2$:**
-    
+
         $$
         Z_{\text{composto}} = \sqrt{\max(z_{\text{pos17}}, 0)^2 + \max(z_{\text{manual}}, 0)^2 + \max(z_{\text{horario}}, 0)^2}
         $$
-    
+
         ---
-    
+
         #### D. Régua Padronizada de Significância Estatística
         * **Padrão Normal ($Z < 2{,}0\sigma$):** Seção perfeitamente compreendida dentro do intervalo de confiança de 95% do seu município.
         * **🟡 Atenção ($2{,}0\sigma \le Z < 3{,}0\sigma$):** Desvio moderado em relação à linha de base local (percentil $\approx 97{,}7\%$).
         * **🟠 Alta Atipicidade ($3{,}0\sigma \le Z < 4{,}5\sigma$):** Desvio severo em relação ao comportamento padrão do município (percentil $\approx 99{,}87\%$).
         * **🔴 Atipicidade Extrema ($Z \ge 4{,}5\sigma$):** Confluência crítica de desvios simultâneos de horário, fluxo e habilitação.
-    
+
         ---
-    
-        #### 🎯 Como Interpretar os Gráficos?
-    
+
+        ### 🎯 3. Como Interpretar os Gráficos?
+
         1. **Gráfico de Dispersão Multivariada ($Z$ Pós-17h vs $Z$ Manual):**
            * **Concentração Inferior Esquerda:** Reúne mais de 95% das seções brasileiras. São os círculos que operaram rigorosamente dentro do padrão esperado para suas cidades.
            * **Linhas de Demarcação (+2$\sigma$ amarela e +3$\sigma$ vermelha):** Indicam os limites de significância estatística. Círculos posicionados além da linha vermelha (seja para a direita ou para cima) operaram com taxas significativamente superiores ao restante do município.
            * **Canto Superior Direito:** Representa a confluência mais crítica da fiscalização — urnas que acumularam fechamento tardio com alta taxa de habilitação sem biometria.
-    
+
         2. **Gráfico de Distribuição (Modo Faixas de Risco):**
            * **Barra Azul (Normal, < 2$\sigma$):** Confirma a estabilidade e regularidade da imensa maioria das urnas auditadas no país.
            * **Barra Amarela (Atenção, 2 a 3$\sigma$):** Seções com atipicidades operacionais moderadas (geralmente explicadas por dinâmica local de filas).
            * **Barras Laranja e Vermelha ($\ge 3\sigma$):** O foco prioritário da auditoria. Evidencia com clareza o volume exato e a proporção de urnas que demandam verificação cruzada com a Ata da Mesa Receptora e o Boletim de Urna (BU).
-    
+
         ---
-    
-        ### 🔍 4. Como Interpretar os Alertas?
-    
+
+        ### 🔍 4. Como Interpretar os Alertas e Próximos Passos Forenses?
+
         Um desvio estatístico padronizado ($Z \ge 3{,}0\sigma$) **não constitui prova de fraude**. Ele constitui uma **sinalização objetiva de atipicidade operacional e matemática**.  
         Explicações legítimas comuns incluem:
         * Fila física no encerramento decorrente de chuvas severas ou falta pontual de energia na região.
         * Urna eletrônica com leitor biométrico desgastado ou seção com concentração atípica de eleitores idosos (com perda de relevo papilar).
         * Comunidades de acesso complexo (seções em áreas ribeirinhas, indígenas ou rurais).
-    
+
         **O passo forense correto:** Peritos, auditores e cidadãos devem confrontar o número da seção com a **Ata da Mesa Receptora** arquivada no Cartório Eleitoral e com o espelho do Boletim de Urna (BU) para checar as justificativas anotadas pelos mesários.
-    
+
         ---
-    
-        ### 🛡️ 5. Privacidade, Proteção de Dados (LGPD) e Cookies de Navegação
-    
-        Este site segue com rigor as diretrizes da **Lei Geral de Proteção de Dados Pessoais (LGPD - Lei Federal nº 13.709/2018)** e as normas constitucionais de publicidade e transparência da administração pública:
-    
-        1. **Natureza dos Dados Eleitorais Exibidos:**  
-           * Todos os dados de votação, seções, horários e urnas são **dados estritamente públicos de livre acesso**, obtidos no repositório oficial de dados abertos do TSE em cumprimento à **Lei de Acesso à Informação (Lei nº 12.527/2011)** e ao **Art. 7º, § 4º da LGPD**.
-           * **Sigilo Constitucional do Voto:** Conforme preconizado no Art. 14, *caput*, da Constituição Federal de 1988, os registros operacionais das urnas (`.logd`) e os boletins de urna (`.bu`) **não contêm e não vinculam** a identidade do eleitor ao seu voto. Nenhum dado pessoal sensível individualizado é tratado, armazenado ou inferido por este sistema.
-    
-        2. **Métricas de Acesso e Telemetria (Google Analytics):**  
-           * Para fins exclusivos de dimensionamento de capacidade dos servidores, controle de tráfego, garantia de estabilidade e análise agregada de audiência, este site utiliza ou poderá utilizar ferramentas de telemetria estatística, como o **Google Analytics**.
-           * **Anonimização e Pseudonimização:** O Google Analytics coleta métricas técnicas e de audiência agregada (como volume de acessos simultâneos, páginas e filtros mais consultados, tipo de dispositivo, navegador e localização aproximada por cidade/região). A funcionalidade de **anonimização de endereço IP** é empregada, de forma que o IP completo do visitante não é armazenado em bases identificáveis.
-           * **Finalidade e Não Compartilhamento:** Os dados de navegação **jamais serão vendidos, alugados, compartilhados com terceiros ou utilizados para fins publicitários, comerciais ou de direcionamento político-partidário**.
-    
-        3. **Uso de Cookies e Gestão pelo Usuário:**  
-           * Cookies estritamente técnicos são utilizados pela aplicação para preservar o estado de navegação (como a escolha do tema Claro/Escuro e filtros em sessão). Cookies analíticos registram métricas agregadas de visitação.
-           * **Direito de Recusa (Opt-Out):** O usuário pode, a qualquer tempo, bloquear, desativar ou apagar os cookies de rastreamento por meio das configurações de privacidade do seu navegador ou utilizando a extensão oficial [Google Analytics Opt-out Add-on](https://tools.google.com/dlpage/gaoptout). O bloqueio de cookies analíticos **não impede nem limita** o acesso completo a nenhuma das consultas ou ferramentas de auditoria disponíveis nesta página.
-    
-        4. **Canal de Transparência e Exercício de Direitos:**  
-           * Em observância ao Art. 18 da LGPD, o titular de dados que desejar esclarecimentos adicionais sobre o tratamento de informações técnicas de navegação ou governança deste site pode entrar em contato diretamente pelo e-mail: [contato@dominiodigital.dev.br](mailto:contato@dominiodigital.dev.br).
-    
-        ---
-        """)
-    
-        st.subheader("🏷️ 6. Histórico de Versões")
-        st.markdown("""
-    | Versão | Data | Principais Mudanças |
-    | :--- | :---: | :--- |
-    | **v2.4.0** | **15/10/2026** | **Módulo Analítico de Abstenção & Comparecimento Eleitoral:**<br>• Integração completa do painel de abstenção com modelo de Funil de Spiegelhalter (2005) e limites de controle paramétricos (95% e 99.8%).<br>• Incorporação da base oficial consolidada do TSE com 152 milhões de eleitores aptos e 472 mil seções apuradas.<br>• Detecção automatizada de seções com baixa abstenção anômala (*turnout spikes*) e geração de diagnósticos forenses objetivos.<br>• Gráficos dinâmicos de dispersão em funil, faixas de distribuição e comparativo estadual/regional.<br>• Isolamento modular da arquitetura e preservação estrita da identidade visual do sistema. |
-    | **v2.3.0** | **15/10/2026** | **Didática Forense & Acessibilidade Universal:**<br>• Reformulação didática e acessível do caderno metodológico: tradução intuitiva da inferência estatística de Spiegelhalter (2005), analogias conceituais (MAD e o bilionário na padaria, termômetro do *z*-score e Teorema de Pitágoras/Norma Euclidiana $L_2$ multivariada) e renderização matemática isolada em blocos KaTeX.<br>• Subsistema universal de tooltips flutuantes de alto contraste invertido com suporte completo ao motor BaseWeb (cards e controles) e ao Glide Data Grid (`st.dataframe`).<br>• Conformidade com critérios WCAG de legibilidade visual em modo escuro e microinterações táteis nos ícones de ajuda contextual (?). |
-    | **v2.2.0** | **14/10/2026** | **Experiência Analítica Dual & Calibração Visual:**<br>• Nova visualização de distribuição em modo duplo: *Faixas de Risco Forense* (visão intuitiva com contagens e percentuais por categoria) e *Histograma Contínuo* (visão técnica detalhada até 12σ) com seletor e ajuda contextual explicativa (?).<br>• *Viewport* dinâmico inteligente no gráfico de dispersão multivariada (calibrado no 99,5º percentil), eliminando a aglomeração causada por seções com horários extremos.<br>• Desacoplamento geométrico das anotações de significância (+2σ e +3σ), eliminando sobreposições de texto.<br>• Sincronização do manifesto de módulos dinâmicos e conformidade com diretrizes de governança e LGPD. |
-    | **v2.1.0** | **14/10/2026** | **Implementação do Motor Estatístico de Spiegelhalter (2005):**<br>• Substituição de regras heurísticas e pesos arbitrários por inferência estatística baseada em desvios padronizados (*z*-scores em sigmas σ).<br>• Adoção da técnica *Leave-One-Out* municipal para eliminação de viés e falsos alarmes.<br>• Estimativa robusta da superdispersão τ² intra-UF via MAD.<br>• Métricas multivariadas compostas (Norma Euclidiana L2) e novos diagnósticos objetivos de alerta.<br>• Identificação formal de versionamento em toda a plataforma. |
-    | **v2.0.0** | **13/10/2026** | **Auditoria Nacional Consolidada (27 UFs):**<br>• Processamento paralelo e decodificação ASN.1 dos 497.895 BUs e logs de eventos do TSE em escala nacional.<br>• Arquitetura SQLite WAL de alta performance com baixo consumo de memória RAM.<br>• Suporte nativo a Tema Claro/Escuro instantâneo e layout responsivo. |
-    | **v1.0.0** | **11/10/2026** | Protótipo inicial de extração de dados abertos do TSE e ranking exploratório. |
-    """, unsafe_allow_html=True)
-    
-        st.markdown("---")
-        st.markdown("<p style='margin-top: -1.1rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Versão 2.4.0</p>", unsafe_allow_html=True)
+        <p style='margin-top: 0.6rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Painel de Auditoria de Urnas • Versão 2.4.0</p>
+        """, unsafe_allow_html=True)
+
     
