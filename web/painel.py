@@ -1591,7 +1591,7 @@ def carregar_dados():
     return df
 
 st.title("🗳️ Auditoria Eleições 2026: Análise Estatística Forense")
-st.caption("Sistema de Fiscalização Estatística e Detecção de Anomalias de Urna Eletrônica • Base Oficial TSE • **Versão 2.2.0**")
+st.caption("Sistema de Fiscalização Estatística e Detecção de Anomalias de Urna Eletrônica • Base Oficial TSE • **Versão 2.3.0**")
 
 MAPA_REGIOES = {
     "AC": "Norte", "AP": "Norte", "AM": "Norte", "PA": "Norte", "RO": "Norte", "RR": "Norte", "TO": "Norte",
@@ -2183,7 +2183,7 @@ if aba_selecionada == OPCOES_NAV[0]:
     )
 
     st.markdown("---")
-    st.markdown("<p style='margin-top: -1.1rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Versão 2.2.0</p>", unsafe_allow_html=True)
+    st.markdown("<p style='margin-top: -1.1rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Versão 2.3.0</p>", unsafe_allow_html=True)
 
 # ==========================================
 # ABA: SOBRE ESTE SITE & METODOLOGIA FORENSE
@@ -2381,6 +2381,7 @@ else:
     st.markdown("""
 | Versão | Data | Principais Mudanças e Evolução Metodológica |
 | :--- | :---: | :--- |
+| **v2.3.0** | **15/10/2026** | **Didática Forense & Acessibilidade Universal:**<br>• Reformulação didática e acessível do caderno metodológico: tradução intuitiva da inferência estatística de Spiegelhalter (2005), analogias conceituais (MAD e o bilionário na padaria, termômetro do *z*-score e Teorema de Pitágoras/Norma Euclidiana $L_2$ multivariada) e renderização matemática isolada em blocos KaTeX.<br>• Subsistema universal de tooltips flutuantes de alto contraste invertido com suporte completo ao motor BaseWeb (cards e controles) e ao Glide Data Grid (`st.dataframe`).<br>• Conformidade com critérios WCAG de legibilidade visual em modo escuro e microinterações táteis nos ícones de ajuda contextual (?). |
 | **v2.2.0** | **14/10/2026** | **Experiência Analítica Dual & Calibração Visual:**<br>• Nova visualização de distribuição em modo duplo: *Faixas de Risco Forense* (visão intuitiva com contagens e percentuais por categoria) e *Histograma Contínuo* (visão técnica detalhada até 12σ) com seletor e ajuda contextual explicativa (?).<br>• *Viewport* dinâmico inteligente no gráfico de dispersão multivariada (calibrado no 99,5º percentil), eliminando a aglomeração causada por seções com horários extremos.<br>• Desacoplamento geométrico das anotações de significância (+2σ e +3σ), eliminando sobreposições de texto.<br>• Sincronização do manifesto de módulos dinâmicos e conformidade com diretrizes de governança e LGPD. |
 | **v2.1.0** | **14/10/2026** | **Implementação do Motor Estatístico de Spiegelhalter (2005):**<br>• Substituição de regras heurísticas e pesos arbitrários por inferência estatística baseada em desvios padronizados (*z*-scores em sigmas σ).<br>• Adoção da técnica *Leave-One-Out* municipal para eliminação de viés e falsos alarmes.<br>• Estimativa robusta da superdispersão τ² intra-UF via MAD.<br>• Métricas multivariadas compostas (Norma Euclidiana L2) e novos diagnósticos objetivos de alerta.<br>• Identificação formal de versionamento em toda a plataforma. |
 | **v2.0.0** | **13/10/2026** | **Auditoria Nacional Consolidada (27 UFs):**<br>• Processamento paralelo e decodificação ASN.1 dos 497.895 BUs e logs de eventos do TSE em escala nacional.<br>• Arquitetura SQLite WAL de alta performance com baixo consumo de memória RAM.<br>• Suporte nativo a Tema Claro/Escuro instantâneo e layout responsivo. |
@@ -2388,5 +2389,5 @@ else:
 """, unsafe_allow_html=True)
 
     st.markdown("---")
-    st.markdown("<p style='margin-top: -1.1rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Versão 2.2.0</p>", unsafe_allow_html=True)
+    st.markdown("<p style='margin-top: -1.1rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Versão 2.3.0</p>", unsafe_allow_html=True)
 
