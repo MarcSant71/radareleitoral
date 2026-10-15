@@ -2377,9 +2377,9 @@ else:
     ---
     """)
 
-    st.subheader("🏷️ 6. Histórico de Versões e Changelog Técnico")
+    st.subheader("🏷️ 6. Histórico de Versões")
     st.markdown("""
-| Versão | Data | Principais Mudanças e Evolução Metodológica |
+| Versão | Data | Principais Mudanças |
 | :--- | :---: | :--- |
 | **v2.3.0** | **15/10/2026** | **Didática Forense & Acessibilidade Universal:**<br>• Reformulação didática e acessível do caderno metodológico: tradução intuitiva da inferência estatística de Spiegelhalter (2005), analogias conceituais (MAD e o bilionário na padaria, termômetro do *z*-score e Teorema de Pitágoras/Norma Euclidiana $L_2$ multivariada) e renderização matemática isolada em blocos KaTeX.<br>• Subsistema universal de tooltips flutuantes de alto contraste invertido com suporte completo ao motor BaseWeb (cards e controles) e ao Glide Data Grid (`st.dataframe`).<br>• Conformidade com critérios WCAG de legibilidade visual em modo escuro e microinterações táteis nos ícones de ajuda contextual (?). |
 | **v2.2.0** | **14/10/2026** | **Experiência Analítica Dual & Calibração Visual:**<br>• Nova visualização de distribuição em modo duplo: *Faixas de Risco Forense* (visão intuitiva com contagens e percentuais por categoria) e *Histograma Contínuo* (visão técnica detalhada até 12σ) com seletor e ajuda contextual explicativa (?).<br>• *Viewport* dinâmico inteligente no gráfico de dispersão multivariada (calibrado no 99,5º percentil), eliminando a aglomeração causada por seções com horários extremos.<br>• Desacoplamento geométrico das anotações de significância (+2σ e +3σ), eliminando sobreposições de texto.<br>• Sincronização do manifesto de módulos dinâmicos e conformidade com diretrizes de governança e LGPD. |
