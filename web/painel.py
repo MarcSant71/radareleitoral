@@ -213,13 +213,20 @@ if modo_escuro:
     }
     /* Conteúdo flutuante do tooltip no Modo Escuro (Alto Contraste Invertido para Acessibilidade) */
     [data-baseweb="tooltip"],
-    div[data-baseweb="tooltip"] {
+    div[data-baseweb="tooltip"],
+    div[role="tooltip"] {
         background: transparent !important;
         background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
     }
     [data-testid="stTooltipContent"],
     .stTooltipContent,
-    div[role="tooltip"] {
+    [data-testid="stDataFrameTooltipContent"],
+    .stDataFrameTooltipContent,
+    [data-testid="stTooltipErrorContent"],
+    .stTooltipErrorContent {
         background-color: #f8fafc !important;
         background: #f8fafc !important;
         color: #0f172a !important;
@@ -231,21 +238,25 @@ if modo_escuro:
         line-height: 1.5 !important;
         z-index: 1000000 !important;
     }
-    [data-testid="stTooltipContent"] *,
-    .stTooltipContent *,
-    div[role="tooltip"] *,
-    [data-testid="stTooltipContent"] [data-testid="stMarkdownContainer"] *,
-    .stTooltipContent [data-testid="stMarkdownContainer"] *,
-    div[role="tooltip"] [data-testid="stMarkdownContainer"] *,
-    [data-testid="stTooltipContent"] p,
-    .stTooltipContent p,
-    div[role="tooltip"] p,
-    [data-testid="stTooltipContent"] span,
-    .stTooltipContent span,
-    div[role="tooltip"] span,
     [data-testid="stTooltipContent"] div,
     .stTooltipContent div,
-    div[role="tooltip"] div {
+    [data-testid="stDataFrameTooltipContent"] div,
+    .stDataFrameTooltipContent div,
+    [data-testid="stTooltipContent"] [data-testid="stMarkdownContainer"],
+    .stTooltipContent [data-testid="stMarkdownContainer"],
+    [data-testid="stDataFrameTooltipContent"] [data-testid="stMarkdownContainer"],
+    .stDataFrameTooltipContent [data-testid="stMarkdownContainer"] {
+        background: transparent !important;
+        background-color: transparent !important;
+    }
+    [data-testid="stTooltipContent"] *,
+    .stTooltipContent *,
+    [data-testid="stDataFrameTooltipContent"] *,
+    .stDataFrameTooltipContent *,
+    [data-testid="stTooltipErrorContent"] *,
+    .stTooltipErrorContent *,
+    div[role="tooltip"] p,
+    div[role="tooltip"] span {
         color: #0f172a !important;
         font-weight: 500 !important;
         font-size: 0.88rem !important;
@@ -253,12 +264,15 @@ if modo_escuro:
     }
     [data-testid="stTooltipContent"] strong,
     .stTooltipContent strong,
-    div[role="tooltip"] strong {
+    [data-testid="stDataFrameTooltipContent"] strong,
+    .stDataFrameTooltipContent strong {
         color: #020617 !important;
         font-weight: 700 !important;
     }
     [data-testid="stTooltipContent"] code,
-    .stTooltipContent code {
+    .stTooltipContent code,
+    [data-testid="stDataFrameTooltipContent"] code,
+    .stDataFrameTooltipContent code {
         background-color: #e2e8f0 !important;
         color: #0f172a !important;
         border: 1px solid #cbd5e1 !important;
@@ -674,13 +688,20 @@ else:
     }
     /* Conteúdo flutuante do tooltip no Modo Claro (Invertido Escuro de Alto Contraste) */
     [data-baseweb="tooltip"],
-    div[data-baseweb="tooltip"] {
+    div[data-baseweb="tooltip"],
+    div[role="tooltip"] {
         background: transparent !important;
         background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
     }
     [data-testid="stTooltipContent"],
     .stTooltipContent,
-    div[role="tooltip"] {
+    [data-testid="stDataFrameTooltipContent"],
+    .stDataFrameTooltipContent,
+    [data-testid="stTooltipErrorContent"],
+    .stTooltipErrorContent {
         background-color: #0f172a !important;
         background: #0f172a !important;
         color: #f8fafc !important;
@@ -692,21 +713,25 @@ else:
         line-height: 1.5 !important;
         z-index: 1000000 !important;
     }
-    [data-testid="stTooltipContent"] *,
-    .stTooltipContent *,
-    div[role="tooltip"] *,
-    [data-testid="stTooltipContent"] [data-testid="stMarkdownContainer"] *,
-    .stTooltipContent [data-testid="stMarkdownContainer"] *,
-    div[role="tooltip"] [data-testid="stMarkdownContainer"] *,
-    [data-testid="stTooltipContent"] p,
-    .stTooltipContent p,
-    div[role="tooltip"] p,
-    [data-testid="stTooltipContent"] span,
-    .stTooltipContent span,
-    div[role="tooltip"] span,
     [data-testid="stTooltipContent"] div,
     .stTooltipContent div,
-    div[role="tooltip"] div {
+    [data-testid="stDataFrameTooltipContent"] div,
+    .stDataFrameTooltipContent div,
+    [data-testid="stTooltipContent"] [data-testid="stMarkdownContainer"],
+    .stTooltipContent [data-testid="stMarkdownContainer"],
+    [data-testid="stDataFrameTooltipContent"] [data-testid="stMarkdownContainer"],
+    .stDataFrameTooltipContent [data-testid="stMarkdownContainer"] {
+        background: transparent !important;
+        background-color: transparent !important;
+    }
+    [data-testid="stTooltipContent"] *,
+    .stTooltipContent *,
+    [data-testid="stDataFrameTooltipContent"] *,
+    .stDataFrameTooltipContent *,
+    [data-testid="stTooltipErrorContent"] *,
+    .stTooltipErrorContent *,
+    div[role="tooltip"] p,
+    div[role="tooltip"] span {
         color: #f8fafc !important;
         font-weight: 500 !important;
         font-size: 0.88rem !important;
@@ -714,12 +739,15 @@ else:
     }
     [data-testid="stTooltipContent"] strong,
     .stTooltipContent strong,
-    div[role="tooltip"] strong {
+    [data-testid="stDataFrameTooltipContent"] strong,
+    .stDataFrameTooltipContent strong {
         color: #ffffff !important;
         font-weight: 700 !important;
     }
     [data-testid="stTooltipContent"] code,
-    .stTooltipContent code {
+    .stTooltipContent code,
+    [data-testid="stDataFrameTooltipContent"] code,
+    .stDataFrameTooltipContent code {
         background-color: #1e293b !important;
         color: #38bdf8 !important;
         border: 1px solid #334155 !important;
