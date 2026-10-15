@@ -23,8 +23,35 @@
      2. Executar deploy limpo para a VPS (`2.29.110.124`) e reiniciar o container `eleicoes2026_painel`.
      3. Validar health check `200 OK`.
      4. Gerar commit único e push para `origin/main`.
+5. **OpSec em Changelogs e Páginas Públicas:**
+   - NUNCA divulgar detalhes técnicos de infraestrutura, portas internas, configurações de firewall ou dados sensíveis em changelogs públicos ou rodapés.
 
-## 2. Ambiente Operacional
+## 2. Isolamento de Rede e Contêineres (Docker)
+- **Armadilha do Docker Bypass:** O Docker insere regras no `iptables` que contornam o firewall UFW do Linux. Portanto:
+  - **JAMAIS expor portas de aplicações internas** (Streamlit 8501, APIs, etc.) diretamente no host (`0.0.0.0:porta`).
+  - As aplicações devem rodar **estritamente em redes internas do Docker** (`networks:`), comunicando-se apenas com o Proxy Reverso (Caddy).
+  - Apenas as portas `80` (HTTP) e `443` (HTTPS) do Caddy devem ser publicadas externamente.
+
+## 3. Proxy Reverso (Caddy) & Cabeçalhos de Segurança
+- **Ocultação de Topologia:** Sempre remover cabeçalhos que revelem tecnologia ou versões internas (`Server`, `Via`).
+- **Security Headers Obrigatórios (OWASP):**
+  - `X-Frame-Options: SAMEORIGIN` (bloqueia Clickjacking).
+  - `X-Content-Type-Options: nosniff`.
+  - `Referrer-Policy: strict-origin-when-cross-origin`.
+  - `Permissions-Policy: geolocation=(), microphone=(), camera=()`.
+  - `Strict-Transport-Security: max-age=31536000; includeSubDomains` (HSTS estrito).
+- **Proteção do IP de Origem:** Requisições diretas por IP na porta 80 devem SEMPRE redirecionar (301) para o domínio oficial HTTPS (`https://eleicao2026.dominiodigital.dev.br`), impedindo que scanners (Shodan, Censys) contornem o Cloudflare.
+
+## 4. Segurança de Borda (Cloudflare / WAF)
+- **HSTS Ativo:** Forçar HTTPS na borda da CDN.
+- **Rate Limiting no WAF:** Regra ativa em `/_stcore/` para mitigar abusos de WebSocket e DoS.
+
+## 5. Blindagem do Sistema Operacional (VPS Hetzner)
+- **SSH Estrito:** `PasswordAuthentication no` (permitir exclusivamente chaves criptográficas SSH ED25519).
+- **Defesa Ativa (Fail2ban):** `fail2ban` ativo monitorando o `sshd` para banir tentativas de força bruta.
+- **Higiene Operacional:** Limpeza periódica de contêineres órfãos.
+
+## 6. Ambiente Operacional
 - O sistema operacional local é **Windows**.
 - Utilizar exclusivamente comandos nativos do **PowerShell** (ex: `Select-String`, `Get-Content`, `scp.exe`, `ssh.exe`).
 - Não utilizar comandos de Linux no shell local.
