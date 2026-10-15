@@ -187,6 +187,84 @@ if modo_escuro:
     [data-testid="stMetricLabel"] span {
         color: #c9d1d9 !important;
     }
+    /* Ícone de ajuda (?) legível e nítido no modo escuro */
+    .stApp .stTooltipIcon svg,
+    .stApp .stTooltipHoverTarget svg,
+    .stApp [data-testid="stTooltipIcon"] svg {
+        color: #94a3b8 !important;
+        stroke: #94a3b8 !important;
+        fill: none !important;
+        opacity: 0.85 !important;
+        transition: color 0.15s ease, opacity 0.15s ease !important;
+    }
+    .stApp .stTooltipIcon svg *,
+    .stApp .stTooltipHoverTarget svg *,
+    .stApp [data-testid="stTooltipIcon"] svg * {
+        stroke: #94a3b8 !important;
+        fill: none !important;
+    }
+    .stApp .stTooltipHoverTarget:hover svg,
+    .stApp .stTooltipIcon:hover svg,
+    .stApp [data-testid="stTooltipIcon"]:hover svg,
+    .stApp [data-testid="stTooltipHoverTarget"]:hover svg * {
+        color: #58a6ff !important;
+        stroke: #58a6ff !important;
+        opacity: 1 !important;
+    }
+    /* Conteúdo flutuante do tooltip no Modo Escuro (Alto Contraste Invertido para Acessibilidade) */
+    [data-baseweb="tooltip"],
+    div[data-baseweb="tooltip"] {
+        background: transparent !important;
+        background-color: transparent !important;
+    }
+    [data-testid="stTooltipContent"],
+    .stTooltipContent,
+    div[role="tooltip"] {
+        background-color: #f8fafc !important;
+        background: #f8fafc !important;
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 8px !important;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(88, 166, 255, 0.25) !important;
+        padding: 8px 12px !important;
+        max-width: 360px !important;
+        line-height: 1.5 !important;
+        z-index: 1000000 !important;
+    }
+    [data-testid="stTooltipContent"] *,
+    .stTooltipContent *,
+    div[role="tooltip"] *,
+    [data-testid="stTooltipContent"] [data-testid="stMarkdownContainer"] *,
+    .stTooltipContent [data-testid="stMarkdownContainer"] *,
+    div[role="tooltip"] [data-testid="stMarkdownContainer"] *,
+    [data-testid="stTooltipContent"] p,
+    .stTooltipContent p,
+    div[role="tooltip"] p,
+    [data-testid="stTooltipContent"] span,
+    .stTooltipContent span,
+    div[role="tooltip"] span,
+    [data-testid="stTooltipContent"] div,
+    .stTooltipContent div,
+    div[role="tooltip"] div {
+        color: #0f172a !important;
+        font-weight: 500 !important;
+        font-size: 0.88rem !important;
+        line-height: 1.5 !important;
+    }
+    [data-testid="stTooltipContent"] strong,
+    .stTooltipContent strong,
+    div[role="tooltip"] strong {
+        color: #020617 !important;
+        font-weight: 700 !important;
+    }
+    [data-testid="stTooltipContent"] code,
+    .stTooltipContent code {
+        background-color: #e2e8f0 !important;
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 4px !important;
+        padding: 0.1em 0.35em !important;
+    }
 
     /* 7. BOTÃO CIRCULAR DE TEMA (MODO ESCURO -> ÍCONE SOL) */
     div.st-key-btn_theme_toggle [data-testid="stBaseButton-secondary"],
@@ -578,6 +656,7 @@ else:
         stroke: #475569 !important;
         fill: none !important;
         opacity: 0.85 !important;
+        transition: color 0.15s ease, opacity 0.15s ease !important;
     }
     .stApp .stTooltipIcon svg *,
     .stApp .stTooltipHoverTarget svg *,
@@ -585,16 +664,67 @@ else:
         stroke: #475569 !important;
         fill: none !important;
     }
-    /* Conteúdo flutuante do tooltip */
+    .stApp .stTooltipHoverTarget:hover svg,
+    .stApp .stTooltipIcon:hover svg,
+    .stApp [data-testid="stTooltipIcon"]:hover svg,
+    .stApp [data-testid="stTooltipHoverTarget"]:hover svg * {
+        color: #0284c7 !important;
+        stroke: #0284c7 !important;
+        opacity: 1 !important;
+    }
+    /* Conteúdo flutuante do tooltip no Modo Claro (Invertido Escuro de Alto Contraste) */
+    [data-baseweb="tooltip"],
+    div[data-baseweb="tooltip"] {
+        background: transparent !important;
+        background-color: transparent !important;
+    }
     [data-testid="stTooltipContent"],
-    .stTooltipContent {
+    .stTooltipContent,
+    div[role="tooltip"] {
         background-color: #0f172a !important;
+        background: #0f172a !important;
         color: #f8fafc !important;
-        border-radius: 6px !important;
+        border: 1px solid #334155 !important;
+        border-radius: 8px !important;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25), 0 2px 6px rgba(0, 0, 0, 0.1) !important;
+        padding: 8px 12px !important;
+        max-width: 360px !important;
+        line-height: 1.5 !important;
+        z-index: 1000000 !important;
     }
     [data-testid="stTooltipContent"] *,
-    .stTooltipContent * {
+    .stTooltipContent *,
+    div[role="tooltip"] *,
+    [data-testid="stTooltipContent"] [data-testid="stMarkdownContainer"] *,
+    .stTooltipContent [data-testid="stMarkdownContainer"] *,
+    div[role="tooltip"] [data-testid="stMarkdownContainer"] *,
+    [data-testid="stTooltipContent"] p,
+    .stTooltipContent p,
+    div[role="tooltip"] p,
+    [data-testid="stTooltipContent"] span,
+    .stTooltipContent span,
+    div[role="tooltip"] span,
+    [data-testid="stTooltipContent"] div,
+    .stTooltipContent div,
+    div[role="tooltip"] div {
         color: #f8fafc !important;
+        font-weight: 500 !important;
+        font-size: 0.88rem !important;
+        line-height: 1.5 !important;
+    }
+    [data-testid="stTooltipContent"] strong,
+    .stTooltipContent strong,
+    div[role="tooltip"] strong {
+        color: #ffffff !important;
+        font-weight: 700 !important;
+    }
+    [data-testid="stTooltipContent"] code,
+    .stTooltipContent code {
+        background-color: #1e293b !important;
+        color: #38bdf8 !important;
+        border: 1px solid #334155 !important;
+        border-radius: 4px !important;
+        padding: 0.1em 0.35em !important;
     }
 
     /* 8. BOTÃO CIRCULAR DE TEMA (MODO CLARO -> ÍCONE LUA) */
