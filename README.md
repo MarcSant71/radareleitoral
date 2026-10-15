@@ -1,6 +1,6 @@
-# 🗳️ Auditoria Eleições 2026 — Plataforma de Análise Forense e Estatística
+# 🗳️ Eleições 2026 — Ciência de Dados & Estatística Eleitoral
 
-Plataforma pública e independente de auditoria, análise estatística e visualização forense dos dados oficiais das urnas eletrônicas do Tribunal Superior Eleitoral (TSE).
+Plataforma pública e independente de ciência de dados, análise estatística e visualização quantitativa dos dados oficiais das urnas eletrônicas do Tribunal Superior Eleitoral (TSE).
 
 O projeto é guiado pelo princípio da **total transparência e reprodutibilidade**: todo o código de extração, decodificação ASN.1 dos Boletins de Urna (BU) e análise cronológica de logs das urnas está aberto para que peritos, universidades, partidos e cidadãos possam auditar e reproduzir as análises de forma independente.
 

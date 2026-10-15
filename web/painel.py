@@ -20,7 +20,7 @@ from db import DB_PATH
 from estatistica import aplicar_motor_estatistico
 
 st.set_page_config(
-    page_title="Auditoria Eleições 2026 - Análise de Votos por Horário",
+    page_title="Eleições 2026 - Ciência de Dados & Estatística Eleitoral",
     page_icon="🗳️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -1590,8 +1590,8 @@ def carregar_dados():
 
     return df
 
-st.title("🗳️ Auditoria Eleições 2026: Análise Estatística Forense")
-st.caption("Sistema de Fiscalização Estatística e Detecção de Anomalias de Urna Eletrônica • Base Oficial TSE • **Versão 2.3.0**")
+st.title("🗳️ Eleições 2026: Ciência de Dados & Estatística Eleitoral")
+st.caption("Plataforma de Ciência de Dados e Análise Estatística da Votação • Base Oficial TSE • **Versão 2.3.0**")
 
 MAPA_REGIOES = {
     "AC": "Norte", "AP": "Norte", "AM": "Norte", "PA": "Norte", "RO": "Norte", "RR": "Norte", "TO": "Norte",
