@@ -7,6 +7,16 @@ e este projeto adere estritamente ao [Semantic Versioning (SemVer 2.0.0)](https:
 
 ---
 
+## [2.4.4] - 2026-10-16
+
+### Adicionado
+- **Tabela Dimensão de Pleitos (`pleitos`):** Criação da tabela relacional no SQLite para mapeamento determinístico de código oficial do TSE (`03220`), ano (`2026`) e turno (`1`), desacoplando o código de constantes estáticas e preparando a base para múltiplos pleitos.
+- **Normalização de Zonas Eleitorais:** Reestruturação da chave primária de `zonas_totais` para `(pleito, uf, zona)`, isolando estatísticas entre turnos e eleições.
+- **Seletor de Eleição & Turno:** Controles de navegação na barra lateral para chaveamento de ano e turno com mensagem informativa para apurações futuras.
+- **Unificação de Domínio:** Configuração do domínio principal `eleicao.dominiodigital.dev.br` com suporte a redirecionamento permanente (301) do domínio legado no Caddy.
+
+---
+
 ## [2.4.3] - 2026-10-16
 
 ### Adicionado

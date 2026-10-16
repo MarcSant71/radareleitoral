@@ -1,6 +1,6 @@
 # 🗳️ Eleições 2026 — Ciência de Dados & Estatística Eleitoral
 
-[![Versão](https://img.shields.io/badge/versão-v2.4.3-blue.svg)](CHANGELOG.md)
+[![Versão](https://img.shields.io/badge/versão-v2.4.4-blue.svg)](CHANGELOG.md)
 [![Licença](https://img.shields.io/badge/licença-MIT-green.svg)](LICENSE)
 [![Base Oficial](https://img.shields.io/badge/dados-TSE%20Oficial-yellow.svg)](https://dadosabertos.tse.jus.br/)
 

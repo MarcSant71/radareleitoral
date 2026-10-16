@@ -39,9 +39,20 @@ def init_db(db_path: Optional[Path] = None) -> None:
     conn = get_connection(db_path)
     with conn:
         conn.executescript("""
+        CREATE TABLE IF NOT EXISTS pleitos (
+            codigo TEXT PRIMARY KEY,
+            ano INTEGER NOT NULL,
+            turno INTEGER NOT NULL,
+            descricao TEXT NOT NULL,
+            data_votacao TEXT
+        );
+
+        INSERT OR IGNORE INTO pleitos (codigo, ano, turno, descricao, data_votacao)
+        VALUES ('03220', 2026, 1, 'Eleições Gerais 2026 - 1º Turno', '2026-10-04');
+
         CREATE TABLE IF NOT EXISTS secoes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            pleito TEXT NOT NULL,
+            pleito TEXT NOT NULL DEFAULT '03220',
             uf TEXT NOT NULL,
             municipio TEXT NOT NULL,
             municipio_nome TEXT,
@@ -53,7 +64,8 @@ def init_db(db_path: Optional[Path] = None) -> None:
             faltosos_bu INTEGER DEFAULT 0,
             hash_urna TEXT,
             criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(pleito, uf, municipio, zona, secao)
+            UNIQUE(pleito, uf, municipio, zona, secao),
+            FOREIGN KEY(pleito) REFERENCES pleitos(codigo)
         );
 
         CREATE TABLE IF NOT EXISTS auditoria_horarios (
@@ -122,6 +134,7 @@ def init_db(db_path: Optional[Path] = None) -> None:
         );
 
         CREATE TABLE IF NOT EXISTS zonas_totais (
+            pleito TEXT NOT NULL DEFAULT '03220',
             uf TEXT NOT NULL,
             zona TEXT NOT NULL,
             tot_validos INTEGER DEFAULT 0,
@@ -133,11 +146,13 @@ def init_db(db_path: Optional[Path] = None) -> None:
             pct_22_zona REAL DEFAULT 0.0,
             pct_brancos_zona REAL DEFAULT 0.0,
             pct_nulos_zona REAL DEFAULT 0.0,
-            PRIMARY KEY (uf, zona)
+            PRIMARY KEY (pleito, uf, zona),
+            FOREIGN KEY(pleito) REFERENCES pleitos(codigo)
         );
 
         CREATE INDEX IF NOT EXISTS idx_secoes_loc ON secoes(uf, municipio, zona, secao);
         CREATE INDEX IF NOT EXISTS idx_secoes_uf_zona ON secoes(uf, zona);
+        CREATE INDEX IF NOT EXISTS idx_secoes_pleito ON secoes(pleito);
         CREATE INDEX IF NOT EXISTS idx_auditoria_score ON auditoria_horarios(score_suspeicao DESC);
         CREATE INDEX IF NOT EXISTS idx_auditoria_pos17h ON auditoria_horarios(votos_apos_17h DESC);
         CREATE INDEX IF NOT EXISTS idx_eventos_secao_hora ON eventos_votos(secao_id, apos_17h);

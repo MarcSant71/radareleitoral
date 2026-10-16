@@ -210,6 +210,7 @@ def atualizar_zonas_totais(conn=None):
     cur = conn.cursor()
     cur.execute("""
         CREATE TABLE IF NOT EXISTS zonas_totais (
+            pleito TEXT NOT NULL DEFAULT '03220',
             uf TEXT NOT NULL,
             zona TEXT NOT NULL,
             tot_validos INTEGER DEFAULT 0,
@@ -221,13 +222,14 @@ def atualizar_zonas_totais(conn=None):
             pct_22_zona REAL DEFAULT 0.0,
             pct_brancos_zona REAL DEFAULT 0.0,
             pct_nulos_zona REAL DEFAULT 0.0,
-            PRIMARY KEY (uf, zona)
+            PRIMARY KEY (pleito, uf, zona)
         )
     """)
     cur.execute("CREATE INDEX IF NOT EXISTS idx_secoes_uf_zona ON secoes(uf, zona)")
     cur.execute("""
         INSERT OR REPLACE INTO zonas_totais
         SELECT 
+            s.pleito,
             s.uf,
             s.zona,
             SUM(r.pres_total_validos) AS tot_validos,
@@ -241,7 +243,7 @@ def atualizar_zonas_totais(conn=None):
             ROUND(SUM(r.pres_nulos) * 100.0 / NULLIF(SUM(r.pres_total_validos) + SUM(r.pres_brancos) + SUM(r.pres_nulos), 0), 2) AS pct_nulos_zona
         FROM secoes s
         JOIN resultados_eleicao r ON r.secao_id = s.id
-        GROUP BY s.uf, s.zona
+        GROUP BY s.pleito, s.uf, s.zona
     """)
     conn.commit()
     print("Tabela 'zonas_totais' atualizada com sucesso!")

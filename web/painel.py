@@ -1851,6 +1851,8 @@ def carregar_dados() -> pd.DataFrame:
                     df["uf"] = df["uf"].astype("category")
                 if "regiao" in df.columns and df["regiao"].dtype.name != "category":
                     df["regiao"] = df["regiao"].astype("category")
+                if "pleito" in df.columns and df["pleito"].dtype.name != "category":
+                    df["pleito"] = df["pleito"].astype("category")
                 return df
             except Exception:
                 pass  # Fallback automático para o SQLite em caso de erro
@@ -1861,6 +1863,9 @@ def carregar_dados() -> pd.DataFrame:
     conn = sqlite3.connect(DB_PATH)
     query = """
     SELECT 
+        s.pleito,
+        coalesce(p.ano, 2026) AS ano,
+        coalesce(p.turno, 1) AS turno,
         s.uf,
         s.municipio,
         coalesce(s.municipio_nome, m.nome, s.municipio) AS municipio_nome,
@@ -1923,9 +1928,10 @@ def carregar_dados() -> pd.DataFrame:
         END AS delta_display
     FROM auditoria_horarios a
     JOIN secoes s ON s.id = a.secao_id
+    LEFT JOIN pleitos p ON p.codigo = s.pleito
     LEFT JOIN municipios m ON m.codigo_tse = s.municipio
     LEFT JOIN resultados_eleicao r ON r.secao_id = s.id
-    LEFT JOIN zonas_totais z ON z.uf = s.uf AND z.zona = s.zona
+    LEFT JOIN zonas_totais z ON z.pleito = s.pleito AND z.uf = s.uf AND z.zona = s.zona
     """
     df = pd.read_sql_query(query, conn)
     conn.close()
@@ -1937,6 +1943,7 @@ def carregar_dados() -> pd.DataFrame:
     # Consolida coluna de região e converte categorias
     df["regiao"] = df["uf"].map(MAPA_REGIOES).fillna("Outra").astype("category")
     df["uf"] = df["uf"].astype("category")
+    df["pleito"] = df["pleito"].astype("category")
 
     # Otimização de consumo de memória RAM (downcasting de inteiros/floats e categorias)
     for col in df.select_dtypes(include=["int64"]).columns:
@@ -2073,8 +2080,55 @@ if "regiao" not in df.columns:
     df["regiao"] = df["uf"].map(MAPA_REGIOES).fillna("Outra").astype("category")
 
 # ==========================================
+# SELETOR DE ELEIÇÃO & TURNO (SIDEBAR)
+# ==========================================
+st.sidebar.markdown(
+    """
+    <div style="font-size: 0.70rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-bottom: 0.25rem;">
+        🗳️ Eleição & Turno
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+col_ano, col_turno = st.sidebar.columns([1, 1])
+with col_ano:
+    eleicao_ativa = st.selectbox(
+        "Ano:",
+        options=["2026 (Geral)"],
+        index=0,
+        label_visibility="collapsed",
+        key="seletor_ano"
+    )
+with col_turno:
+    turno_ativo = st.selectbox(
+        "Turno:",
+        options=["1º Turno", "2º Turno"],
+        index=0,
+        label_visibility="collapsed",
+        key="seletor_turno"
+    )
+
+if turno_ativo == "2º Turno":
+    st.info("🗳️ **2º Turno — Aguardando Apuração Oficial do TSE**\n\nOs dados de votação e boletins de urna do segundo turno serão integrados e disponibilizados para auditoria forense e análise estatística assim que os pacotes oficiais forem homologados e publicados pelo Tribunal Superior Eleitoral.")
+    st.stop()
+
+# Filtra dataset pelo turno ativo (garante consistência presente e futura)
+if "turno" in df.columns:
+    df = df[df["turno"] == 1]
+
+# ==========================================
 # SELETOR DE PAINEL (SIDEBAR)
 # ==========================================
+st.sidebar.markdown(
+    """
+    <div style="font-size: 0.70rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-top: 0.5rem; margin-bottom: 0.25rem;">
+        📊 Painel Analítico
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
 opcoes_painel = [
     "🗳️ Auditoria de Urnas",
     "📉 Análise de Abstenção"

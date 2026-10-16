@@ -1,4 +1,4 @@
-eleicao2026.dominiodigital.dev.br {
+eleicao.dominiodigital.dev.br {
     header {
         # Oculta assinatura e versao de servidores internos
         -Server
@@ -15,8 +15,13 @@ eleicao2026.dominiodigital.dev.br {
     reverse_proxy painel:8501
 }
 
+eleicao2026.dominiodigital.dev.br {
+    # Redirecionamento permanente (301) do domínio legado para o novo domínio unificado
+    redir https://eleicao.dominiodigital.dev.br{uri} permanent
+}
+
 :80 {
     # Redireciona qualquer chamada HTTP ou por IP direto para o domínio seguro HTTPS
-    redir https://eleicao2026.dominiodigital.dev.br{uri} permanent
+    redir https://eleicao.dominiodigital.dev.br{uri} permanent
 }
 
