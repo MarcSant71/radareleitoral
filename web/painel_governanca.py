@@ -10,15 +10,28 @@ def renderizar_conteudo_governanca(modo_escuro: bool = True, plotly_theme: str =
     """
     Renderiza o conteúdo estruturado em abas para exibição em modal dialog ou visualização direta.
     """
+    st.markdown("""
+    <style>
+    /* Compacta o espaçamento superior da tela de Governança eliminando o vácuo vertical */
+    div[data-testid="stTabs"] {
+        margin-top: -0.75rem !important;
+    }
+    div[data-testid="stTabs"] [data-baseweb="tab-panel"] {
+        padding-top: 0.25rem !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     tab_gov, tab_vers = st.tabs([
         "⚖️ Governança, LGPD & Segurança",
         "🏷️ Histórico de Versões (Changelog)"
     ])
 
     with tab_gov:
+        st.markdown("""
+        <h3 style='margin-top: 0.25rem; margin-bottom: 0.75rem;'>⚖️ Governança Pública, Proteção de Dados (LGPD) & Segurança Criptográfica</h3>
+        """, unsafe_allow_html=True)
         st.markdown(r"""
-        ### ⚖️ Governança Pública, Proteção de Dados (LGPD) & Segurança Criptográfica
-
         > 🏛️ **Declaração de Neutralidade e Transparência Pública:**  
         > Este site é um instrumento estritamente independente de ciência de dados e transparência cívica, amparado no **Art. 5º, inciso XXXIII e Art. 37 da Constituição Federal de 1988**, bem como na **Lei de Acesso à Informação (Lei Federal nº 12.527/2011)** e nas resoluções oficiais de fiscalização do **Tribunal Superior Eleitoral (TSE)**.  
         > **Nenhum dado exibido nesta plataforma foi adulterado, editado ou manipulado.** A plataforma não possui vínculo partidário nem apoia candidatos ou coligações. Todas as conclusões derivam exclusivamente de **estatística inferencial, modelos matemáticos determinísticos e registros oficiais do TSE**.
@@ -83,14 +96,14 @@ def renderizar_conteudo_governanca(modo_escuro: bool = True, plotly_theme: str =
         """)
 
     with tab_vers:
-        st.markdown(r"""
-        ### 🏷️ Histórico de Versões & Evolução da Plataforma
-        """)
+        st.markdown("""
+        <h3 style='margin-top: 0.25rem; margin-bottom: 0.75rem;'>🏷️ Histórico de Versões & Evolução da Plataforma</h3>
+        """, unsafe_allow_html=True)
 
         st.markdown("""
         | Versão | Data | Classificação | Principais Entregas & Notas de Engenharia |
         | :--- | :---: | :---: | :--- |
-        | **v2.4.2** | **15/10/2026** | `PATCH` | **Skeleton Screen com Shimmer & Otimização de Transições:**<br>• Introdução de Skeleton Screen pulsante com gradiente de onda fluida (shimmer) durante o carregamento inicial (cold start), eliminando telas em branco.<br>• Desacoplamento da renderização metodológica com tempo de resposta inferior a 15ms e persistência contextual de filtros no `session_state`. |
+        | **v2.4.2** | **15/10/2026** | `PATCH` | **Skeleton Screen com Shimmer & Otimização de Transições:**<br>• Introdução de Skeleton Screen pulsante com gradiente de onda fluida (shimmer) durante o carregamento inicial (cold start), eliminando telas em branco.<br>• Supressão do segundo spinner no cold start e polimento visual da governança (remoção de botões redundantes e otimização vertical).<br>• Desacoplamento da renderização metodológica com tempo de resposta inferior a 15ms e persistência contextual de filtros no `session_state`. |
         | **v2.4.1** | **15/10/2026** | `PATCH` | **Otimização de Desempenho & Vetorização Numérica:**<br>• Vetorização via NumPy dos critérios de triagem forense, acelerando a renderização em mais de 90%.<br>• Pré-agregação server-side dos histogramas de distribuição temporal, reduzindo o volume de tráfego em 99,8%.<br>• Amostragem otimizada de dispersão WebGL e métricas de correlação, eliminando latências de renderização em servidores de produção. |
         | **v2.4.0** | **15/10/2026** | `MINOR` | **Módulo Analítico de Abstenção & Comparecimento Eleitoral:**<br>• Integração completa do painel de abstenção com modelo de Funil de Spiegelhalter (2005) e limites de controle paramétricos (95% e 99.8%).<br>• Incorporação da base oficial consolidada do TSE com 152 milhões de eleitores aptos e 497.895 seções apuradas.<br>• Suíte analítica com 21 KPIs (3x7) e 7 abas: *Comparar*, *Distribuição*, *Funil*, *Sinalizadas*, *Horário*, *Sem Digital* e *Cruzamento*.<br>• Detecção automatizada de seções com baixa abstenção anômala (*turnout spikes*) e geração de diagnósticos forenses objetivos.<br>• Desacoplamento arquitetural: separação modular entre painéis analíticos e tela dedicada de governança jurídica/LGPD. |
         | **v2.3.0** | **15/10/2026** | `MINOR` | **Didática Forense & Acessibilidade Universal:**<br>• Reformulação didática e acessível do caderno metodológico: tradução intuitiva da inferência estatística de Spiegelhalter (2005), analogias conceituais (MAD e o bilionário na padaria, termômetro do *z*-score e Teorema de Pitágoras/Norma Euclidiana $L_2$ multivariada) e renderização matemática isolada em blocos KaTeX.<br>• Subsistema universal de tooltips flutuantes de alto contraste invertido com suporte completo ao motor BaseWeb (cards e controles) e ao Glide Data Grid (`st.dataframe`).<br>• Conformidade com critérios WCAG de legibilidade visual em modo escuro e microinterações táteis nos ícones de ajuda contextual (?). |
@@ -111,21 +124,4 @@ def renderizar_painel_governanca(modo_escuro: bool = True, plotly_theme: str = "
     """
     Renderiza o Painel de Governança Pública, LGPD e Versionamento como tela completa da plataforma.
     """
-    col_voltar, _ = st.columns([2.5, 5])
-    with col_voltar:
-        if st.button("← Voltar ao Painel Analítico", key="btn_voltar_topo", help="Retornar à auditoria de dados"):
-            st.session_state["exibir_governanca"] = False
-            if "painel" in st.query_params:
-                del st.query_params["painel"]
-            st.rerun()
-
-    with st.sidebar:
-        st.markdown("---")
-        st.caption("⚖️ **Governança Pública & LGPD**\n\nDiretrizes de transparência cívica, amparo legal e histórico de versões SemVer 2.0.0.")
-        if st.button("← Voltar ao Painel", key="btn_voltar_sidebar", help="Retornar à auditoria de dados"):
-            st.session_state["exibir_governanca"] = False
-            if "painel" in st.query_params:
-                del st.query_params["painel"]
-            st.rerun()
-
     renderizar_conteudo_governanca(modo_escuro, plotly_theme)

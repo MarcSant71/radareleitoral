@@ -527,7 +527,7 @@ if modo_escuro:
         background-color: rgba(110, 118, 129, 0.12) !important;
     }
 
-    /* 12. SKELETON SCREEN (MODO ESCURO) */
+    /* 12. SKELETON SCREEN (MODO ESCURO - YOUTUBE SHIMMER) */
     .skeleton-card,
     [data-testid="stMarkdownContainer"] .skeleton-card {
         background-color: #161b22 !important;
@@ -535,8 +535,19 @@ if modo_escuro:
     }
     .skeleton-line,
     [data-testid="stMarkdownContainer"] .skeleton-line {
-        background: linear-gradient(90deg, #21262d 25%, #353d48 50%, #21262d 75%) !important;
-        background-size: 200% 100% !important;
+        background-color: #21262d !important;
+    }
+    .skeleton-card::after,
+    .skeleton-line::after,
+    .skeleton-tab-pill::after {
+        background: linear-gradient(
+            105deg,
+            rgba(255, 255, 255, 0) 0%,
+            rgba(255, 255, 255, 0.03) 25%,
+            rgba(255, 255, 255, 0.14) 50%,
+            rgba(255, 255, 255, 0.03) 75%,
+            rgba(255, 255, 255, 0) 100%
+        ) !important;
     }
     """
 else:
@@ -1065,7 +1076,7 @@ else:
         background-color: rgba(241, 245, 249, 0.9) !important;
     }
 
-    /* 12. SKELETON SCREEN (MODO CLARO) */
+    /* 12. SKELETON SCREEN (MODO CLARO - YOUTUBE SHIMMER) */
     .skeleton-card,
     [data-testid="stMarkdownContainer"] .skeleton-card {
         background-color: #ffffff !important;
@@ -1074,8 +1085,19 @@ else:
     }
     .skeleton-line,
     [data-testid="stMarkdownContainer"] .skeleton-line {
-        background: linear-gradient(90deg, #e2e8f0 25%, #f8fafc 50%, #e2e8f0 75%) !important;
-        background-size: 200% 100% !important;
+        background-color: #e2e8f0 !important;
+    }
+    .skeleton-card::after,
+    .skeleton-line::after,
+    .skeleton-tab-pill::after {
+        background: linear-gradient(
+            105deg,
+            rgba(255, 255, 255, 0) 0%,
+            rgba(255, 255, 255, 0.45) 25%,
+            rgba(255, 255, 255, 0.9) 50%,
+            rgba(255, 255, 255, 0.45) 75%,
+            rgba(255, 255, 255, 0) 100%
+        ) !important;
     }
     """
 
@@ -1616,14 +1638,14 @@ css_global = """
     }
 
     /* ========================================================
-       SKELETON SCREEN (ESTRUTURA, RESPONSIVIDADE E ANIMAÇÃO SHIMMER)
+       SKELETON SCREEN (ESTRUTURA, RESPONSIVIDADE E ANIMAÇÃO SHIMMER DO YOUTUBE)
        ======================================================== */
-    @keyframes skeletonWave {
+    @keyframes youtubeShimmer {
         0% {
-            background-position: 200% 0;
+            transform: translateX(-100%);
         }
         100% {
-            background-position: -200% 0;
+            transform: translateX(100%);
         }
     }
     @keyframes fadeInSkeleton {
@@ -1652,8 +1674,30 @@ css_global = """
         box-sizing: border-box !important;
     }
     .skeleton-line {
-        animation: skeletonWave 1.6s infinite ease-in-out !important;
         border-radius: 4px !important;
+        position: relative !important;
+        overflow: hidden !important;
+    }
+    .skeleton-tab-pill {
+        border-radius: 6px !important;
+        position: relative !important;
+        overflow: hidden !important;
+    }
+
+    /* Onda de luz do YouTube (Shimmer Wave contínua via GPU transform: translateX) */
+    .skeleton-card::after,
+    .skeleton-line::after,
+    .skeleton-tab-pill::after {
+        content: "" !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        transform: translateX(-100%);
+        animation: youtubeShimmer 1.5s infinite linear !important;
+        pointer-events: none !important;
+        z-index: 5 !important;
     }
 
     /* Grid de KPIs do Skeleton (5 colunas simétricas idênticas aos cards reais) */
@@ -1781,7 +1825,7 @@ def fmt_float_br(val, decimals=1, force_sign=False) -> str:
     except (ValueError, TypeError):
         return str(val)
 
-@st.cache_data(show_spinner="Processando, aguarde...")
+@st.cache_data(show_spinner=False)
 def carregar_dados():
     if not DB_PATH.exists():
         return pd.DataFrame()
@@ -1978,7 +2022,8 @@ MAPA_REGIOES = {
 # Exibe o Skeleton Screen visual (central + lateral) apenas no primeiro carregamento da sessão (Cold Start)
 skeleton_placeholder = None
 skeleton_sidebar_placeholder = None
-if not st.session_state.get("primeira_carga_concluida", False):
+is_cold_start = not st.session_state.get("primeira_carga_concluida", False)
+if is_cold_start:
     skeleton_placeholder = st.empty()
     skeleton_placeholder.markdown(gerar_skeleton_html(), unsafe_allow_html=True)
     skeleton_sidebar_placeholder = st.sidebar.empty()
@@ -1990,7 +2035,6 @@ if skeleton_placeholder is not None:
     skeleton_placeholder.empty()
 if skeleton_sidebar_placeholder is not None:
     skeleton_sidebar_placeholder.empty()
-st.session_state["primeira_carga_concluida"] = True
 
 if df.empty:
     st.warning("⚠️ O banco de dados local (eleicoes2026.db) ainda não possui dados auditados ou está vazio.")
@@ -2040,8 +2084,16 @@ plataforma = painel_ativo
 if st.session_state.get("exibir_governanca", False):
     renderizar_painel_governanca(modo_escuro, plotly_theme)
 elif painel_ativo == "📉 Análise de Abstenção":
-    with st.spinner("Processando, aguarde..."):
+    if is_cold_start:
         renderizar_painel_abstencao(df, modo_escuro, plotly_theme, fmt_int_br, fmt_float_br)
+    else:
+        with st.spinner("Processando, aguarde..."):
+            renderizar_painel_abstencao(df, modo_escuro, plotly_theme, fmt_int_br, fmt_float_br)
 else:
-    with st.spinner("Processando, aguarde..."):
+    if is_cold_start:
         renderizar_painel_auditoria(df, modo_escuro, plotly_theme, fmt_int_br, fmt_float_br)
+    else:
+        with st.spinner("Processando, aguarde..."):
+            renderizar_painel_auditoria(df, modo_escuro, plotly_theme, fmt_int_br, fmt_float_br)
+
+st.session_state["primeira_carga_concluida"] = True
