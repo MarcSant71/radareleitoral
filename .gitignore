@@ -21,6 +21,7 @@ antigos/
 *.zip
 *.tar.gz
 deploy_package.tar.gz
+web/version.json
 *.log
 *.pdf
 
