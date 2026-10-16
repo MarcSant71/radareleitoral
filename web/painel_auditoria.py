@@ -147,8 +147,192 @@ def renderizar_metodologia_auditoria():
     **O passo forense correto:** Peritos, auditores e cidadãos devem confrontar o número da seção com a **Ata da Mesa Receptora** arquivada no Cartório Eleitoral e com o espelho do Boletim de Urna (BU) para checar as justificativas anotadas pelos mesários.
 
     ---
-    <p style='margin-top: 0.6rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Painel de Auditoria de Urnas • Versão 2.4.2</p>
+    <p style='margin-top: 0.6rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Painel de Auditoria de Urnas • Versão 2.4.3</p>
     """, unsafe_allow_html=True)
+
+
+def _gerar_cache_auditoria(
+    df_filtrado: pd.DataFrame,
+    secao_selecionada: str,
+    uf_selecionada: str,
+    modo_escuro: bool,
+    plotly_theme: str,
+    fmt_int_br,
+    fmt_float_br
+) -> dict:
+    """Calcula e pré-compila todas as métricas, gráficos Plotly e dados tabulares para caching em memória."""
+    single_sec_banner = None
+    if secao_selecionada != "Todas" and len(df_filtrado) == 1:
+        r = df_filtrado.iloc[0]
+        info_txt = (
+            f"🔍 **Seção {r['secao']} (Zona {r['zona']} - {r['municipio_nome']}/{r['uf']}):** "
+            f"Primeiro voto: **{r['primeiro_voto']}** | Último voto: **{r['ultimo_voto']}** | Encerramento: **{r['hora_encerramento']}** | "
+            f"Pós-17h: **{fmt_int_br(r['votos_apos_17h'])} votos** ({fmt_float_br(r['pct_apos_17h'])}% | esp. mun.: {fmt_float_br(r['esp_pos17_pct'])}% | **Z: +{r['z_pos17']:.1f}σ**) | "
+            f"Manual: **+{r['z_manual']:.1f}σ** | Desvio Geral: **+{r['z_composto']:.1f}σ** | "
+            f"Alerta: **{r['motivos_alerta']}**"
+        )
+        bu_txt = None
+        if pd.notna(r.get("pres_venc_num")) and r.get("pres_total_validos", 0) > 0:
+            v_num = int(r["pres_venc_num"])
+            v_label = "Lula (13)" if v_num == 13 else ("Flávio Bolsonaro (22)" if v_num == 22 else f"Nº {v_num}")
+            lula_v = int(r.get("votos_cand_13", 0))
+            bolso_v = int(r.get("votos_cand_22", 0))
+            tot_v = int(r.get("pres_total_validos", 0))
+            lula_pct = (lula_v / tot_v * 100.0) if tot_v > 0 else 0.0
+            bolso_pct = (bolso_v / tot_v * 100.0) if tot_v > 0 else 0.0
+
+            delta_venc = r.get("delta_venc_zona")
+            delta_str = f" ({fmt_float_br(delta_venc, force_sign=True)} pp vs Zona)" if pd.notna(delta_venc) else ""
+            pct_13_z = r.get("pct_13_zona")
+            pct_22_z = r.get("pct_22_zona")
+            zona_info = f" | Média da Zona {r['zona']}: Lula {fmt_float_br(pct_13_z)}% vs Flávio Bolsonaro {fmt_float_br(pct_22_z)}%" if pd.notna(pct_13_z) else ""
+
+            bu_txt = (
+                f"🗳️ **Apuração Oficial do Boletim de Urna (BU):** "
+                f"Mais Votado: **{v_label}** com **{fmt_int_br(r['pres_venc_votos'])} votos ({fmt_float_br(r['pres_venc_pct'])}%){delta_str}** | "
+                f"Lula (13): **{fmt_int_br(lula_v)} votos ({fmt_float_br(lula_pct)}%)** | "
+                f"Flávio Bolsonaro (22): **{fmt_int_br(bolso_v)} votos ({fmt_float_br(bolso_pct)}%)** | "
+                f"Total Votos Válidos: **{fmt_int_br(tot_v)}**"
+                f"{zona_info}"
+            )
+        single_sec_banner = {"info": info_txt, "bu": bu_txt}
+
+    total_secoes = len(df_filtrado)
+    total_votos = int(df_filtrado["total_votos_log"].sum()) if total_secoes > 0 else 0
+    total_pos17 = int(df_filtrado["votos_apos_17h"].sum()) if total_secoes > 0 else 0
+    pct_total_pos17 = (total_pos17 / total_votos * 100.0) if total_votos > 0 else 0.0
+    criticas = int((df_filtrado["z_composto"] >= 3.0).sum())
+    media_z = float(df_filtrado["z_composto"].mean()) if total_secoes > 0 else 0.0
+
+    fig_scatter = None
+    scatter_amostra_caption = None
+    if not df_filtrado.empty:
+        if len(df_filtrado) > 5000:
+            criticas_df = df_filtrado[df_filtrado["z_composto"] >= 3.0]
+            if len(criticas_df) >= 5000:
+                df_scatter = criticas_df.sample(5000, random_state=42)
+            else:
+                outras = df_filtrado[df_filtrado["z_composto"] < 3.0]
+                amostra = outras.sample(min(len(outras), 5000 - len(criticas_df)), random_state=42)
+                df_scatter = pd.concat([criticas_df, amostra])
+            scatter_amostra_caption = "*💡 Amostra estatística de 5.000 seções (priorizando as seções de maior atipicidade). Pan e zoom habilitados.*"
+        else:
+            df_scatter = df_filtrado
+
+        fig_scatter = px.scatter(
+            df_scatter,
+            x="z_pos17",
+            y="z_manual",
+            size="total_votos_log",
+            color="z_composto",
+            hover_data=["uf", "municipio_nome", "zona", "secao", "ultimo_voto", "motivos_alerta"],
+            color_continuous_scale="Reds",
+            labels={
+                "z_pos17": "Desvio Z Votos Pós-17h (σ)",
+                "z_manual": "Desvio Z Habilitação Manual (σ)",
+                "z_composto": "Desvio Geral (σ)"
+            }
+        )
+        fig_scatter.add_vline(x=2.0, line_dash="dot", line_color="#f59e0b", annotation_text="+2σ", annotation_position="top left", annotation_font=dict(size=10, color="#f59e0b"))
+        fig_scatter.add_vline(x=3.0, line_dash="dash", line_color="#ef4444", annotation_text="+3σ Crítico", annotation_position="top right", annotation_yshift=-25, annotation_font=dict(size=11, color="#ef4444"))
+        fig_scatter.add_hline(y=2.0, line_dash="dot", line_color="#f59e0b", annotation_text="+2σ", annotation_position="top left", annotation_font=dict(size=10, color="#f59e0b"))
+        fig_scatter.add_hline(y=3.0, line_dash="dash", line_color="#ef4444", annotation_text="+3σ Crítico", annotation_position="top right", annotation_font=dict(size=11, color="#ef4444"))
+
+        q995_x = float(df_scatter["z_pos17"].quantile(0.995)) if len(df_scatter) > 10 else 20.0
+        q995_y = float(df_scatter["z_manual"].quantile(0.995)) if len(df_scatter) > 10 else 12.0
+        x_max = max(15.0, min(30.0, q995_x + 2.0))
+        y_max = max(10.0, min(20.0, q995_y + 2.0))
+        fig_scatter.update_xaxes(range=[-1.5, x_max])
+        fig_scatter.update_yaxes(range=[-1.5, y_max])
+        fig_scatter.update_layout(template=plotly_theme, height=420, margin=dict(l=20, r=20, t=40, b=20), separators=",.")
+
+    fig_cat = None
+    fig_hist = None
+    if not df_filtrado.empty:
+        total_s = len(df_filtrado)
+        c_normal = int((df_filtrado["z_composto"] < 2.0).sum())
+        c_atencao = int(((df_filtrado["z_composto"] >= 2.0) & (df_filtrado["z_composto"] < 3.0)).sum())
+        c_alta = int(((df_filtrado["z_composto"] >= 3.0) & (df_filtrado["z_composto"] < 4.5)).sum())
+        c_extrema = int((df_filtrado["z_composto"] >= 4.5).sum())
+
+        p_normal = c_normal * 100.0 / total_s
+        p_atencao = c_atencao * 100.0 / total_s
+        p_alta = c_alta * 100.0 / total_s
+        p_extrema = c_extrema * 100.0 / total_s
+
+        df_cat = pd.DataFrame({
+            "Faixa": ["Normal (< 2σ)", "Atenção (2-3σ)", "Alta Atipicidade (3-4.5σ)", "Anomalia Extrema (≥ 4.5σ)"],
+            "Qtd": [c_normal, c_atencao, c_alta, c_extrema],
+            "Rotulo": [
+                f"{p_normal:.1f}%<br>({fmt_int_br(c_normal)})",
+                f"{p_atencao:.1f}%<br>({fmt_int_br(c_atencao)})",
+                f"{p_alta:.1f}%<br>({fmt_int_br(c_alta)})",
+                f"{p_extrema:.1f}%<br>({fmt_int_br(c_extrema)})"
+            ]
+        })
+        cores_map = {
+            "Normal (< 2σ)": "#3b82f6",
+            "Atenção (2-3σ)": "#f59e0b",
+            "Alta Atipicidade (3-4.5σ)": "#f97316",
+            "Anomalia Extrema (≥ 4.5σ)": "#ef4444"
+        }
+        fig_cat = px.bar(df_cat, x="Faixa", y="Qtd", text="Rotulo", color="Faixa", color_discrete_map=cores_map, labels={"Faixa": "Nível de Significância Forense", "Qtd": "Quantidade de Seções"})
+        fig_cat.update_traces(textposition="outside", cliponaxis=False, textfont=dict(size=12, color="#f0f2f6"))
+        fig_cat.update_layout(template=plotly_theme, height=420, showlegend=False, margin=dict(l=20, r=20, t=55, b=20), separators=",.")
+
+        z_valid = df_filtrado["z_composto"].dropna()
+        z_plot = z_valid.clip(0.0, 12.0)
+        fig_hist = px.histogram(z_plot, x="z_composto", nbins=30, range_x=[0.0, 12.0], color_discrete_sequence=["#3b82f6"], labels={"z_composto": "Desvio Padronizado Composto (σ)"})
+        fig_hist.add_vline(x=2.0, line_dash="dash", line_color="#f59e0b", annotation_text="+2σ Atenção", annotation_position="top left", annotation_font=dict(size=10, color="#f59e0b"))
+        fig_hist.add_vline(x=3.0, line_dash="solid", line_color="#ef4444", annotation_text="+3σ Crítico", annotation_position="top right", annotation_yshift=-26, annotation_font=dict(size=11, color="#ef4444"))
+        fig_hist.update_layout(template=plotly_theme, height=420, margin=dict(l=20, r=20, t=40, b=20), separators=",.")
+
+    colunas_display = [
+        "regiao", "uf", "municipio_nome", "zona", "secao", "total_votos_log", "votos_apos_17h", "pct_apos_17h",
+        "esp_pos17_pct", "z_pos17", "ultimo_voto", "pct_manual_pos17h", "z_manual", "vencedor_display", "delta_display",
+        "votos_cand_13", "votos_cand_22", "z_composto", "motivos_alerta"
+    ]
+    nomes_amigaveis = {
+        "regiao": "Região", "uf": "UF", "municipio_nome": "Município", "zona": "Zona", "secao": "Seção",
+        "total_votos_log": "Total Votos", "votos_apos_17h": "Pós-17h", "pct_apos_17h": "% Pós-17h",
+        "esp_pos17_pct": "% Esp. Mun.", "z_pos17": "Z Pós-17h", "ultimo_voto": "Último Voto",
+        "pct_manual_pos17h": "% Manual Pós", "z_manual": "Z Manual", "vencedor_display": "Mais Votado Pres.",
+        "delta_display": "Δ vs Zona", "votos_cand_13": "Lula (13)", "votos_cand_22": "Flávio Bolsonaro (22)",
+        "z_composto": "Desvio (Z)", "motivos_alerta": "Alertas Estatísticos & Forenses"
+    }
+    df_tabela = df_filtrado[colunas_display].rename(columns=nomes_amigaveis)
+    df_tabela = df_tabela.sort_values(by=["Desvio (Z)", "Pós-17h"], ascending=[False, False])
+    df_tabela = df_tabela.reset_index(drop=True)
+    df_tabela.insert(0, "#", range(1, len(df_tabela) + 1))
+
+    total_filtradas = len(df_tabela)
+    caption_tabela = None
+    if total_filtradas > 1000:
+        df_tabela_display = df_tabela.head(1000)
+        caption_tabela = f"📋 Exibindo as **1.000 seções prioritárias** com maior desvio padronizado Z (de um total de **{fmt_int_br(total_filtradas)}** seções filtradas)."
+    else:
+        df_tabela_display = df_tabela
+
+    def exportar_csv():
+        return df_tabela.to_csv(index=False).encode('utf-8')
+
+    return {
+        "single_sec_banner": single_sec_banner,
+        "total_secoes": total_secoes,
+        "total_votos": total_votos,
+        "total_pos17": total_pos17,
+        "pct_total_pos17": pct_total_pos17,
+        "criticas": criticas,
+        "media_z": media_z,
+        "fig_scatter": fig_scatter,
+        "scatter_amostra_caption": scatter_amostra_caption,
+        "fig_cat": fig_cat,
+        "fig_hist": fig_hist,
+        "df_tabela_display": df_tabela_display,
+        "total_filtradas": total_filtradas,
+        "caption_tabela": caption_tabela,
+        "exportar_csv": exportar_csv
+    }
 
 
 def renderizar_painel_auditoria(
@@ -327,78 +511,78 @@ def renderizar_painel_auditoria(
     
     
     if aba_selecionada == OPCOES_NAV[0]:
+        chave_cache = (
+            regiao_selecionada,
+            uf_selecionada,
+            municipio_selecionado,
+            zona_selecionada,
+            secao_selecionada,
+            z_final,
+            pct_final,
+            apenas_com_alertas,
+            venc_sel,
+            modo_escuro
+        )
+
+        precisa_recalcular = (
+            "audit_cache_dados" not in st.session_state
+            or st.session_state.get("audit_cache_chave") != chave_cache
+        )
+
+        if precisa_recalcular:
+            if st.session_state.get("primeira_carga_concluida", False):
+                with st.spinner("Processando, aguarde..."):
+                    cache = _gerar_cache_auditoria(
+                        df_filtrado, secao_selecionada, uf_selecionada,
+                        modo_escuro, plotly_theme, fmt_int_br, fmt_float_br
+                    )
+            else:
+                cache = _gerar_cache_auditoria(
+                    df_filtrado, secao_selecionada, uf_selecionada,
+                    modo_escuro, plotly_theme, fmt_int_br, fmt_float_br
+                )
+            st.session_state["audit_cache_dados"] = cache
+            st.session_state["audit_cache_chave"] = chave_cache
+        else:
+            cache = st.session_state["audit_cache_dados"]
+
         # ==========================================
         # CARDS DE KPI (MÉTRICAS GERAIS)
         # ==========================================
-        if secao_selecionada != "Todas" and len(df_filtrado) == 1:
-            r = df_filtrado.iloc[0]
-            st.info(
-                f"🔍 **Seção {r['secao']} (Zona {r['zona']} - {r['municipio_nome']}/{r['uf']}):** "
-                f"Primeiro voto: **{r['primeiro_voto']}** | Último voto: **{r['ultimo_voto']}** | Encerramento: **{r['hora_encerramento']}** | "
-                f"Pós-17h: **{fmt_int_br(r['votos_apos_17h'])} votos** ({fmt_float_br(r['pct_apos_17h'])}% | esp. mun.: {fmt_float_br(r['esp_pos17_pct'])}% | **Z: +{r['z_pos17']:.1f}σ**) | "
-                f"Manual: **+{r['z_manual']:.1f}σ** | Desvio Geral: **+{r['z_composto']:.1f}σ** | "
-                f"Alerta: **{r['motivos_alerta']}**"
-            )
-            if pd.notna(r.get("pres_venc_num")) and r.get("pres_total_validos", 0) > 0:
-                v_num = int(r["pres_venc_num"])
-                v_label = "Lula (13)" if v_num == 13 else ("Flávio Bolsonaro (22)" if v_num == 22 else f"Nº {v_num}")
-                lula_v = int(r.get("votos_cand_13", 0))
-                bolso_v = int(r.get("votos_cand_22", 0))
-                tot_v = int(r.get("pres_total_validos", 0))
-                lula_pct = (lula_v / tot_v * 100.0) if tot_v > 0 else 0.0
-                bolso_pct = (bolso_v / tot_v * 100.0) if tot_v > 0 else 0.0
-    
-                delta_venc = r.get("delta_venc_zona")
-                delta_str = f" ({fmt_float_br(delta_venc, force_sign=True)} pp vs Zona)" if pd.notna(delta_venc) else ""
-                pct_13_z = r.get("pct_13_zona")
-                pct_22_z = r.get("pct_22_zona")
-                zona_info = f" | Média da Zona {r['zona']}: Lula {fmt_float_br(pct_13_z)}% vs Flávio Bolsonaro {fmt_float_br(pct_22_z)}%" if pd.notna(pct_13_z) else ""
-    
-                st.success(
-                    f"🗳️ **Apuração Oficial do Boletim de Urna (BU):** "
-                    f"Mais Votado: **{v_label}** com **{fmt_int_br(r['pres_venc_votos'])} votos ({fmt_float_br(r['pres_venc_pct'])}%){delta_str}** | "
-                    f"Lula (13): **{fmt_int_br(lula_v)} votos ({fmt_float_br(lula_pct)}%)** | "
-                    f"Flávio Bolsonaro (22): **{fmt_int_br(bolso_v)} votos ({fmt_float_br(bolso_pct)}%)** | "
-                    f"Total Votos Válidos: **{fmt_int_br(tot_v)}**"
-                    f"{zona_info}"
-                )
-    
-        total_secoes = len(df_filtrado)
-        total_votos = df_filtrado["total_votos_log"].sum() if total_secoes > 0 else 0
-        total_pos17 = df_filtrado["votos_apos_17h"].sum() if total_secoes > 0 else 0
-        pct_total_pos17 = (total_pos17 / total_votos * 100.0) if total_votos > 0 else 0.0
-        criticas = len(df_filtrado[df_filtrado["z_composto"] >= 3.0])
-    
+        if cache.get("single_sec_banner"):
+            st.info(cache["single_sec_banner"]["info"])
+            if cache["single_sec_banner"].get("bu"):
+                st.success(cache["single_sec_banner"]["bu"])
+
         with st.container(key="kpi_metrics"):
             c1, c2, c3, c4, c5 = st.columns(5)
             c1.metric(
                 "Seções Filtradas",
-                fmt_int_br(total_secoes),
+                fmt_int_br(cache["total_secoes"]),
                 help="Quantidade total de seções eleitorais que atendem aos filtros selecionados na barra lateral."
             )
             c2.metric(
                 "Total de Votos",
-                fmt_int_br(total_votos),
+                fmt_int_br(cache["total_votos"]),
                 help="Soma dos votos oficiais registrados nos arquivos de log das urnas para as seções selecionadas."
             )
             c3.metric(
                 "Votos Pós-17h",
-                fmt_int_br(total_pos17),
-                f"{fmt_float_br(pct_total_pos17)}% do total",
+                fmt_int_br(cache["total_pos17"]),
+                f"{fmt_float_br(cache['pct_total_pos17'])}% do total",
                 help="Volume e proporção percentual de eleitores que votaram após as 17h00 (horário oficial de encerramento)."
             )
             c4.metric(
                 "Alta Atipicidade (≥ 3.0σ)",
-                fmt_int_br(criticas),
+                fmt_int_br(cache["criticas"]),
                 help="Seções com desvio padronizado multivariado Z ≥ 3.0σ pelo Modelo Spiegelhalter 2005 (além de 3 desvios padrão do município)."
             )
-            media_z = df_filtrado["z_composto"].mean() if total_secoes > 0 else 0.0
             c5.metric(
                 "Desvio Médio (Z)",
-                f"+{fmt_float_br(media_z)}σ",
+                f"+{fmt_float_br(cache['media_z'])}σ",
                 help="Média do desvio padronizado multivariado (em sigmas) das seções filtradas na tela."
             )
-    
+
         st.markdown("---")
     
         # ==========================================
@@ -425,330 +609,153 @@ def renderizar_painel_auditoria(
                 )
     
             col_graf1, col_graf2 = st.columns(2)
-    
+
             with col_graf1:
                 st.subheader("📊 Desvio Pós-17h (Z) vs Desvio Manual (Z)")
                 st.caption("Dispersão estatística multivariada padronizada (Modelo de Spiegelhalter 2005).")
-                if not df_filtrado.empty:
-                    # Amostra inteligente para dispersão quando volume for muito massivo (reduz de 17MB para 180KB)
-                    if len(df_filtrado) > 5000:
-                        criticas = df_filtrado[df_filtrado["z_composto"] >= 3.0]
-                        if len(criticas) >= 5000:
-                            df_scatter = criticas.sample(5000, random_state=42)
-                        else:
-                            outras = df_filtrado[df_filtrado["z_composto"] < 3.0]
-                            amostra = outras.sample(min(len(outras), 5000 - len(criticas)), random_state=42)
-                            df_scatter = pd.concat([criticas, amostra])
-                    else:
-                        df_scatter = df_filtrado
-    
-                    fig_scatter = px.scatter(
-                        df_scatter,
-                        x="z_pos17",
-                        y="z_manual",
-                        size="total_votos_log",
-                        color="z_composto",
-                        hover_data=["uf", "municipio_nome", "zona", "secao", "ultimo_voto", "motivos_alerta"],
-                        color_continuous_scale="Reds",
-                        labels={
-                            "z_pos17": "Desvio Z Votos Pós-17h (σ)",
-                            "z_manual": "Desvio Z Habilitação Manual (σ)",
-                            "z_composto": "Desvio Geral (σ)"
-                        }
-                    )
-                    # Linhas de referência de significância estatística (+2σ e +3σ) com geometria anti-colisão
-                    fig_scatter.add_vline(
-                        x=2.0, line_dash="dot", line_color="#f59e0b",
-                        annotation_text="+2σ", annotation_position="top left",
-                        annotation_font=dict(size=10, color="#f59e0b")
-                    )
-                    fig_scatter.add_vline(
-                        x=3.0, line_dash="dash", line_color="#ef4444",
-                        annotation_text="+3σ Crítico", annotation_position="top right",
-                        annotation_yshift=-25,
-                        annotation_font=dict(size=11, color="#ef4444")
-                    )
-                    fig_scatter.add_hline(
-                        y=2.0, line_dash="dot", line_color="#f59e0b",
-                        annotation_text="+2σ", annotation_position="top left",
-                        annotation_font=dict(size=10, color="#f59e0b")
-                    )
-                    fig_scatter.add_hline(
-                        y=3.0, line_dash="dash", line_color="#ef4444",
-                        annotation_text="+3σ Crítico", annotation_position="top right",
-                        annotation_font=dict(size=11, color="#ef4444")
-                    )
-                    # Viewport dinâmico focado nos 99.5% dos dados, evitando compressão por outliers extremos
-                    q995_x = float(df_scatter["z_pos17"].quantile(0.995)) if len(df_scatter) > 10 else 20.0
-                    q995_y = float(df_scatter["z_manual"].quantile(0.995)) if len(df_scatter) > 10 else 12.0
-                    x_max = max(15.0, min(30.0, q995_x + 2.0))
-                    y_max = max(10.0, min(20.0, q995_y + 2.0))
-                    fig_scatter.update_xaxes(range=[-1.5, x_max])
-                    fig_scatter.update_yaxes(range=[-1.5, y_max])
-    
-                    fig_scatter.update_layout(template=plotly_theme, height=420, margin=dict(l=20, r=20, t=40, b=20), separators=",.")
-                    st.plotly_chart(fig_scatter, width="stretch")
-                    if len(df_filtrado) > 5000:
-                        st.caption("*💡 Amostra estatística de 5.000 seções (priorizando as seções de maior atipicidade). Pan e zoom habilitados.*")
-    
+                if cache.get("fig_scatter") is not None:
+                    st.plotly_chart(cache["fig_scatter"], width="stretch")
+                    if cache.get("scatter_amostra_caption"):
+                        st.caption(cache["scatter_amostra_caption"])
+
             with col_graf2:
                 st.subheader("📊 Distribuição de Anomalias")
-    
                 if modo_distribuicao == "📊 Faixas de Risco":
                     st.caption("Classificação das seções pelo desvio padronizado multivariado (Modelo Spiegelhalter).")
-                    if not df_filtrado.empty:
-                        total_s = len(df_filtrado)
-                        c_normal = int((df_filtrado["z_composto"] < 2.0).sum())
-                        c_atencao = int(((df_filtrado["z_composto"] >= 2.0) & (df_filtrado["z_composto"] < 3.0)).sum())
-                        c_alta = int(((df_filtrado["z_composto"] >= 3.0) & (df_filtrado["z_composto"] < 4.5)).sum())
-                        c_extrema = int((df_filtrado["z_composto"] >= 4.5).sum())
-    
-                        p_normal = c_normal * 100.0 / total_s
-                        p_atencao = c_atencao * 100.0 / total_s
-                        p_alta = c_alta * 100.0 / total_s
-                        p_extrema = c_extrema * 100.0 / total_s
-    
-                        df_cat = pd.DataFrame({
-                            "Faixa": [
-                                "Normal (< 2σ)",
-                                "Atenção (2-3σ)",
-                                "Alta Atipicidade (3-4.5σ)",
-                                "Anomalia Extrema (≥ 4.5σ)"
-                            ],
-                            "Qtd": [c_normal, c_atencao, c_alta, c_extrema],
-                            "Rotulo": [
-                                f"{p_normal:.1f}%<br>({fmt_int_br(c_normal)})",
-                                f"{p_atencao:.1f}%<br>({fmt_int_br(c_atencao)})",
-                                f"{p_alta:.1f}%<br>({fmt_int_br(c_alta)})",
-                                f"{p_extrema:.1f}%<br>({fmt_int_br(c_extrema)})"
-                            ]
-                        })
-    
-                        cores_map = {
-                            "Normal (< 2σ)": "#3b82f6",
-                            "Atenção (2-3σ)": "#f59e0b",
-                            "Alta Atipicidade (3-4.5σ)": "#f97316",
-                            "Anomalia Extrema (≥ 4.5σ)": "#ef4444"
-                        }
-    
-                        fig_cat = px.bar(
-                            df_cat,
-                            x="Faixa",
-                            y="Qtd",
-                            text="Rotulo",
-                            color="Faixa",
-                            color_discrete_map=cores_map,
-                            labels={"Faixa": "Nível de Significância Forense", "Qtd": "Quantidade de Seções"}
-                        )
-                        fig_cat.update_traces(
-                            textposition="outside",
-                            cliponaxis=False,
-                            textfont=dict(size=12, color="#f0f2f6")
-                        )
-                        fig_cat.update_layout(
-                            template=plotly_theme,
-                            height=420,
-                            showlegend=False,
-                            margin=dict(l=20, r=20, t=55, b=20),
-                            separators=",."
-                        )
-                        st.plotly_chart(fig_cat, width="stretch")
+                    if cache.get("fig_cat") is not None:
+                        st.plotly_chart(cache["fig_cat"], width="stretch")
                 else:
                     st.caption("Histograma contínuo dos desvios padronizados em sigmas (σ) até 12σ.")
-                    if not df_filtrado.empty:
-                        z_valid = df_filtrado["z_composto"].dropna()
-                        z_plot = z_valid.clip(0.0, 12.0)
-                        fig_hist = px.histogram(
-                            z_plot,
-                            x="z_composto",
-                            nbins=30,
-                            range_x=[0.0, 12.0],
-                            color_discrete_sequence=["#3b82f6"],
-                            labels={"z_composto": "Desvio Padronizado Composto (σ)"}
-                        )
-                        fig_hist.add_vline(
-                            x=2.0, line_dash="dash", line_color="#f59e0b",
-                            annotation_text="+2σ Atenção", annotation_position="top left",
-                            annotation_font=dict(size=10, color="#f59e0b")
-                        )
-                        fig_hist.add_vline(
-                            x=3.0, line_dash="solid", line_color="#ef4444",
-                            annotation_text="+3σ Crítico", annotation_position="top right",
-                            annotation_yshift=-26,
-                            annotation_font=dict(size=11, color="#ef4444")
-                        )
-                        fig_hist.update_layout(
-                            template=plotly_theme,
-                            height=420,
-                            margin=dict(l=20, r=20, t=40, b=20),
-                            separators=",."
-                        )
-                        st.plotly_chart(fig_hist, width="stretch")
+                    if cache.get("fig_hist") is not None:
+                        st.plotly_chart(cache["fig_hist"], width="stretch")
                         st.caption("*💡 Exibição focada no intervalo de 0 a 12σ (onde se concentram 98,3% das seções). Casos extremos são consolidados na borda direita.*")
-    
+
         # ==========================================
         # TABELA FORENSE RANKING DAS SEÇÕES
         # ==========================================
         st.subheader("📋 Ranking Detalhado das Seções Auditadas (Ordenado por Desvio Padronizado)")
-    
-        colunas_display = [
-            "regiao", "uf", "municipio_nome", "zona", "secao", "total_votos_log", "votos_apos_17h", "pct_apos_17h",
-            "esp_pos17_pct", "z_pos17", "ultimo_voto", "pct_manual_pos17h", "z_manual", "vencedor_display", "delta_display",
-            "votos_cand_13", "votos_cand_22", "z_composto", "motivos_alerta"
-        ]
-    
-        nomes_amigaveis = {
-            "regiao": "Região",
-            "uf": "UF",
-            "municipio_nome": "Município",
-            "zona": "Zona",
-            "secao": "Seção",
-            "total_votos_log": "Total Votos",
-            "votos_apos_17h": "Pós-17h",
-            "pct_apos_17h": "% Pós-17h",
-            "esp_pos17_pct": "% Esp. Mun.",
-            "z_pos17": "Z Pós-17h",
-            "ultimo_voto": "Último Voto",
-            "pct_manual_pos17h": "% Manual Pós",
-            "z_manual": "Z Manual",
-            "vencedor_display": "Mais Votado Pres.",
-            "delta_display": "Δ vs Zona",
-            "votos_cand_13": "Lula (13)",
-            "votos_cand_22": "Flávio Bolsonaro (22)",
-            "z_composto": "Desvio (Z)",
-            "motivos_alerta": "Alertas Estatísticos & Forenses"
-        }
-    
-        df_tabela = df_filtrado[colunas_display].rename(columns=nomes_amigaveis)
-        df_tabela = df_tabela.sort_values(by=["Desvio (Z)", "Pós-17h"], ascending=[False, False])
-        df_tabela = df_tabela.reset_index(drop=True)
-        df_tabela.insert(0, "#", range(1, len(df_tabela) + 1))
-    
-        total_filtradas = len(df_tabela)
-        if total_filtradas > 1000:
-            df_tabela_display = df_tabela.head(1000)
-            st.caption(f"📋 Exibindo as **1.000 seções prioritárias** com maior desvio padronizado Z (de um total de **{fmt_int_br(total_filtradas)}** seções filtradas).")
-        else:
-            df_tabela_display = df_tabela
-    
-        st.dataframe(
-            df_tabela_display,
-            width="stretch",
-            height=400,
-            hide_index=True,
-            column_config={
-                "#": st.column_config.NumberColumn(
-                    "#",
-                    help="Posição no ranking de anomalia forense (1º = seção com maior desvio estatístico Z).",
-                    format="%d",
-                    width="small"
-                ),
-                "Região": st.column_config.TextColumn(
-                    "Região",
-                    help="Região geográfica do Brasil correspondente à seção eleitoral.",
-                    width="small"
-                ),
-                "UF": st.column_config.TextColumn(
-                    "UF",
-                    help="Sigla da Unidade Federativa (Estado) onde a seção eleitoral operou.",
-                    width="small"
-                ),
-                "Município": st.column_config.TextColumn(
-                    "Município",
-                    help="Nome oficial do município da seção eleitoral auditada."
-                ),
-                "Zona": st.column_config.NumberColumn(
-                    "Zona",
-                    help="Número da Zona Eleitoral da Justiça Eleitoral responsável pela circunscrição.",
-                    format="%d",
-                    width="small"
-                ),
-                "Seção": st.column_config.NumberColumn(
-                    "Seção",
-                    help="Número identificador oficial da seção eleitoral.",
-                    format="%d",
-                    width="small"
-                ),
-                "Total Votos": st.column_config.NumberColumn(
-                    "Total Votos",
-                    help="Total de eleitores que compareceram e registraram voto no log oficial da urna eletrônica.",
-                    format="%d"
-                ),
-                "Pós-17h": st.column_config.NumberColumn(
-                    "Pós-17h",
-                    help="Quantidade absoluta de votos concluídos após o encerramento regular (17:00:00).",
-                    format="%d"
-                ),
-                "% Pós-17h": st.column_config.NumberColumn(
-                    "% Pós-17h",
-                    help="Proporção de eleitores da seção que votaram após as 17h em relação ao comparecimento total.",
-                    format="%.1f%%"
-                ),
-                "% Esp. Mun.": st.column_config.NumberColumn(
-                    "% Esp. Mun.",
-                    help="Proporção de votos pós-17h esperada para o município, calculada pelo método Leave-One-Out (Spiegelhalter 2005).",
-                    format="%.1f%%"
-                ),
-                "Z Pós-17h": st.column_config.NumberColumn(
-                    "Z Pós-17h",
-                    help="Desvio estatístico padronizado (em sigmas σ) do volume pós-17h em relação ao município/UF.",
-                    format="+%.1fσ"
-                ),
-                "Último Voto": st.column_config.TextColumn(
-                    "Último Voto",
-                    help="Horário exato (HH:MM:SS) em que o último eleitor concluiu seu voto e encerrou o fluxo da urna."
-                ),
-                "% Manual Pós": st.column_config.NumberColumn(
-                    "% Manual Pós",
-                    help="Percentual de eleitores pós-17h habilitados pelo mesário com código manual (dispensa de biometria).",
-                    format="%.1f%%"
-                ),
-                "Z Manual": st.column_config.NumberColumn(
-                    "Z Manual",
-                    help="Desvio estatístico padronizado (em sigmas σ) da habilitação manual em relação ao município/UF.",
-                    format="+%.1fσ"
-                ),
-                "Mais Votado Pres.": st.column_config.TextColumn(
-                    "Mais Votado Pres.",
-                    help="Candidato a Presidente com maior votação nominal apurada no Boletim de Urna (BU) oficial da seção."
-                ),
-                "Δ vs Zona": st.column_config.TextColumn(
-                    "Δ vs Zona",
-                    help="Desvio percentual (pontos percentuais) do candidato mais votado na seção em relação à média ponderada de todas as seções da sua Zona Eleitoral."
-                ),
-                "Lula (13)": st.column_config.NumberColumn(
-                    "Lula (13)",
-                    help="Total de votos nominais recebidos por Lula (13) no Boletim de Urna (BU) oficial da seção.",
-                    format="%d"
-                ),
-                "Flávio Bolsonaro (22)": st.column_config.NumberColumn(
-                    "Flávio Bolsonaro (22)",
-                    help="Total de votos nominais recebidos por Flávio Bolsonaro (22) no Boletim de Urna (BU) oficial da seção.",
-                    format="%d"
-                ),
-                "Desvio (Z)": st.column_config.NumberColumn(
-                    "Desvio (Z-Score)",
-                    help="Magnitude do desvio estatístico multivariado (Norma Euclidiana L2 em sigmas σ), integrando pós-17h, manual e horário.",
-                    format="+%.1fσ"
-                ),
-                "Alertas Estatísticos & Forenses": st.column_config.TextColumn(
-                    "Alertas Estatísticos & Forenses",
-                    help="Gatilhos forenses e padrões atípicos confirmados pela inferência estatística de Spiegelhalter (2005)."
-                ),
-            }
-        )
-    
-        # Download CSV completo
-        csv = df_tabela.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            label=f"📥 Baixar Todas as {fmt_int_br(total_filtradas)} Seções Filtradas (CSV)",
-            data=csv,
-            file_name=f"auditoria_eleicoes_2026_{uf_selecionada}.csv",
-            mime="text/csv"
-        )
-    
+        if cache.get("caption_tabela"):
+            st.caption(cache["caption_tabela"])
+
+        if cache.get("df_tabela_display") is not None:
+            st.dataframe(
+                cache["df_tabela_display"],
+                width="stretch",
+                height=400,
+                hide_index=True,
+                column_config={
+                    "#": st.column_config.NumberColumn(
+                        "#",
+                        help="Posição no ranking de anomalia forense (1º = seção com maior desvio estatístico Z).",
+                        format="%d",
+                        width="small"
+                    ),
+                    "Região": st.column_config.TextColumn(
+                        "Região",
+                        help="Região geográfica do Brasil correspondente à seção eleitoral.",
+                        width="small"
+                    ),
+                    "UF": st.column_config.TextColumn(
+                        "UF",
+                        help="Sigla da Unidade Federativa (Estado) onde a seção eleitoral operou.",
+                        width="small"
+                    ),
+                    "Município": st.column_config.TextColumn(
+                        "Município",
+                        help="Nome oficial do município da seção eleitoral auditada."
+                    ),
+                    "Zona": st.column_config.NumberColumn(
+                        "Zona",
+                        help="Número da Zona Eleitoral da Justiça Eleitoral responsável pela circunscrição.",
+                        format="%d",
+                        width="small"
+                    ),
+                    "Seção": st.column_config.NumberColumn(
+                        "Seção",
+                        help="Número identificador oficial da seção eleitoral.",
+                        format="%d",
+                        width="small"
+                    ),
+                    "Total Votos": st.column_config.NumberColumn(
+                        "Total Votos",
+                        help="Total de eleitores que compareceram e registraram voto no log oficial da urna eletrônica.",
+                        format="%d"
+                    ),
+                    "Pós-17h": st.column_config.NumberColumn(
+                        "Pós-17h",
+                        help="Quantidade absoluta de votos concluídos após o encerramento regular (17:00:00).",
+                        format="%d"
+                    ),
+                    "% Pós-17h": st.column_config.NumberColumn(
+                        "% Pós-17h",
+                        help="Proporção de eleitores da seção que votaram após as 17h em relação ao comparecimento total.",
+                        format="%.1f%%"
+                    ),
+                    "% Esp. Mun.": st.column_config.NumberColumn(
+                        "% Esp. Mun.",
+                        help="Proporção de votos pós-17h esperada para o município, calculada pelo método Leave-One-Out (Spiegelhalter 2005).",
+                        format="%.1f%%"
+                    ),
+                    "Z Pós-17h": st.column_config.NumberColumn(
+                        "Z Pós-17h",
+                        help="Desvio estatístico padronizado (em sigmas σ) do volume pós-17h em relação ao município/UF.",
+                        format="+%.1fσ"
+                    ),
+                    "Último Voto": st.column_config.TextColumn(
+                        "Último Voto",
+                        help="Horário exato (HH:MM:SS) em que o último eleitor concluiu seu voto e encerrou o fluxo da urna."
+                    ),
+                    "% Manual Pós": st.column_config.NumberColumn(
+                        "% Manual Pós",
+                        help="Percentual de eleitores pós-17h habilitados pelo mesário com código manual (dispensa de biometria).",
+                        format="%.1f%%"
+                    ),
+                    "Z Manual": st.column_config.NumberColumn(
+                        "Z Manual",
+                        help="Desvio estatístico padronizado (em sigmas σ) da habilitação manual em relação ao município/UF.",
+                        format="+%.1fσ"
+                    ),
+                    "Mais Votado Pres.": st.column_config.TextColumn(
+                        "Mais Votado Pres.",
+                        help="Candidato a Presidente com maior votação nominal apurada no Boletim de Urna (BU) oficial da seção."
+                    ),
+                    "Δ vs Zona": st.column_config.TextColumn(
+                        "Δ vs Zona",
+                        help="Desvio percentual (pontos percentuais) do candidato mais votado na seção em relação à média ponderada de todas as seções da sua Zona Eleitoral."
+                    ),
+                    "Lula (13)": st.column_config.NumberColumn(
+                        "Lula (13)",
+                        help="Total de votos nominais recebidos por Lula (13) no Boletim de Urna (BU) oficial da seção.",
+                        format="%d"
+                    ),
+                    "Flávio Bolsonaro (22)": st.column_config.NumberColumn(
+                        "Flávio Bolsonaro (22)",
+                        help="Total de votos nominais recebidos por Flávio Bolsonaro (22) no Boletim de Urna (BU) oficial da seção.",
+                        format="%d"
+                    ),
+                    "Desvio (Z)": st.column_config.NumberColumn(
+                        "Desvio (Z-Score)",
+                        help="Magnitude do desvio estatístico multivariado (Norma Euclidiana L2 em sigmas σ), integrando pós-17h, manual e horário.",
+                        format="+%.1fσ"
+                    ),
+                    "Alertas Estatísticos & Forenses": st.column_config.TextColumn(
+                        "Alertas Estatísticos & Forenses",
+                        help="Gatilhos forenses e padrões atípicos confirmados pela inferência estatística de Spiegelhalter (2005)."
+                    ),
+                }
+            )
+
+        # Download CSV completo (geração postergada/deferred - executa apenas no clique)
+        if cache.get("exportar_csv") is not None:
+            st.download_button(
+                label=f"📥 Baixar Todas as {fmt_int_br(cache['total_filtradas'])} Seções Filtradas (CSV)",
+                data=cache["exportar_csv"],
+                file_name=f"auditoria_eleicoes_2026_{uf_selecionada}.csv",
+                mime="text/csv"
+            )
+
         st.markdown("---")
-        st.markdown("<p style='margin-top: -1.1rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Versão 2.3.0</p>", unsafe_allow_html=True)
+        st.markdown("<p style='margin-top: -1.1rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Versão 2.4.3</p>", unsafe_allow_html=True)
     
 
     

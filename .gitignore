@@ -11,6 +11,9 @@ env/
 db/*.db
 db/*.db-wal
 db/*.db-shm
+db/*.parquet
+*.parquet
+evidencias/
 
 # Dados brutos, compactados e temporários
 dados_brutos/
