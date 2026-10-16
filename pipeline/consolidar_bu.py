@@ -13,15 +13,14 @@ import argparse
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from typing import List, Dict, Any, Optional, Tuple
-
-_pipeline_dir = Path(__file__).resolve().parent
-_web_dir = _pipeline_dir.parent / "web"
-for _p in (_pipeline_dir, _web_dir):
+_root_dir = Path(__file__).resolve().parent.parent
+_pipeline_dir = _root_dir / "pipeline"
+for _p in (_root_dir, _pipeline_dir):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
-from db import get_connection, init_db
-from bu_parser import UrnaBuParser
+from pipeline.db import get_connection, init_db
+from pipeline.bu_parser import UrnaBuParser
 
 BU_NAME_REGEX = re.compile(r"^o(\d{5})([a-z]{2})(\d{5})(\d{4})(\d{4})-bu\.dat$")
 
@@ -39,7 +38,6 @@ def extrair_meta_bu(filename: str) -> Optional[Dict[str, str]]:
 
 def processar_pacote_uf(zip_path: Path, secoes_map: Dict[Tuple[str, str, str, str, str], int], processados: set, num_threads: int = 16):
     uf = zip_path.stem.split("_")[-1]
-    print(f"\n[{uf}] Abrindo pacote oficial: {zip_path.name}")
     t0 = time.time()
     
     with zipfile.ZipFile(zip_path, 'r') as z:
@@ -57,12 +55,14 @@ def processar_pacote_uf(zip_path: Path, secoes_map: Dict[Tuple[str, str, str, st
             if secao_id and secao_id not in processados:
                 arquivos_pendentes.append((f, secao_id))
                 
-        print(f"[{uf}] Total no arquivo: {total_bu:,} BUs | Já consolidados: {total_bu - len(arquivos_pendentes):,} | A processar: {len(arquivos_pendentes):,}")
-        
         if not arquivos_pendentes:
-            print(f"[{uf}] 100% dos Boletins de Urna já consolidados.")
+            sys.stdout.write(f"\rConsolidando {uf}: 100.0% - Concluído! (Arquivo já processado)                          \n")
+            sys.stdout.flush()
             return 0
             
+        sys.stdout.write(f"\rConsolidando {uf}:   0.0% | 0 BUs/s...                 ")
+        sys.stdout.flush()
+
         # Processamento em lotes sequenciais de leitura (I/O) + paralelismo de parse (CPU)
         TAMANHO_LOTE = 2000
         lote_buffer = []
@@ -128,13 +128,13 @@ def processar_pacote_uf(zip_path: Path, secoes_map: Dict[Tuple[str, str, str, st
                 
             processados_count += len(resultados_chunk)
             taxa = processados_count / max(0.1, time.time() - t0)
-            pct = (processados_count / len(arquivos_pendentes)) * 100
-            print(f"[{uf}] Progresso: {processados_count:,}/{len(arquivos_pendentes):,} ({pct:.1f}%) - {taxa:.0f} BUs/seg", end="\r")
+            pct = (processados_count / len(arquivos_pendentes)) * 100.0
+            sys.stdout.write(f"\rConsolidando {uf}: {pct:5.1f}% | {taxa:.0f} BUs/s...                 ")
+            sys.stdout.flush()
             
         conn.close()
-        dt = time.time() - t0
-        taxa_final = processados_count / max(0.1, dt)
-        print(f"\n[{uf}] Finalizado com sucesso! {processados_count:,} seções consolidadas em {dt:.1f}s ({taxa_final:.0f} BUs/s)")
+        sys.stdout.write(f"\rConsolidando {uf}: 100.0% - Concluído! ({total_bu:,} BUs)                                   \n")
+        sys.stdout.flush()
         return processados_count
 
 def main():

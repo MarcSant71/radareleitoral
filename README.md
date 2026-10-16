@@ -1,6 +1,6 @@
 # 🗳️ Eleições 2026 — Ciência de Dados & Estatística Eleitoral
 
-[![Versão](https://img.shields.io/badge/versão-v2.4.4-blue.svg)](CHANGELOG.md)
+[![Versão](https://img.shields.io/badge/versão-v2.5.0-blue.svg)](CHANGELOG.md)
 [![Licença](https://img.shields.io/badge/licença-MIT-green.svg)](LICENSE)
 [![Base Oficial](https://img.shields.io/badge/dados-TSE%20Oficial-yellow.svg)](https://dadosabertos.tse.jus.br/)
 
@@ -25,37 +25,45 @@ O projeto é guiado pelo princípio da **total transparência e reprodutibilidad
 
 ## 🏗️ Arquitetura do Repositório
 
-O projeto é estruturado com separação estrita entre a camada de apresentação web, o motor de auditoria de dados e os scripts operacionais:
+O projeto é estruturado com separação estrita entre a camada de apresentação web, o pacote modular de dados e os scripts operacionais:
 
 ```text
 Eleicao2026/
 │
+├── iniciar_banco.py           # [CLI] Atalho mestre para inicialização e carga do pipeline
+│
 ├── web/                       # [PRODUÇÃO] Plataforma analítica Streamlit
-│   ├── painel.py              # Orquestrador central e roteador de navegação (v2.4.3)
+│   ├── painel.py              # Orquestrador central e roteador de navegação (v2.5.0)
 │   ├── painel_auditoria.py    # Auditoria de urnas, horários, biometria e ranking forense
 │   ├── painel_abstencao.py    # Suíte analítica de abstenção & comparecimento (21 KPIs + 7 abas)
 │   ├── painel_governanca.py   # Governança pública, conformidade LGPD e histórico de versões
 │   ├── estatistica.py         # Motores matemáticos de Spiegelhalter (2005) e Bayes empírico
-│   └── db.py                  # Camada de conexão e consultas SQLite otimizada com WAL
+│   ├── dados.py               # Camada isolada de dados e compilação analítica
+│   └── db.py                  # Conexão e pooling de consultas SQLite
 │
-├── pipeline/                  # [MOTOR DE AUDITORIA] Scripts de extração e parsing do TSE
-│   ├── baixar_pacote.py       # Download paralelo dos pacotes oficiais da CDN do TSE
+├── pipeline/                  # [MOTOR DE DADOS] Pacote modular de engenharia eleitoral
+│   ├── __init__.py            # Pacote Python canônico
+│   ├── __main__.py            # Ponto de entrada modular (python -m pipeline)
+│   ├── orquestrador.py        # Orquestrador mestre em 5 etapas com auto-detecção de turnos
+│   ├── db.py                  # Schema relacional SQLite e tabela dimensão de pleitos
+│   ├── baixar.py / baixar_pacote.py  # Download com retomada da CDN do TSE
 │   ├── auditar.py             # Parser forense de eventos de logs das urnas (.jez)
-│   ├── consolidar_bu.py       # Decodificador multithread de Boletins de Urna (.dat)
-│   ├── bu_parser.py           # Parser da especificação ASN.1 oficial do TSE
-│   ├── log_parser.py          # Extrator determinístico de eventos e timestamps de votação
-│   ├── downloader.py          # Utilitário HTTP resiliente com suporte a Range requests
-│   └── tse_spec.js            # Especificação JavaScript auxiliar do protocolo do TSE
+│   ├── consolidar.py / consolidar_bu.py # Decodificador multithread de BUs (.dat)
+│   ├── compilar.py            # Materialização do cache analítico colunar Parquet
+│   ├── bu_parser.py           # Parser ASN.1 da especificação do TSE
+│   └── log_parser.py          # Extrator determinístico de timestamps e eventos
 │
 ├── scripts/                   # [OPERAÇÃO LOCAL & DEPLOY]
-│   ├── painel.cmd             # Inicializador local do painel Streamlit com ambiente virtual
-│   ├── atualizar_dados.cmd    # Sincronização automatizada da base de dados local
+│   ├── iniciar_banco.cmd      # Inicializador da base de dados e compilação do Parquet (Windows)
+│   ├── painel.cmd             # Atalho local para abrir o painel Streamlit no navegador
+│   ├── atualizar_dados.cmd    # Rotina complementar de atualização incremental
 │   └── deploy.ps1             # Pipeline de empacotamento, SCP e deploy remoto na VPS Hetzner
 │
-├── db/                        # [BASE DE DADOS] (Não rastreado no git / Gerado localmente)
-│   ├── eleicoes2026.db        # Banco de dados relacional SQLite WAL
-│   └── eleicoes2026.parquet   # Cache colunar analítico de alta performance
+├── db/                        # [BASE DE DADOS] (Estrutura preservada no git via .gitkeep)
+│   ├── eleicoes2026.db        # Banco de dados relacional SQLite WAL (gerado localmente)
+│   └── eleicoes2026.parquet   # Cache colunar analítico (gerado localmente)
 │
+├── dados_brutos/              # [PACOTES TSE] (Estrutura preservada no git via .gitkeep)
 ├── .streamlit/                # Configurações de tema, porta e renderização
 ├── Caddyfile                  # Configuração de Proxy Reverso HTTPS (Caddy Server com OWASP)
 ├── Dockerfile                 # Contêiner Docker otimizado para o Streamlit (Python 3.11-slim)
@@ -94,23 +102,19 @@ Os pacotes de dados brutos são obtidos diretamente dos endpoints da CDN de Dado
    pip install -r requirements.txt
    ```
 
-3. **Baixe os pacotes oficiais de uma ou todas as UFs:**
-   ```bash
-   # Exemplo para a Bahia (BA) ou use --todas
-   python pipeline/baixar_pacote.py --uf BA
-   ```
+3. **Execute o Inicializador da Base de Dados:**
+   * **No Windows (atalho direto):**
+     ```cmd
+     .\scripts\iniciar_banco.cmd
+     ```
+   * **Via Terminal / Qualquer Sistema Operacional:**
+     ```bash
+     python iniciar_banco.py
+     # ou alternativamente:
+     python -m pipeline
+     ```
 
-4. **Audite os logs de eventos e horários:**
-   ```bash
-   python pipeline/auditar.py --threads 16
-   ```
-
-5. **Consolide os Boletins de Urna (BUs):**
-   ```bash
-   python pipeline/consolidar_bu.py --threads 16
-   ```
-
-Os scripts processam os arquivos brutos e criam automaticamente o banco local indexado `db/eleicoes2026.db`.
+O orquestrador detecta automaticamente os turnos disponíveis, verifica/baixa os pacotes da CDN oficial, audita os logs, decodifica os Boletins de Urna e compila o dataset analítico Parquet em `db/eleicoes2026.parquet`.
 
 ---
 

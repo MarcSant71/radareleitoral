@@ -6,8 +6,10 @@ verificação de tamanho e salvamento em disco local.
 
 import os
 import sys
+import time
 import argparse
 import urllib.request
+import urllib.error
 from pathlib import Path
 from typing import Optional
 
@@ -32,69 +34,112 @@ def baixar_pacote_uf(uf: str, destino_dir: Optional[Path] = None, turno: int = 1
     nome_arquivo = f"bu_imgbu_logjez_rdv_vscmr_2026_{turno}t_{uf}.zip"
     url = f"{CDN_BASE_URL}/{nome_arquivo}"
     caminho_local = destino_dir / nome_arquivo
-
-    print(f"\n[DOWNLOAD] Conectando ao TSE para baixar pacote da UF: {uf}")
-    print(f"URL: {url}")
-    print(f"Destino local: {caminho_local}")
-
-    # Obtém o tamanho total do arquivo remoto via HEAD
-    req = urllib.request.Request(url, method="HEAD")
-    req.add_header("User-Agent", "Mozilla/5.0")
-    try:
-        with urllib.request.urlopen(req) as resp:
-            total_remoto = int(resp.headers.get("Content-Length", 0))
-    except Exception as e:
-        print(f"Erro ao verificar arquivo remoto: {e}", file=sys.stderr)
-        sys.exit(1)
-
     tamanho_existente = caminho_local.stat().st_size if caminho_local.exists() else 0
+    sys.stdout.write(f"\rBaixando {uf}:   0.0% conectando ao TSE...                 ")
+    sys.stdout.flush()
 
+    # 1. Obtém o tamanho total do arquivo remoto de forma confiável via HEAD
+    total_remoto = 0
+    try:
+        req_head = urllib.request.Request(url, method="HEAD")
+        req_head.add_header("User-Agent", "Mozilla/5.0")
+        with urllib.request.urlopen(req_head, timeout=15) as resp:
+            cl = resp.headers.get("Content-Length")
+            # Um pacote de urna tem pelo menos vários megabytes (evita respostas truncadas/WAF)
+            if cl and int(cl) > 1024 * 1024:
+                total_remoto = int(cl)
+    except Exception:
+        pass
+
+    # Se o arquivo já existe localmente e confere com o tamanho remoto
     if total_remoto > 0 and tamanho_existente == total_remoto:
-        print(f"Arquivo já totalmente baixado e verificado: {tamanho_existente / (1024**3):.2f} GB.")
+        sys.stdout.write(f"\rBaixando {uf}: 100.0% - Concluído! (Arquivo já baixado)                          \n")
+        sys.stdout.flush()
         return caminho_local
 
     headers = {"User-Agent": "Mozilla/5.0"}
     modo_abertura = "wb"
+    baixado = 0
+
     if tamanho_existente > 0:
-        if tamanho_existente < total_remoto:
-            print(f"Retomando download a partir de {tamanho_existente / (1024**2):.1f} MB (Total: {total_remoto / (1024**3):.2f} GB)...")
+        if total_remoto > 0 and tamanho_existente < total_remoto:
             headers["Range"] = f"bytes={tamanho_existente}-"
             modo_abertura = "ab"
+            baixado = tamanho_existente
+        elif total_remoto == 0:
+            headers["Range"] = f"bytes={tamanho_existente}-"
+            modo_abertura = "ab"
+            baixado = tamanho_existente
         else:
-            print("Arquivo local maior que o remoto. Reiniciando download...")
             tamanho_existente = 0
+            modo_abertura = "wb"
+            baixado = 0
 
     req_get = urllib.request.Request(url, headers=headers)
-    bloco_size = 1024 * 1024 # 1 MB por bloco
-    baixado = tamanho_existente
-
-    import time
+    bloco_size = 1024 * 1024  # 1 MB por bloco
     start_time = time.time()
     last_print = 0
 
-    with urllib.request.urlopen(req_get) as resp, open(caminho_local, modo_abertura) as f_out:
-        while True:
-            bloco = resp.read(bloco_size)
-            if not bloco:
-                break
-            f_out.write(bloco)
-            baixado += len(bloco)
-            now = time.time()
-            if now - last_print >= 0.25:
-                last_print = now
-                elapsed = now - start_time
-                speed = ((baixado - tamanho_existente) / elapsed / (1024 * 1024)) if elapsed > 0 else 0
-                pct = (baixado / total_remoto * 100.0) if total_remoto > 0 else 0.0
-                mb_baixado = baixado / (1024 * 1024)
-                mb_total = total_remoto / (1024 * 1024)
-                sys.stdout.write(f"\rBaixando {uf}: {mb_baixado:.1f}/{mb_total:.1f} MB ({pct:.1f}%) a {speed:.1f} MB/s...  ")
-                sys.stdout.flush()
+    try:
+        with urllib.request.urlopen(req_get, timeout=30) as resp:
+            status = getattr(resp, "status", 200)
 
-    pct_final = (baixado / total_remoto * 100.0) if total_remoto > 0 else 100.0
-    sys.stdout.write(f"\rBaixando {uf}: {baixado/(1024*1024):.1f}/{total_remoto/(1024*1024):.1f} MB ({pct_final:.1f}%) - Concluido!\n")
+            # Extrai o tamanho total definitivo a partir da resposta do GET
+            content_range = resp.headers.get("Content-Range")
+            if content_range and "/" in content_range:
+                try:
+                    total_remoto = int(content_range.split("/")[-1])
+                except (ValueError, TypeError):
+                    pass
+            elif resp.headers.get("Content-Length"):
+                cl = int(resp.headers.get("Content-Length", 0))
+                if status == 200:
+                    total_remoto = cl
+                elif status == 206 and total_remoto == 0:
+                    total_remoto = tamanho_existente + cl
+
+            # Se o servidor respondeu 200 (ignorou Range), recomeça gravação limpa
+            if status == 200 and modo_abertura == "ab":
+                modo_abertura = "wb"
+                baixado = 0
+                tamanho_existente = 0
+
+            # Caso especial: já estava completo
+            if total_remoto > 0 and tamanho_existente == total_remoto:
+                sys.stdout.write(f"\rBaixando {uf}: 100.0% - Concluído!                                   \n")
+                sys.stdout.flush()
+                return caminho_local
+
+            with open(caminho_local, modo_abertura) as f_out:
+                while True:
+                    bloco = resp.read(bloco_size)
+                    if not bloco:
+                        break
+                    f_out.write(bloco)
+                    baixado += len(bloco)
+                    now = time.time()
+                    if now - last_print >= 0.25:
+                        last_print = now
+                        elapsed = now - start_time
+                        speed = ((baixado - tamanho_existente) / elapsed / (1024 * 1024)) if elapsed > 0 else 0
+                        pct = min(99.9, (baixado / total_remoto * 100.0)) if total_remoto > 0 else 0.0
+                        sys.stdout.write(f"\rBaixando {uf}: {pct:5.1f}% | {speed:.1f} MB/s...                 ")
+                        sys.stdout.flush()
+
+    except urllib.error.HTTPError as he:
+        if he.code == 416:
+            # 416 Range Not Satisfiable: arquivo já está totalmente baixado
+            sys.stdout.write(f"\rBaixando {uf}: 100.0% - Concluído!                                   \n")
+            sys.stdout.flush()
+            return caminho_local
+        else:
+            print(f"Erro HTTP {he.code} ao baixar {uf}: {he.reason}", file=sys.stderr)
+            raise
+
+    sys.stdout.write(f"\rBaixando {uf}: 100.0% - Concluído!                                   \n")
     sys.stdout.flush()
-    print(f"Arquivo salvo com sucesso em: {caminho_local}\n", flush=True)
     return caminho_local
+
 
 UFS_BRASIL = [
     "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA",

@@ -1825,143 +1825,13 @@ def fmt_float_br(val, decimals=1, force_sign=False) -> str:
         return f"{sign}{res}"
     except (ValueError, TypeError):
         return str(val)
-
-MAPA_REGIOES = {
-    "AC": "Norte", "AP": "Norte", "AM": "Norte", "PA": "Norte", "RO": "Norte", "RR": "Norte", "TO": "Norte",
-    "AL": "Nordeste", "BA": "Nordeste", "CE": "Nordeste", "MA": "Nordeste", "PB": "Nordeste", "PE": "Nordeste", "PI": "Nordeste", "RN": "Nordeste", "SE": "Nordeste",
-    "DF": "Centro-Oeste", "GO": "Centro-Oeste", "MT": "Centro-Oeste", "MS": "Centro-Oeste",
-    "ES": "Sudeste", "MG": "Sudeste", "RJ": "Sudeste", "SP": "Sudeste",
-    "PR": "Sul", "RS": "Sul", "SC": "Sul"
-}
-
-PARQUET_CACHE_PATH = DB_PATH.with_suffix(".parquet")
+from dados import obter_dados_analiticos, PARQUET_CACHE_PATH, MAPA_REGIOES
 
 
 @st.cache_data(show_spinner=False)
 def carregar_dados() -> pd.DataFrame:
-    # 1. Cache Colunar Parquet: tenta carregar do arquivo pré-processado (~0.6s)
-    if PARQUET_CACHE_PATH.exists():
-        precisa_reprocessar = False
-        if DB_PATH.exists() and DB_PATH.stat().st_mtime > PARQUET_CACHE_PATH.stat().st_mtime:
-            precisa_reprocessar = True
+    return obter_dados_analiticos()
 
-        if not precisa_reprocessar:
-            try:
-                df = pd.read_parquet(PARQUET_CACHE_PATH)
-                if "uf" in df.columns and df["uf"].dtype.name != "category":
-                    df["uf"] = df["uf"].astype("category")
-                if "regiao" in df.columns and df["regiao"].dtype.name != "category":
-                    df["regiao"] = df["regiao"].astype("category")
-                if "pleito" in df.columns and df["pleito"].dtype.name != "category":
-                    df["pleito"] = df["pleito"].astype("category")
-                return df
-            except Exception:
-                pass  # Fallback automático para o SQLite em caso de erro
-
-    if not DB_PATH.exists():
-        return pd.DataFrame()
-    
-    conn = sqlite3.connect(DB_PATH)
-    query = """
-    SELECT 
-        s.pleito,
-        coalesce(p.ano, 2026) AS ano,
-        coalesce(p.turno, 1) AS turno,
-        s.uf,
-        s.municipio,
-        coalesce(s.municipio_nome, m.nome, s.municipio) AS municipio_nome,
-        coalesce(s.municipio_nome, m.nome, s.municipio) || ' (' || s.municipio || ')' AS municipio_display,
-        s.zona,
-        s.secao,
-        s.total_aptos,
-        s.comparecimento_bu,
-        s.faltosos_bu,
-        ROUND(s.faltosos_bu * 100.0 / NULLIF(s.total_aptos, 0), 2) AS pct_abstencao,
-        ROUND(s.comparecimento_bu * 100.0 / NULLIF(s.total_aptos, 0), 2) AS pct_comparecimento,
-        a.total_votos_log,
-        a.votos_antes_17h,
-        a.votos_apos_17h,
-        a.pct_apos_17h,
-        a.primeiro_voto,
-        a.ultimo_voto,
-        ROUND(CAST(substr(a.ultimo_voto, 1, 2) AS REAL) + CAST(substr(a.ultimo_voto, 4, 2) AS REAL)/60.0 + CAST(substr(a.ultimo_voto, 7, 2) AS REAL)/3600.0, 2) AS hora_ult_dec,
-        a.hora_encerramento,
-        a.maior_ociosidade_antes_17h_min,
-        a.minutos_sem_voto_antes_17h,
-        a.biometria_sucesso_total,
-        a.habilitacao_manual_total,
-        a.biometria_sucesso_pos17h,
-        a.habilitacao_manual_pos17h,
-        a.pct_manual_pos17h,
-        a.tempo_medio_pos17h_segundos,
-        a.votos_ultrarapidos_pos17h,
-        a.score_suspeicao,
-        a.motivos_alerta,
-        r.pres_total_validos,
-        r.pres_venc_num,
-        r.pres_venc_votos,
-        r.pres_venc_pct,
-        r.pres_seg_num,
-        r.pres_seg_votos,
-        r.pres_seg_pct,
-        r.votos_cand_13,
-        r.votos_cand_22,
-        r.gov_venc_num,
-        r.gov_venc_votos,
-        r.gov_venc_pct,
-        z.pct_13_zona,
-        z.pct_22_zona,
-        ROUND(r.pres_venc_pct - (CASE WHEN r.pres_venc_num = 13 THEN z.pct_13_zona WHEN r.pres_venc_num = 22 THEN z.pct_22_zona ELSE 0 END), 1) AS delta_venc_zona,
-        ROUND((r.votos_cand_13 * 100.0 / NULLIF(r.pres_total_validos, 0)) - z.pct_13_zona, 1) AS delta_13_zona,
-        ROUND((r.votos_cand_22 * 100.0 / NULLIF(r.pres_total_validos, 0)) - z.pct_22_zona, 1) AS delta_22_zona,
-        CASE 
-            WHEN r.pres_venc_num = 13 THEN 'Lula (13) (' || printf('%.1f', r.pres_venc_pct) || '%)'
-            WHEN r.pres_venc_num = 22 THEN 'Flávio Bolsonaro (22) (' || printf('%.1f', r.pres_venc_pct) || '%)'
-            WHEN r.pres_venc_num IS NOT NULL THEN 'Nº ' || r.pres_venc_num || ' (' || printf('%.1f', r.pres_venc_pct) || '%)'
-            ELSE '-'
-        END AS vencedor_display,
-        CASE 
-            WHEN (r.pres_venc_pct - (CASE WHEN r.pres_venc_num = 13 THEN z.pct_13_zona WHEN r.pres_venc_num = 22 THEN z.pct_22_zona ELSE 0 END)) > 0 
-                THEN '+' || printf('%.1f', (r.pres_venc_pct - (CASE WHEN r.pres_venc_num = 13 THEN z.pct_13_zona WHEN r.pres_venc_num = 22 THEN z.pct_22_zona ELSE 0 END))) || ' pp'
-            WHEN (r.pres_venc_pct - (CASE WHEN r.pres_venc_num = 13 THEN z.pct_13_zona WHEN r.pres_venc_num = 22 THEN z.pct_22_zona ELSE 0 END)) IS NOT NULL 
-                THEN printf('%.1f', (r.pres_venc_pct - (CASE WHEN r.pres_venc_num = 13 THEN z.pct_13_zona WHEN r.pres_venc_num = 22 THEN z.pct_22_zona ELSE 0 END))) || ' pp'
-            ELSE '-'
-        END AS delta_display
-    FROM auditoria_horarios a
-    JOIN secoes s ON s.id = a.secao_id
-    LEFT JOIN pleitos p ON p.codigo = s.pleito
-    LEFT JOIN municipios m ON m.codigo_tse = s.municipio
-    LEFT JOIN resultados_eleicao r ON r.secao_id = s.id
-    LEFT JOIN zonas_totais z ON z.pleito = s.pleito AND z.uf = s.uf AND z.zona = s.zona
-    """
-    df = pd.read_sql_query(query, conn)
-    conn.close()
-
-    # Aplicação dos Motores Estatísticos Rigorosos (Spiegelhalter 2005)
-    df = aplicar_motor_estatistico(df)
-    df = aplicar_motor_abstencao(df)
-
-    # Consolida coluna de região e converte categorias
-    df["regiao"] = df["uf"].map(MAPA_REGIOES).fillna("Outra").astype("category")
-    df["uf"] = df["uf"].astype("category")
-    df["pleito"] = df["pleito"].astype("category")
-
-    # Otimização de consumo de memória RAM (downcasting de inteiros/floats e categorias)
-    for col in df.select_dtypes(include=["int64"]).columns:
-        df[col] = pd.to_numeric(df[col], downcast="integer")
-    for col in df.select_dtypes(include=["float64"]).columns:
-        df[col] = pd.to_numeric(df[col], downcast="float")
-
-    # Salva no cache colunar Parquet para que todas as cargas subsequentes ocorram em ~0.6s
-    try:
-        df.to_parquet(PARQUET_CACHE_PATH, index=False, engine="pyarrow", compression="snappy")
-    except Exception:
-        pass
-
-    import gc
-    gc.collect()
-
-    return df
 
 
 def gerar_skeleton_html() -> str:
@@ -2111,12 +1981,14 @@ with col_turno:
     )
 
 if turno_ativo == "2º Turno":
-    st.info("🗳️ **2º Turno — Aguardando Apuração Oficial do TSE**\n\nOs dados de votação e boletins de urna do segundo turno serão integrados e disponibilizados para auditoria forense e análise estatística assim que os pacotes oficiais forem homologados e publicados pelo Tribunal Superior Eleitoral.")
-    st.stop()
-
-# Filtra dataset pelo turno ativo (garante consistência presente e futura)
-if "turno" in df.columns:
-    df = df[df["turno"] == 1]
+    if "turno" in df.columns and (df["turno"] == 2).any():
+        df = df[df["turno"] == 2]
+    else:
+        st.info("🗳️ **2º Turno — Aguardando Apuração Oficial do TSE**\n\nOs dados de votação e boletins de urna do segundo turno serão integrados e disponibilizados para auditoria forense e análise estatística assim que os pacotes oficiais forem homologados e publicados pelo Tribunal Superior Eleitoral.")
+        st.stop()
+else:
+    if "turno" in df.columns:
+        df = df[df["turno"] == 1]
 
 # ==========================================
 # SELETOR DE PAINEL (SIDEBAR)

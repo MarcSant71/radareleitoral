@@ -13,13 +13,13 @@ import argparse
 from pathlib import Path
 from typing import Optional, Dict, Tuple
 
-_pipeline_dir = Path(__file__).resolve().parent.parent
-_web_dir = _pipeline_dir.parent / "web"
-for _p in (_pipeline_dir, _web_dir):
+_root_dir = Path(__file__).resolve().parent.parent.parent
+_pipeline_dir = _root_dir / "pipeline"
+for _p in (_root_dir, _pipeline_dir):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
-from db import get_connection
+from pipeline.db import get_connection
 
 def consolidar_csv_detalhe(caminho_csv_ou_zip: Path, encoding: str = "latin1", batch_size: int = 10000) -> int:
     """

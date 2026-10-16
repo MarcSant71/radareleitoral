@@ -1,0 +1,337 @@
+"""
+Orquestrador Mestre do Pipeline de Dados Eleitorais 2026.
+Consolida em 5 etapas modulares e sequenciais:
+1. Inicialização do schema SQLite (pipeline.db)
+2. Download e validação da CDN oficial do TSE (pipeline.baixar)
+3. Auditoria temporal de logs de urnas (pipeline.auditar)
+4. Decodificação ASN.1 dos BUs e agregação de zonas (pipeline.consolidar)
+5. Compilação analítica com modelos estatísticos em Parquet (pipeline.compilar)
+"""
+
+import os
+import sys
+import time
+import argparse
+import platform
+import urllib.request
+from pathlib import Path
+from typing import List, Optional
+
+# Garante suporte seguro a UTF-8 em consoles Windows
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
+_root_dir = Path(__file__).resolve().parent.parent
+_pipeline_dir = _root_dir / "pipeline"
+_web_dir = _root_dir / "web"
+for _p in (_root_dir, _pipeline_dir, _web_dir):
+    if str(_p) not in sys.path:
+        sys.path.insert(0, str(_p))
+
+from pipeline.db import DB_PATH, init_db, get_connection, zerar_db
+from pipeline.baixar_pacote import baixar_pacote_uf, UFS_BRASIL, DEFAULT_OUTPUT_DIR
+from pipeline.downloader import CDN_BASE_URL
+from pipeline.auditar import executar_auditoria_local_zip
+from pipeline.consolidar_bu import processar_pacote_uf, atualizar_zonas_totais
+from pipeline.compilar import compilar_dataset_parquet, PARQUET_PATH
+
+
+def verificar_trava_producao() -> None:
+    """
+    Trava de segurança rigorosa para impedir a execução acidental
+    deste pipeline pesado no servidor VPS de produção.
+    """
+    indicadores_producao = [
+        os.path.exists("/opt/eleicao2026"),
+        os.environ.get("PRODUCTION") == "1",
+        os.environ.get("ENV") == "production",
+        "hetzner" in platform.node().lower(),
+        "vps" in platform.node().lower(),
+    ]
+    if any(indicadores_producao):
+        print("\n" + "═" * 80, file=sys.stderr)
+        print("⛔ ERRO DE SEGURANÇA: AMBIENTE DE PRODUÇÃO DETECTADO!", file=sys.stderr)
+        print("═" * 80, file=sys.stderr)
+        print("Este pipeline executa download massivo (25GB+) e alto consumo de CPU/I/O.", file=sys.stderr)
+        print("Ele NUNCA deve ser executado no servidor público de produção.", file=sys.stderr)
+        print("Execute localmente na sua máquina e suba os artefatos via scripts/deploy.ps1.", file=sys.stderr)
+        print("═" * 80 + "\n", file=sys.stderr)
+        sys.exit(1)
+
+
+def detectar_turnos_disponiveis(ano: int = 2026, dados_dir: Optional[Path] = None) -> List[int]:
+    """
+    Detecta autonomamente os turnos eleitorais disponíveis para ingestão.
+    Verifica primeiro no disco local (dados_brutos/) e, se ausente, sonda
+    a CDN oficial do TSE via requisição HEAD leve para o arquivo sentinela (AC).
+    Retorna lista com os turnos disponíveis, ex: [1], [2], ou [1, 2].
+    """
+    pasta = dados_dir or DEFAULT_OUTPUT_DIR
+    turnos_detectados = []
+
+    for t in (1, 2):
+        # 1. Verifica no disco local
+        if pasta.exists():
+            arquivos_locais = list(pasta.glob(f"*_{ano}_{t}t_*.zip"))
+            if not arquivos_locais:
+                arquivos_locais = list(pasta.glob(f"*_{t}t_*.zip"))
+            if len(arquivos_locais) > 0:
+                turnos_detectados.append(t)
+                continue
+
+        # 2. Sonda CDN remota do TSE com timeout curto
+        url_sentinela = f"https://cdn.tse.jus.br/estatistica/sead/eleicoes/eleicoes{ano}/arqurnatot/bu_imgbu_logjez_rdv_vscmr_{ano}_{t}t_AC.zip"
+        try:
+            req = urllib.request.Request(url_sentinela, method="HEAD")
+            req.add_header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                cl = resp.headers.get("Content-Length")
+                if resp.status == 200 and cl and int(cl) > 1024 * 1024:
+                    turnos_detectados.append(t)
+        except Exception:
+            pass
+
+    # Fallback seguro caso esteja offline e sem arquivos locais
+    if not turnos_detectados:
+        turnos_detectados = [1]
+
+    return sorted(turnos_detectados)
+
+
+def exibir_banner_e_confirmar(ufs: List[str], turnos: List[int], ano: int, zerar_banco: bool, forcar: bool) -> None:
+    """
+    Exibe os alertas mandatórios de governança antes de iniciar o processo.
+    """
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            ctypes.windll.kernel32.SetConsoleTitleW(f"Inicialização da Base de Dados Eleitoral ({ano})")
+        except Exception:
+            pass
+
+    print("═" * 80)
+    print(f"      ⚠️   INICIALIZAÇÃO DA BASE DE DADOS ELEITORAL ({ano})   ⚠️")
+    print("═" * 80)
+    if turnos == [1, 2]:
+        desc_turnos = "1º e 2º Turnos"
+    elif turnos == [2]:
+        desc_turnos = "2º Turno"
+    else:
+        desc_turnos = " e ".join(f"{t}º Turno" for t in turnos)
+
+    desc_pleito = f"Eleições Gerais {ano} — {desc_turnos}"
+    if len(ufs) < 27:
+        desc_pleito += f" [Depuração Técnica: {ufs[0]}]"
+    print(f"Pleito: {desc_pleito}")
+    print(f"Diretório de Armazenamento: {DEFAULT_OUTPUT_DIR}")
+    print(f"Banco Alvo: {DB_PATH}")
+    print("─" * 80)
+    print("IMPORTANTE! LEIA COM ATENÇÃO!")
+    print("  1. DOWNLOAD MASSIVO DE DADOS:")
+    multiplicador_turnos = len(turnos)
+    if len(ufs) >= 27:
+        gb_min = 25 * multiplicador_turnos
+        gb_max = 30 * multiplicador_turnos
+        print(f"     O volume estimado de download totaliza cerca de {gb_min} a {gb_max} GB (497.895 seções por turno).")
+        print("     Arquivos já existentes localmente serão verificados e preservados automaticamente.")
+    else:
+        print(f"     O volume estimado de download é de aproximadamente {len(ufs) * 1.0 * multiplicador_turnos:.1f} GB.")
+    print("  2. RESET DO BANCO DE DADOS:")
+    if zerar_banco:
+        print("     O banco de dados será inicializado/zerado com a estrutura oficial completa (--zerar ativo).")
+    else:
+        print("     O banco existente será preservado e atualizado de forma incremental.")
+    print("  3. SEGURANÇA OPERACIONAL:")
+    print("     Recomenda-se rodar esta rotina exclusivamente no seu ambiente local.")
+    print("     Não execute em servidores VPS em nuvem sob risco de esgotamento de recursos.")
+    print("  4. PROCESSAMENTO INTENSIVO E TEMPO ESTIMADO:")
+    if len(ufs) >= 27:
+        tempo_min = 30 * multiplicador_turnos
+        tempo_max = 50 * multiplicador_turnos
+        print(f"     O tempo total estimado é de aproximadamente {tempo_min} a {tempo_max} minutos.")
+        print("     Os tempos estimados dependem da velocidade da internet e da capacidade de processamento do computador.")
+        print("     Recomenda-se manter o computador ligado e desativar o modo de suspensão/hibernação.")
+    else:
+        tempo_min = max(1, round(len(ufs) * 1.5 * multiplicador_turnos))
+        tempo_max = max(2, round(len(ufs) * 2.5 * multiplicador_turnos))
+        print(f"     Processamento de {len(ufs)} UF(s). Tempo estimado: cerca de {tempo_min} a {tempo_max} minutos.")
+        print("     Os tempos estimados dependem da velocidade da internet e da capacidade de processamento do computador.")
+        print("     Exige alto uso de múltiplos núcleos de CPU e leitura contínua de disco.")
+    print("═" * 80 + "\n")
+
+    if not forcar:
+        confirmacao = input("Digite 'SIM' para continuar: ").strip()
+        if confirmacao != "SIM":
+            print("\n[!] Operação cancelada.")
+            sys.exit(0)
+        print("\n[+] Confirmação aceita. Iniciando processamento...\n")
+
+
+def orquestrar_pipeline(
+    ufs: List[str],
+    turnos: List[int],
+    ano: int = 2026,
+    zerar_banco: bool = False,
+    pular_download: bool = False,
+    threads: int = 16
+) -> None:
+    """
+    Executa a cadeia modular do pipeline em ordem estrita de integridade.
+    Processa todos os turnos especificados ou auto-detectados.
+    """
+    t_inicio_total = time.time()
+
+    # 1. Inicialização do Banco de Dados
+    print("=" * 80)
+    print("ETAPA 1/5: INICIALIZAÇÃO DO SCHEMA DO BANCO RELACIONAL (SQLite)")
+    print("=" * 80)
+    if zerar_banco:
+        print(f"[*] Zerando banco de dados para reconstrução limpa: {DB_PATH.name}")
+        zerar_db()
+    else:
+        init_db()
+
+    conn = get_connection(DB_PATH)
+    with conn:
+        for t in turnos:
+            cod_pleito = "03220" if t == 1 else "03221"
+            desc_pleito = f"Eleições Gerais {ano} - {t}º Turno"
+            dt_pleito = "2026-10-04" if t == 1 else "2026-10-25"
+            conn.execute("""
+                INSERT OR IGNORE INTO pleitos (codigo, ano, turno, descricao, data_votacao)
+                VALUES (?, ?, ?, ?, ?)
+            """, (cod_pleito, ano, t, desc_pleito, dt_pleito))
+            print(f"[+] Pleito '{cod_pleito}' ({desc_pleito}) registrado no banco.")
+    conn.close()
+    print("[+] Schema do SQLite validado e pleito(s) estruturado(s).\n")
+
+    total_bus_geral = 0
+
+    # Processa Etapas 2, 3 e 4 para cada turno disponível
+    for idx_t, turno in enumerate(turnos, 1):
+        sufixo_turno = f" (TURNO {turno} DE {len(turnos)})" if len(turnos) > 1 else ""
+
+        # 2. Download dos Pacotes Oficiais da CDN do TSE
+        print("=" * 80)
+        print(f"ETAPA 2/5: VERIFICAÇÃO E DOWNLOAD DOS PACOTES OFICIAIS DO TSE{sufixo_turno}")
+        print("=" * 80)
+        pacotes_por_uf = {}
+        for uf in ufs:
+            if pular_download:
+                nome_esperado = f"bu_imgbu_logjez_rdv_vscmr_{ano}_{turno}t_{uf.upper()}.zip"
+                local_zip = DEFAULT_OUTPUT_DIR / nome_esperado
+                if not local_zip.exists():
+                    candidatos = list(DEFAULT_OUTPUT_DIR.glob(f"*_{ano}_{turno}t_{uf.upper()}.zip"))
+                    if not candidatos:
+                        candidatos = list(DEFAULT_OUTPUT_DIR.glob(f"*_{turno}t_{uf.upper()}.zip"))
+                    if candidatos:
+                        local_zip = candidatos[0]
+                if local_zip.exists():
+                    sys.stdout.write(f"\rBaixando {uf} ({turno}ºT): 100.0% - Concluído! (Arquivo já baixado)                          \n")
+                    sys.stdout.flush()
+                    pacotes_por_uf[uf] = local_zip
+                else:
+                    pacotes_por_uf[uf] = baixar_pacote_uf(uf, turno=turno)
+            else:
+                pacotes_por_uf[uf] = baixar_pacote_uf(uf, turno=turno)
+
+        print(f"[+] Total de pacotes prontos ({turno}º Turno): {len(pacotes_por_uf)}\n")
+
+        # 3. Processamento e Cronologia dos Logs das Urnas (-log.jez)
+        print("=" * 80)
+        print(f"ETAPA 3/5: PROCESSAMENTO E CRONOLOGIA DOS LOGS DE URNA (-log.jez){sufixo_turno}")
+        print("=" * 80)
+        for uf, zpath in pacotes_por_uf.items():
+            executar_auditoria_local_zip(zpath, threads=threads)
+        print(f"[+] Cronologia e métricas de logs ({turno}º Turno) processadas com sucesso.\n")
+
+        # 4. Consolidação de Boletins de Urna (BUs) & Zonas
+        print("=" * 80)
+        print(f"ETAPA 4/5: DECODIFICAÇÃO ASN.1 DOS BOLETINS DE URNA (-bu.dat){sufixo_turno}")
+        print("=" * 80)
+        conn = get_connection(DB_PATH)
+        cur = conn.cursor()
+        cur.execute("SELECT id, pleito, uf, municipio, zona, secao FROM secoes")
+        secoes_map = {(row[1], row[2], row[3], row[4], row[5]): row[0] for row in cur.fetchall()}
+        cur.execute("SELECT secao_id FROM resultados_eleicao")
+        processados = {row[0] for row in cur.fetchall()}
+        conn.close()
+
+        total_bus_turno = 0
+        for uf, zpath in pacotes_por_uf.items():
+            total_bus_turno += processar_pacote_uf(zpath, secoes_map, processados, num_threads=threads)
+
+        total_bus_geral += total_bus_turno
+        print(f"[+] Total de BUs processados ({turno}º Turno): {total_bus_turno:,}\n")
+
+    # Consolida zonas_totais abrangendo todos os pleitos ingeridos
+    print("[*] Atualizando agregação de zonas eleitorais (zonas_totais)...")
+    atualizar_zonas_totais()
+    print("[+] Tabela 'zonas_totais' consolidada com chave primária por pleito.\n")
+
+    # 5. Geração do Cache Analítico Colunar de Alta Velocidade (Parquet)
+    print("=" * 80)
+    print("ETAPA 5/5: MATERIALIZAÇÃO DO CACHE COLUNAR ANALÍTICO (Parquet)")
+    print("=" * 80)
+    df = compilar_dataset_parquet(forcar=True)
+    t_total = time.time() - t_inicio_total
+
+    print("\n" + "═" * 80)
+    print("      🎉  INICIALIZAÇÃO DA BASE ELEITORAL CONCLUÍDA COM SUCESSO!  🎉")
+    print("═" * 80)
+    desc_turnos_fim = " e ".join(f"{t}º" for t in turnos) + (" Turno" if len(turnos) == 1 else " Turnos")
+    print(f"Turno(s) Processado(s): {desc_turnos_fim}")
+    print(f"Total de Seções Consolidadas no Dataset: {len(df):,}")
+    print(f"Colunas estruturadas: {len(df.columns)}")
+    print(f"Arquivo SQLite:  {DB_PATH} ({round(DB_PATH.stat().st_size / (1024*1024), 1)} MB)")
+    if PARQUET_PATH.exists():
+        print(f"Arquivo Parquet: {PARQUET_PATH} ({round(PARQUET_PATH.stat().st_size / (1024*1024), 1)} MB)")
+    print(f"Tempo Total de Execução: {round(t_total / 60, 1)} minutos ({round(t_total, 1)}s)")
+    print("═" * 80)
+    print("Para subir os dados para o servidor de produção, execute:")
+    print("   powershell -File scripts/deploy.ps1")
+    print("═" * 80)
+
+
+def main():
+    verificar_trava_producao()
+
+    parser = argparse.ArgumentParser(
+        description="Inicializador da Base de Dados Eleitoral",
+        formatter_class=argparse.RawTextHelpFormatter
+    )
+    parser.add_argument("--uf", default=None, help="Sigla de UF específica para depuração técnica isolada (ex: BA, SP)")
+    parser.add_argument("--turno", type=int, default=None, choices=[1, 2], help="Turno específico da eleição (1 ou 2). Se omitido, auto-detecta turnos disponíveis.")
+    parser.add_argument("--ano", type=int, default=2026, help="Ano da eleição (padrão: 2026)")
+    parser.add_argument("--threads", type=int, default=16, help="Número de threads simultâneas para parse (padrão: 16)")
+    parser.add_argument("--zerar", action="store_true", help="Zera o banco de dados antes de recriar")
+    parser.add_argument("--pular-download", action="store_true", help="Utiliza pacotes ZIP já existentes localmente sem baixar da CDN")
+    parser.add_argument("--forcar", action="store_true", help="Pula confirmação interativa (para automações e scripts)")
+
+    args = parser.parse_args()
+
+    if args.uf:
+        ufs_alvo = [args.uf.upper()]
+    else:
+        ufs_alvo = UFS_BRASIL
+
+    if args.turno is not None:
+        turnos_alvo = [args.turno]
+    else:
+        turnos_alvo = detectar_turnos_disponiveis(ano=args.ano)
+
+    exibir_banner_e_confirmar(ufs_alvo, turnos_alvo, args.ano, args.zerar, args.forcar)
+    orquestrar_pipeline(
+        ufs=ufs_alvo,
+        turnos=turnos_alvo,
+        ano=args.ano,
+        zerar_banco=args.zerar,
+        pular_download=args.pular_download,
+        threads=args.threads
+    )
+
+
+if __name__ == "__main__":
+    main()

@@ -11,15 +11,15 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
-_pipeline_dir = Path(__file__).resolve().parent
-_web_dir = _pipeline_dir.parent / "web"
-for _p in (_pipeline_dir, _web_dir):
+_root_dir = Path(__file__).resolve().parent.parent
+_pipeline_dir = _root_dir / "pipeline"
+for _p in (_root_dir, _pipeline_dir):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
-from db import init_db, get_connection
-from downloader import RemoteZipRangeReader, CDN_BASE_URL
-from log_parser import UrnaLogParser
+from pipeline.db import init_db, get_connection
+from pipeline.downloader import RemoteZipRangeReader, CDN_BASE_URL
+from pipeline.log_parser import UrnaLogParser
 
 # Expressão regular para decodificar nome do arquivo de log do TSE:
 # Ex: o03220ba3911000460366-log.jez -> pleito: 03220, uf: ba, mu: 39110, zn: 0046, se: 0366
@@ -161,7 +161,7 @@ def exibir_ranking(limit: int = 15, uf: Optional[str] = None) -> None:
         print("\nNenhuma seção auditada encontrada no banco de dados.")
         return
 
-    print("\n" + "="*120)
+    print("="*120)
     print(f"RANKING DAS SEÇÕES MAIS SUSPEITAS (TOP {len(rows)})")
     print("="*120)
     print(f"{'UF':<3} {'MUNICÍPIO':<22} {'ZONA':<5} {'SEÇÃO':<6} {'VOTOS':<6} {'PÓS-17H':<8} {'% PÓS':<7} {'ÚLTIMO VOTO':<12} {'% MANUAL':<9} {'SCORE':<6} {'MOTIVOS'}")
@@ -171,7 +171,7 @@ def exibir_ranking(limit: int = 15, uf: Optional[str] = None) -> None:
         print(f"{r['uf']:<3} {mun_str:<22} {r['zona']:<5} {r['secao']:<6} {r['total_votos_log']:<6} "
               f"{r['votos_apos_17h']:<8} {r['pct_apos_17h']:<6.1f}% {r['ultimo_voto']:<12} "
               f"{r['pct_manual_pos17h']:<8.1f}% {r['score_suspeicao']:<6.1f} {r['motivos_alerta']}")
-    print("="*120 + "\n")
+    print("="*120)
 
 def executar_auditoria(uf: str = "BA", municipio: Optional[str] = None, limite: int = 50, threads: int = 8) -> None:
     init_db()
@@ -194,7 +194,6 @@ def executar_auditoria(uf: str = "BA", municipio: Optional[str] = None, limite: 
 
     parser = UrnaLogParser()
     processados = 0
-    suspeitos_encontrados = 0
 
     with ThreadPoolExecutor(max_workers=threads) as executor:
         futures = {executor.submit(processar_log_remoto, reader, log_f, parser): log_f for log_f in alvo_logs}
@@ -203,14 +202,15 @@ def executar_auditoria(uf: str = "BA", municipio: Optional[str] = None, limite: 
             processados += 1
             if res:
                 salvar_no_banco(res)
-                if res["metricas"]["score_suspeicao"] >= 30.0:
-                    suspeitos_encontrados += 1
-            print(f"\rProcessando: {processados}/{len(alvo_logs)} (Suspeitas: {suspeitos_encontrados})", end="", flush=True)
+            pct = (processados / len(alvo_logs)) * 100.0
+            sys.stdout.write(f"\rAuditando {uf}: {pct:5.1f}% ({processados:,}/{len(alvo_logs):,} seções)...                 ")
+            sys.stdout.flush()
 
-    print("\nAuditoria finalizada com sucesso!")
+    sys.stdout.write(f"\rAuditando {uf}: 100.0% - Concluído! ({len(alvo_logs):,} seções)                                   \n")
+    sys.stdout.flush()
     exibir_ranking(limit=15, uf=uf)
 
-def executar_auditoria_local_zip(caminho_zip: Path, municipio: Optional[str] = None, limite: Optional[int] = None, threads: int = 8) -> None:
+def executar_auditoria_local_zip(caminho_zip: Path, municipio: Optional[str] = None, limite: Optional[int] = None, threads: int = 8, exibir_ranking_final: bool = False) -> None:
     import zipfile
     init_db()
     caminho = Path(caminho_zip)
@@ -218,21 +218,18 @@ def executar_auditoria_local_zip(caminho_zip: Path, municipio: Optional[str] = N
         print(f"Erro: Arquivo local {caminho} não encontrado.", file=sys.stderr)
         return
 
-    print(f"\n[1/3] Abrindo arquivo ZIP local: {caminho.name} ({caminho.stat().st_size / (1024**3):.2f} GB)...")
     z = zipfile.ZipFile(caminho, 'r')
     todos_logs = [f for f in z.namelist() if f.endswith("-log.jez")]
-    print(f"[2/3] Total de logs encontrados no arquivo: {len(todos_logs)}")
 
     if municipio:
         mu_pad = str(municipio).zfill(5)
         todos_logs = [f for f in todos_logs if f"m{mu_pad}" in f or f"{mu_pad}" in f]
-        print(f" -> Filtrado para o município {municipio}: {len(todos_logs)} seções")
 
     alvo_logs = todos_logs[:limite] if limite else todos_logs
 
     # Detecção de seções já auditadas para evitar reprocessamento (resume inteligente)
     uf_m = re.search(r"_([A-Z]{2})\.zip$", caminho.name)
-    uf_zip = uf_m.group(1) if uf_m else None
+    uf_zip = uf_m.group(1) if uf_m else "UF"
     if uf_zip:
         try:
             conn = get_connection()
@@ -248,19 +245,16 @@ def executar_auditoria_local_zip(caminho_zip: Path, municipio: Optional[str] = N
                     if meta and (meta["municipio"], meta["zona"], meta["secao"]) in secoes_ja_auditadas:
                         continue
                     logs_pendentes.append(log_f)
-                pulados = len(alvo_logs) - len(logs_pendentes)
-                if pulados > 0:
-                    print(f" -> Retomada rápida: {pulados} seções já auditadas anteriormente (pulando). Restam: {len(logs_pendentes)}")
                 alvo_logs = logs_pendentes
         except Exception:
             pass
 
     if not alvo_logs:
-        print(f"Todas as seções de {caminho.name} já foram auditadas anteriormente.")
+        sys.stdout.write(f"\rAuditando {uf_zip}: 100.0% - Concluído! (Arquivo já processado)                          \n")
+        sys.stdout.flush()
         z.close()
         return
 
-    print(f"[3/3] Iniciando auditoria local em {len(alvo_logs)} seções usando {threads} threads paralelas...")
 
     # Parser com fuso horário da UF atual
     parser = UrnaLogParser(uf=uf_zip)
@@ -277,11 +271,12 @@ def executar_auditoria_local_zip(caminho_zip: Path, municipio: Optional[str] = N
             return None
 
     processados = 0
-    suspeitos_encontrados = 0
     CHUNK_SIZE = 1000
 
     import time
     t_inicio = time.time()
+    sys.stdout.write(f"\rAuditando {uf_zip}:   0.0% | 0 seções/s...                 ")
+    sys.stdout.flush()
 
     with ThreadPoolExecutor(max_workers=threads) as executor:
         for chunk_start in range(0, len(alvo_logs), CHUNK_SIZE):
@@ -299,24 +294,22 @@ def executar_auditoria_local_zip(caminho_zip: Path, municipio: Optional[str] = N
             resultados = list(executor.map(processar_mem_item, items))
 
             # 3. Gravação em lote atômica no SQLite WAL
-            validos = []
-            for res in resultados:
-                if res:
-                    validos.append(res)
-                    if res["metricas"].get("score_suspeicao", 0.0) >= 30.0:
-                        suspeitos_encontrados += 1
-
+            validos = [res for res in resultados if res]
             if validos:
                 salvar_em_lote(validos)
 
             processados += len(chunk_names)
             tempo_decorrido = max(0.1, time.time() - t_inicio)
             taxa = processados / tempo_decorrido
-            print(f"\rProcessando local: {processados}/{len(alvo_logs)} ({taxa:.1f} seções/s | Suspeitas: {suspeitos_encontrados})", end="", flush=True)
+            pct = (processados / len(alvo_logs)) * 100.0
+            sys.stdout.write(f"\rAuditando {uf_zip}: {pct:5.1f}% | {taxa:.0f} seções/s...                 ")
+            sys.stdout.flush()
 
     z.close()
-    print("\nAuditoria local concluída!")
-    exibir_ranking(limit=25)
+    sys.stdout.write(f"\rAuditando {uf_zip}: 100.0% - Concluído! ({len(todos_logs):,} seções)                                   \n")
+    sys.stdout.flush()
+    if exibir_ranking_final:
+        exibir_ranking(limit=25)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Auditor de Urnas Eleitorais 2026")
@@ -361,7 +354,7 @@ if __name__ == "__main__":
             print(f"\n==================== [{i}/{len(zips)}] {z_path.name} ====================")
             executar_auditoria_local_zip(z_path, municipio=args.municipio, limite=args.limite, threads=args.threads)
     elif args.zip:
-        executar_auditoria_local_zip(Path(args.zip), municipio=args.municipio, limite=args.limite, threads=args.threads)
+        executar_auditoria_local_zip(Path(args.zip), municipio=args.municipio, limite=args.limite, threads=args.threads, exibir_ranking_final=True)
     else:
         executar_auditoria(uf=args.uf, municipio=args.municipio, limite=args.limite or 50, threads=args.threads)
 

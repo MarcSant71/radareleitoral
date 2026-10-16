@@ -7,6 +7,22 @@ e este projeto adere estritamente ao [Semantic Versioning (SemVer 2.0.0)](https:
 
 ---
 
+## [2.5.0] - 2026-10-16
+
+### Adicionado
+- **Pacote Modular de Engenharia de Dados (`pipeline/`):** Transformação da pasta `pipeline/` em pacote Python canônico (`__init__.py`, `__main__.py`), resolvendo a inversão de dependência histórica e permitindo execução modular via CLI (`python -m pipeline.db`, `python -m pipeline.baixar`, `python -m pipeline.consolidar`, `python -m pipeline.compilar`).
+- **Orquestrador Mestre Unificado (`iniciar_banco.py` e `python -m pipeline`):** Consolidação de todo o pipeline de dados em 5 etapas sequenciais e reproduzíveis (`--uf`, `--turno`, `--ano`, `--threads`, `--zerar`, `--pular-download`).
+- **Detecção Autônoma de Turnos Eleitorais:** O orquestrador agora sonda dinamicamente os pacotes locais e a CDN oficial do TSE via HTTP HEAD sentinela. Quando o TSE publicar os pacotes do 2º Turno, o pipeline ingere ambos os pleitos de forma autônoma sem requerer alterações de código.
+- **Suporte Multiturno Dinâmico no Painel Web (`web/painel.py`):** O seletor de turno agora chaveia dinamicamente para os dados do 2º Turno assim que presentes no dataset compilado, mantendo a mensagem institucional de apuração caso ainda não publicados.
+- **Travas de Segurança Operacional & Anti-Produção:** Banner de governança com quatro alertas mandatórios (download massivo de 25-30 GB por turno, reset relacional, trava estrita contra execução em VPS de produção e estimativa realista de tempo de processamento de 30 a 50 minutos).
+
+### Modificado
+- **Confirmação Estrita de Governança (`SIM`):** Exigência estrita da string `"SIM"` em maiúsculo no prompt interativo, rejeitando variações (`sim`, `s`, `yes`) para evitar disparos acidentais.
+- **Governança "Tudo ou Nada":** Remoção do menu interativo de seleção de UF única. Para assegurar integridade estatística nacional, o padrão do pipeline executa as 27 UFs com checagem incremental instantânea (`Arquivo já processado`), reservando a flag `--uf <SIGLA>` exclusivamente para depuração técnica via CLI.
+- **Identidade Visual Unificada & UX de Terminal no Pipeline:** Limpeza do banner inicial (remoção da linha redundante "Alvo:", exibindo o Pleito consolidado) e padronização do feedback em tempo real (`\r`) em todas as etapas (`Baixando`, `Auditando`, `Consolidando`), com supressão de heurísticas arbitrárias no terminal e cálculo estatístico formal exclusivo de Spiegelhalter (2005) na geração do Parquet.
+
+---
+
 ## [2.4.4] - 2026-10-16
 
 ### Adicionado

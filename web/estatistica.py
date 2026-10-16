@@ -94,6 +94,15 @@ def aplicar_motor_estatistico(df: pd.DataFrame) -> pd.DataFrame:
 
     df = df.copy()
 
+    # Sanitização e coerção estrita de tipos numéricos do SQLite
+    df["pct_apos_17h"] = pd.to_numeric(df.get("pct_apos_17h", 0.0), errors="coerce").fillna(0.0)
+    df["total_votos_log"] = pd.to_numeric(df.get("total_votos_log", 0), errors="coerce").fillna(0).astype(int)
+    df["votos_apos_17h"] = pd.to_numeric(df.get("votos_apos_17h", 0), errors="coerce").fillna(0).astype(int)
+    df["habilitacao_manual_total"] = pd.to_numeric(df.get("habilitacao_manual_total", 0), errors="coerce").fillna(0).astype(int)
+    df["hora_ult_dec"] = pd.to_numeric(df.get("hora_ult_dec", 17.0), errors="coerce").fillna(17.0)
+    df["maior_ociosidade_antes_17h_min"] = pd.to_numeric(df.get("maior_ociosidade_antes_17h_min", 0.0), errors="coerce").fillna(0.0)
+    df["tempo_medio_pos17h_segundos"] = pd.to_numeric(df.get("tempo_medio_pos17h_segundos", 0.0), errors="coerce").fillna(0.0)
+
     # 1. Z-scores de Proporção (Spiegelhalter 2005)
     z_17, esp_17 = calc_z_proporcao(df, "votos_apos_17h", "total_votos_log")
     z_man, esp_man = calc_z_proporcao(df, "habilitacao_manual_total", "total_votos_log")
@@ -189,11 +198,22 @@ def aplicar_motor_abstencao(df: pd.DataFrame) -> pd.DataFrame:
 
     df = df.copy()
 
-    # Se pct_abstencao e pct_comparecimento não existirem, calcula
-    if "pct_abstencao" not in df.columns:
-        df["pct_abstencao"] = (df["faltosos_bu"] * 100.0 / np.maximum(df["total_aptos"], 1)).round(2)
-    if "pct_comparecimento" not in df.columns:
-        df["pct_comparecimento"] = (df["comparecimento_bu"] * 100.0 / np.maximum(df["total_aptos"], 1)).round(2)
+    # Sanitização e coerção estrita de tipos numéricos
+    df["total_aptos"] = pd.to_numeric(df.get("total_aptos", 0), errors="coerce").fillna(0).astype(int)
+    df["faltosos_bu"] = pd.to_numeric(df.get("faltosos_bu", 0), errors="coerce").fillna(0).astype(int)
+    df["comparecimento_bu"] = pd.to_numeric(df.get("comparecimento_bu", 0), errors="coerce").fillna(0).astype(int)
+
+    if "pct_abstencao" in df.columns:
+        df["pct_abstencao"] = pd.to_numeric(df["pct_abstencao"], errors="coerce")
+    else:
+        df["pct_abstencao"] = (df["faltosos_bu"] * 100.0 / np.maximum(df["total_aptos"], 1))
+    df["pct_abstencao"] = df["pct_abstencao"].fillna(0.0).round(2)
+
+    if "pct_comparecimento" in df.columns:
+        df["pct_comparecimento"] = pd.to_numeric(df["pct_comparecimento"], errors="coerce")
+    else:
+        df["pct_comparecimento"] = (df["comparecimento_bu"] * 100.0 / np.maximum(df["total_aptos"], 1))
+    df["pct_comparecimento"] = df["pct_comparecimento"].fillna(0.0).round(2)
 
     # Z-scores de Proporção (Spiegelhalter 2005) para Abstenção
     z_abst, esp_abst = calc_z_proporcao(df, "faltosos_bu", "total_aptos")
