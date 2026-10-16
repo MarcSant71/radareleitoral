@@ -182,7 +182,7 @@ def renderizar_detalhe_individual(s: pd.Series, base: pd.DataFrame, modo_escuro:
             height=340,
             margin=dict(t=40, b=10, l=10, r=10)
         )
-        st.plotly_chart(fig_comp, use_container_width=True)
+        st.plotly_chart(fig_comp, width="stretch")
 
     with col_g2:
         fig_hist = px.histogram(
@@ -206,7 +206,7 @@ def renderizar_detalhe_individual(s: pd.Series, base: pd.DataFrame, modo_escuro:
             height=340,
             margin=dict(t=40, b=10, l=10, r=10)
         )
-        st.plotly_chart(fig_hist, use_container_width=True)
+        st.plotly_chart(fig_hist, width="stretch")
 
     # Detalhes Operacionais do Log da Urna
     if s.get("total_votos_log", 0) > 0:
@@ -697,7 +697,7 @@ def renderizar_painel_abstencao(
                 height=max(360, 22 * len(t_plot) + 80),
                 margin=dict(l=10, r=10, t=40, b=10)
             )
-            st.plotly_chart(fig_forest, use_container_width=True)
+            st.plotly_chart(fig_forest, width="stretch")
         else:
             fig_scatter_resumo = px.scatter(
                 t_resumo,
@@ -717,14 +717,14 @@ def renderizar_painel_abstencao(
                 height=520,
                 margin=dict(l=10, r=10, t=40, b=10)
             )
-            st.plotly_chart(fig_scatter_resumo, use_container_width=True)
+            st.plotly_chart(fig_scatter_resumo, width="stretch")
 
         st.markdown("**Resumo Estatístico Consolidado:**")
         cols_drop = [c for c in ["municipio"] if c in t_resumo.columns and rotulo_subunidade != "municipio"]
         df_tabela_resumo = t_resumo.drop(columns=cols_drop).sort_values("media", ascending=False)
         st.dataframe(
             df_tabela_resumo,
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
             column_config={
                 "taxa_agregada": st.column_config.NumberColumn("Taxa Agregada", format="%.2f%%"),
@@ -791,7 +791,7 @@ def renderizar_painel_abstencao(
             height=460,
             margin=dict(l=10, r=10, t=40, b=10)
         )
-        st.plotly_chart(fig_dist, use_container_width=True)
+        st.plotly_chart(fig_dist, width="stretch")
         st.caption(
             "Em nível nacional ou estadual, a distribuição apresenta caudas pesadas naturais. "
             "A metodologia de Z-score ajustado compara a seção com o padrão do seu próprio município, "
@@ -858,7 +858,7 @@ def renderizar_painel_abstencao(
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
             margin=dict(l=10, r=10, t=50, b=10)
         )
-        st.plotly_chart(fig_funil, use_container_width=True)
+        st.plotly_chart(fig_funil, width="stretch")
 
     # ------------------------------------------
     # ABA 4: 🚩 SINALIZADAS
@@ -893,7 +893,7 @@ def renderizar_painel_abstencao(
 
         evento_sinal = st.dataframe(
             df_sinalizadas[cols_exibir],
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
             selection_mode="single-row",
             on_select="rerun",
@@ -961,7 +961,7 @@ def renderizar_painel_abstencao(
                 height=380,
                 margin=dict(l=10, r=10, t=40, b=10)
             )
-            st.plotly_chart(fig_fluxo_hora, use_container_width=True)
+            st.plotly_chart(fig_fluxo_hora, width="stretch")
 
             col_h_hist1, col_h_hist2 = st.columns(2)
             with col_h_hist1:
@@ -987,7 +987,7 @@ def renderizar_painel_abstencao(
                     height=340,
                     margin=dict(l=10, r=10, t=40, b=10)
                 )
-                st.plotly_chart(fig_h1, use_container_width=True)
+                st.plotly_chart(fig_h1, width="stretch")
 
             with col_h_hist2:
                 df_tardias = df_hora[df_hora["votos_apos_17h"] > 0]
@@ -1013,14 +1013,14 @@ def renderizar_painel_abstencao(
                     height=340,
                     margin=dict(l=10, r=10, t=40, b=10)
                 )
-                st.plotly_chart(fig_h2, use_container_width=True)
+                st.plotly_chart(fig_h2, width="stretch")
 
             st.markdown("**Top Seções com Maior Proporção de Votos Após às 17h:**")
             top_tardias = df_hora.sort_values(["pct_apos_17h", "votos_apos_17h"], ascending=False).head(200)
             cols_top_h = ["uf", "municipio_nome", "zona", "secao", "votos_apos_17h", "pct_apos_17h", "ultimo_voto", "hora_encerramento", "z_pos17", "total_aptos"]
             ev_hora = st.dataframe(
                 top_tardias[cols_top_h],
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
                 selection_mode="single-row",
                 on_select="rerun",
@@ -1086,14 +1086,14 @@ def renderizar_painel_abstencao(
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
                 margin=dict(l=10, r=10, t=50, b=10)
             )
-            st.plotly_chart(fig_funil_bio, use_container_width=True)
+            st.plotly_chart(fig_funil_bio, width="stretch")
 
             st.markdown("**Seções com Maior Atipicidade em Liberação Manual (Z ≥ 3.0σ):**")
             sel_bio_z3 = df_bio[df_bio[col_z_bio] >= 3.0].sort_values(col_z_bio, ascending=False)
             cols_exibir_bio = ["uf", "municipio_nome", "zona", "secao", "habilitacao_manual_total", "pct_manual_calc", "esp_manual_pct", "z_manual", "total_votos_log"]
             ev_bio = st.dataframe(
                 sel_bio_z3[cols_exibir_bio],
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
                 selection_mode="single-row",
                 on_select="rerun",
@@ -1132,7 +1132,7 @@ def renderizar_painel_abstencao(
             fig_cruz = go.Figure()
 
             # Fundo
-            d_cruz_fundo = d_cruz_amostrado[~mascara_quadrante]
+            d_cruz_fundo = d_cruz_amostrado[~d_cruz_amostrado["score_cruzado"].ge(limite_cruzamento)]
             fig_cruz.add_trace(go.Scattergl(
                 x=d_cruz_fundo[col_x_plot],
                 y=d_cruz_fundo[col_y_plot],
@@ -1144,7 +1144,7 @@ def renderizar_painel_abstencao(
             ))
 
             # Quadrante Crítico
-            d_cruz_crit = d_cruz_amostrado[mascara_quadrante]
+            d_cruz_crit = d_cruz_amostrado[d_cruz_amostrado["score_cruzado"].ge(limite_cruzamento)]
             fig_cruz.add_trace(go.Scattergl(
                 x=d_cruz_crit[col_x_plot],
                 y=d_cruz_crit[col_y_plot],
@@ -1179,7 +1179,7 @@ def renderizar_painel_abstencao(
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
                 margin=dict(l=10, r=10, t=50, b=10)
             )
-            st.plotly_chart(fig_cruz, use_container_width=True)
+            st.plotly_chart(fig_cruz, width="stretch")
 
             st.markdown(f"**Seções no Quadrante Crítico ({eixo_x_nome} + {eixo_y_nome} simultâneos):**")
             sel_cruz = df_cruz[mascara_quadrante].sort_values("score_cruzado", ascending=False)
@@ -1188,7 +1188,7 @@ def renderizar_painel_abstencao(
 
             ev_cruz = st.dataframe(
                 sel_cruz[cols_cruz_exibir],
-                use_container_width=True,
+                width="stretch",
                 hide_index=True,
                 selection_mode="single-row",
                 on_select="rerun",
