@@ -2095,7 +2095,7 @@ col_ano, col_turno = st.sidebar.columns([1, 1])
 with col_ano:
     eleicao_ativa = st.selectbox(
         "Ano:",
-        options=["2026 (Geral)"],
+        options=["2026"],
         index=0,
         label_visibility="collapsed",
         key="seletor_ano"
