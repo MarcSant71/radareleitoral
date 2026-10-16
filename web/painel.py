@@ -1838,7 +1838,7 @@ PARQUET_CACHE_PATH = DB_PATH.with_suffix(".parquet")
 
 @st.cache_data(show_spinner=False)
 def carregar_dados() -> pd.DataFrame:
-    # 1. Camada Ouro (Gold Layer): tenta carregar do cache colunar Parquet de alta performance (~0.6s)
+    # 1. Cache Colunar Parquet: tenta carregar do arquivo pré-processado (~0.6s)
     if PARQUET_CACHE_PATH.exists():
         precisa_reprocessar = False
         if DB_PATH.exists() and DB_PATH.stat().st_mtime > PARQUET_CACHE_PATH.stat().st_mtime:
@@ -1944,7 +1944,7 @@ def carregar_dados() -> pd.DataFrame:
     for col in df.select_dtypes(include=["float64"]).columns:
         df[col] = pd.to_numeric(df[col], downcast="float")
 
-    # Salva no cache colunar Parquet (Gold Layer) para que todas as cargas subsequentes ocorram em ~0.6s
+    # Salva no cache colunar Parquet para que todas as cargas subsequentes ocorram em ~0.6s
     try:
         df.to_parquet(PARQUET_CACHE_PATH, index=False, engine="pyarrow", compression="snappy")
     except Exception:
