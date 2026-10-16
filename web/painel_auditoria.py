@@ -8,6 +8,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+from versao import VERSAO_APP, VERSAO_DISPLAY
 
 def renderizar_metodologia_auditoria():
     """Renderiza a documentação científica e guia operacional do painel de auditoria de urnas."""
@@ -145,10 +146,9 @@ def renderizar_metodologia_auditoria():
     * Comunidades de acesso complexo (seções em áreas ribeirinhas, indígenas ou rurais).
 
     **O passo forense correto:** Peritos, auditores e cidadãos devem confrontar o número da seção com a **Ata da Mesa Receptora** arquivada no Cartório Eleitoral e com o espelho do Boletim de Urna (BU) para checar as justificativas anotadas pelos mesários.
-
-    ---
-    <p style='margin-top: 0.6rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Painel de Auditoria de Urnas • Versão 2.4.3</p>
-    """, unsafe_allow_html=True)
+    """)
+    st.markdown("---")
+    st.markdown(f"<p style='margin-top: -0.6rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Painel de Auditoria de Urnas • {VERSAO_DISPLAY}</p>", unsafe_allow_html=True)
 
 
 def _gerar_cache_auditoria(
@@ -755,7 +755,7 @@ def renderizar_painel_auditoria(
             )
 
         st.markdown("---")
-        st.markdown("<p style='margin-top: -1.1rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Versão 2.4.3</p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='margin-top: -1.1rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • {VERSAO_DISPLAY}</p>", unsafe_allow_html=True)
     
 
     

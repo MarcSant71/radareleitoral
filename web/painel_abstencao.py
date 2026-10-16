@@ -18,6 +18,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+from versao import VERSAO_APP, VERSAO_DISPLAY
 
 
 # Paleta de cores neutras e científicas (estilo esteleicao / GitHub / Nature)
@@ -356,14 +357,13 @@ def renderizar_metodologia_abstencao(modo_escuro: bool = True, plotly_theme: str
     ### 🔍 4. Como Interpretar os Resultados em Campo?
 
     A sinalização de uma seção eleitoral em qualquer das abas **não comprova fraude de forma isolada**; ela indica uma **anomalia operacional e matemática que exige auditoria documental**.  
-    O procedimento oficial recomendado consiste em:
+    **O procedimento oficial recomendado consiste em:**
     * Requisitar cópia física da **Ata da Mesa Receptora** arquivada no Cartório Eleitoral da respectiva Zona.
     * Verificar se os mesários registraram justificativas operacionais válidas (pane de urna, filas externas, chuva severa, etc.).
     * Confrontar o espelho do **Boletim de Urna (BU)** impresso na seção com a base digital oficial.
-
-    ---
-    <p style='margin-top: 0.6rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Painel de Abstenção & Comparecimento • Versão 2.4.3</p>
-    """, unsafe_allow_html=True)
+    """)
+    st.markdown("---")
+    st.markdown(f"<p style='margin-top: -0.6rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Painel de Abstenção & Comparecimento • {VERSAO_DISPLAY}</p>", unsafe_allow_html=True)
 
 
 

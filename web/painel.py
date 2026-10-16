@@ -28,6 +28,7 @@ from estatistica import aplicar_motor_estatistico, aplicar_motor_abstencao
 from painel_abstencao import renderizar_painel_abstencao
 from painel_auditoria import renderizar_painel_auditoria
 from painel_governanca import renderizar_painel_governanca
+from versao import VERSAO_APP, COMMIT_APP, VERSAO_DISPLAY
 
 st.set_page_config(
     page_title="Eleições 2026 - Ciência de Dados & Estatística Eleitoral",
@@ -2051,7 +2052,7 @@ def gerar_skeleton_sidebar_html() -> str:
 
 
 st.title("🗳️ Eleições 2026: Ciência de Dados & Estatística Eleitoral")
-st.caption("Plataforma de Ciência de Dados e Análise Estatística da Votação • Base Oficial TSE • **Versão 2.4.3**")
+st.caption(f"Plataforma de Ciência de Dados e Análise Estatística da Votação • Base Oficial TSE • **{VERSAO_DISPLAY}**")
 
 # Exibe o Skeleton Screen visual (central + lateral) apenas no primeiro carregamento da sessão (Cold Start)
 skeleton_placeholder = None
