@@ -62,7 +62,9 @@ def init_db(db_path: Optional[Path] = None) -> None:
         );
 
         INSERT OR IGNORE INTO pleitos (codigo, ano, turno, descricao, data_votacao)
-        VALUES ('03220', 2026, 1, 'Eleições Gerais 2026 - 1º Turno', '2026-10-04');
+        VALUES 
+            ('03220', 2026, 1, 'Eleições Gerais 2026 - 1º Turno', '2026-10-04'),
+            ('03221', 2026, 2, 'Eleições Gerais 2026 - 2º Turno', '2026-10-25');
 
         CREATE TABLE IF NOT EXISTS secoes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

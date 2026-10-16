@@ -194,18 +194,20 @@ def orquestrar_pipeline(
         init_db()
 
     conn = get_connection(DB_PATH)
+    pleitos_oficiais = [
+        ("03220", ano, 1, f"Eleições Gerais {ano} - 1º Turno", f"{ano}-10-04"),
+        ("03221", ano, 2, f"Eleições Gerais {ano} - 2º Turno", f"{ano}-10-25"),
+    ]
     with conn:
-        for t in turnos:
-            cod_pleito = "03220" if t == 1 else "03221"
-            desc_pleito = f"Eleições Gerais {ano} - {t}º Turno"
-            dt_pleito = "2026-10-04" if t == 1 else "2026-10-25"
+        for cod_pleito, a, t, desc_pleito, dt_pleito in pleitos_oficiais:
             conn.execute("""
                 INSERT OR IGNORE INTO pleitos (codigo, ano, turno, descricao, data_votacao)
                 VALUES (?, ?, ?, ?, ?)
-            """, (cod_pleito, ano, t, desc_pleito, dt_pleito))
-            print(f"[+] Pleito '{cod_pleito}' ({desc_pleito}) registrado no banco.")
+            """, (cod_pleito, a, t, desc_pleito, dt_pleito))
+            status_turno = "dados disponíveis para ingestão" if t in turnos else "aguardando publicação TSE"
+            print(f"[+] Pleito '{cod_pleito}' ({desc_pleito}) registrado no banco ({status_turno}).")
     conn.close()
-    print("[+] Schema do SQLite validado e pleito(s) estruturado(s).\n")
+    print("[+] Schema do SQLite validado e pleitos estruturados (1º e 2º Turnos).\n")
 
     total_bus_geral = 0
 
