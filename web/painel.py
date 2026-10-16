@@ -1793,4 +1793,5 @@ elif painel_ativo == "📉 Análise de Abstenção":
     with st.spinner("Processando, aguarde..."):
         renderizar_painel_abstencao(df, modo_escuro, plotly_theme, fmt_int_br, fmt_float_br)
 else:
-    renderizar_painel_auditoria(df, modo_escuro, plotly_theme, fmt_int_br, fmt_float_br)
+    with st.spinner("Processando, aguarde..."):
+        renderizar_painel_auditoria(df, modo_escuro, plotly_theme, fmt_int_br, fmt_float_br)

@@ -382,6 +382,36 @@ def renderizar_painel_abstencao(
         st.warning("⚠️ Os dados de abstenção e comparecimento ainda não foram processados ou estão vazios.")
         return
 
+    OPCOES_NAV_ABST = [
+        "📉 Painel de Abstenção & Comparecimento",
+        "ℹ️ Metodologia & Funcionamento (Abstenção & Funil)"
+    ]
+
+    if "aba_abst" in st.query_params:
+        if st.query_params["aba_abst"].lower() in ["sobre", "metodologia", "funil"]:
+            st.session_state["aba_ativa_abst"] = OPCOES_NAV_ABST[1]
+        else:
+            st.session_state["aba_ativa_abst"] = OPCOES_NAV_ABST[0]
+    elif "aba_ativa_abst" not in st.session_state:
+        st.session_state["aba_ativa_abst"] = OPCOES_NAV_ABST[0]
+
+    aba_selecionada = st.segmented_control(
+        "Navegação",
+        options=OPCOES_NAV_ABST,
+        key="aba_ativa_abst",
+        selection_mode="single",
+        required=True,
+        label_visibility="collapsed",
+        width="stretch"
+    )
+    if not aba_selecionada:
+        aba_selecionada = OPCOES_NAV_ABST[0]
+
+    # Se estiver na Metodologia, renderiza imediatamente SEM processar dados nem tocar na barra lateral
+    if aba_selecionada == OPCOES_NAV_ABST[1]:
+        renderizar_metodologia_abstencao(modo_escuro, plotly_theme)
+        return
+
     # Garante que as colunas percentuais básicas existam
     if "pct_abstencao" not in df.columns:
         df["pct_abstencao"] = (df["faltosos_bu"] * 100.0 / np.maximum(df["total_aptos"], 1)).round(2)
@@ -397,30 +427,45 @@ def renderizar_painel_abstencao(
 
     col_reg, col_uf = st.sidebar.columns([3, 2])
     regioes_disponiveis = ["Todas", "Centro-Oeste", "Nordeste", "Norte", "Sudeste", "Sul"]
-    regiao_selecionada = col_reg.selectbox("Região:", regioes_disponiveis, key="abst_regiao")
+    reg_salva = st.session_state.get("abst_regiao_salva", "Todas")
+    idx_reg = regioes_disponiveis.index(reg_salva) if reg_salva in regioes_disponiveis else 0
+    regiao_selecionada = col_reg.selectbox("Região:", regioes_disponiveis, index=idx_reg, key="abst_regiao")
+    st.session_state["abst_regiao_salva"] = regiao_selecionada
 
     df_filtrado = df
     if regiao_selecionada != "Todas":
         df_filtrado = df_filtrado[df_filtrado["regiao"] == regiao_selecionada]
 
     ufs_disponiveis = ["Todas"] + sorted(df_filtrado["uf"].unique().tolist())
-    uf_selecionada = col_uf.selectbox("UF:", ufs_disponiveis, key="abst_uf")
+    uf_salva = st.session_state.get("abst_uf_salva", "Todas")
+    idx_uf = ufs_disponiveis.index(uf_salva) if uf_salva in ufs_disponiveis else 0
+    uf_selecionada = col_uf.selectbox("UF:", ufs_disponiveis, index=idx_uf, key="abst_uf")
+    st.session_state["abst_uf_salva"] = uf_selecionada
     if uf_selecionada != "Todas":
         df_filtrado = df_filtrado[df_filtrado["uf"] == uf_selecionada]
 
     municipios_disponiveis = ["Todos"] + sorted(df_filtrado["municipio_display"].unique().tolist())
-    municipio_selecionado = st.sidebar.selectbox("Município:", municipios_disponiveis, key="abst_municipio")
+    mun_salvo = st.session_state.get("abst_mun_salvo", "Todos")
+    idx_mun = municipios_disponiveis.index(mun_salvo) if mun_salvo in municipios_disponiveis else 0
+    municipio_selecionado = st.sidebar.selectbox("Município:", municipios_disponiveis, index=idx_mun, key="abst_municipio")
+    st.session_state["abst_mun_salvo"] = municipio_selecionado
     if municipio_selecionado != "Todos":
         df_filtrado = df_filtrado[df_filtrado["municipio_display"] == municipio_selecionado]
 
     col_zona, col_secao = st.sidebar.columns(2)
     zonas_disponiveis = ["Todas"] + sorted(df_filtrado["zona"].unique().tolist())
-    zona_selecionada = col_zona.selectbox("Zona:", zonas_disponiveis, key="abst_zona")
+    zona_salva = st.session_state.get("abst_zona_salva", "Todas")
+    idx_zona = zonas_disponiveis.index(zona_salva) if zona_salva in zonas_disponiveis else 0
+    zona_selecionada = col_zona.selectbox("Zona:", zonas_disponiveis, index=idx_zona, key="abst_zona")
+    st.session_state["abst_zona_salva"] = zona_selecionada
     if zona_selecionada != "Todas":
         df_filtrado = df_filtrado[df_filtrado["zona"] == zona_selecionada]
 
     secoes_disponiveis = ["Todas"] + sorted(df_filtrado["secao"].unique().tolist())
-    secao_selecionada = col_secao.selectbox("Seção:", secoes_disponiveis, key="abst_secao")
+    sec_salva = st.session_state.get("abst_secao_salva", "Todas")
+    idx_sec = secoes_disponiveis.index(sec_salva) if sec_salva in secoes_disponiveis else 0
+    secao_selecionada = col_secao.selectbox("Seção:", secoes_disponiveis, index=idx_sec, key="abst_secao")
+    st.session_state["abst_secao_salva"] = secao_selecionada
     if secao_selecionada != "Todas":
         df_filtrado = df_filtrado[df_filtrado["secao"] == secao_selecionada]
 
@@ -511,38 +556,6 @@ def renderizar_painel_abstencao(
     if secao_selecionada != "Todas" and len(df_filtrado) == 1:
         renderizar_detalhe_individual(df_filtrado.iloc[0], df, modo_escuro, plotly_theme, fmt_int_br, fmt_float_br)
         st.stop()
-
-    # ==========================================
-    # NAVEGAÇÃO PRINCIPAL (CONTROLADA POR ESTADO)
-    # ==========================================
-    OPCOES_NAV_ABST = [
-        "📉 Painel de Abstenção & Comparecimento",
-        "ℹ️ Metodologia & Funcionamento (Abstenção & Funil)"
-    ]
-
-    if "aba_abst" in st.query_params:
-        if st.query_params["aba_abst"].lower() in ["sobre", "metodologia", "funil"]:
-            st.session_state["aba_ativa_abst"] = OPCOES_NAV_ABST[1]
-        else:
-            st.session_state["aba_ativa_abst"] = OPCOES_NAV_ABST[0]
-    elif "aba_ativa_abst" not in st.session_state:
-        st.session_state["aba_ativa_abst"] = OPCOES_NAV_ABST[0]
-
-    aba_selecionada = st.segmented_control(
-        "Navegação",
-        options=OPCOES_NAV_ABST,
-        key="aba_ativa_abst",
-        selection_mode="single",
-        required=True,
-        label_visibility="collapsed",
-        width="stretch"
-    )
-    if not aba_selecionada:
-        aba_selecionada = OPCOES_NAV_ABST[0]
-
-    if aba_selecionada == OPCOES_NAV_ABST[1]:
-        renderizar_metodologia_abstencao(modo_escuro, plotly_theme)
-        return
 
     # ==========================================
     # RÓTULO GEOGRÁFICO DO NÍVEL ATUAL

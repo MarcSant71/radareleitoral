@@ -9,6 +9,148 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
+def renderizar_metodologia_auditoria():
+    """Renderiza a documentação científica e guia operacional do painel de auditoria de urnas."""
+    st.markdown(r"""
+    ## 🗳️ Metodologia Científica & Funcionamento: Painel de Auditoria de Urnas
+
+    > 🔬 **Escopo Técnico Deste Painel:**  
+    > Este módulo é dedicado à auditoria estatística e temporal de **497.895 seções eleitorais**, analisando os arquivos oficiais de **Log de Eventos (`logd.dat`)** e **Boletins de Urna (`bu.dat`)** emitidos pelas urnas eletrônicas brasileiras sob a égide do TSE.  
+    > O objetivo é identificar **comportamentos operacionais atípicos** (votos após às 17h, liberações manuais por mesário e ociosidade) através de modelos determinísticos e inferência científica.
+
+    ---
+
+    ### 📦 1. De Onde Vêm os Dados e o que é Analisado?
+
+    Para cada seção eleitoral, dois tipos de arquivos públicos oficiais emitidos pela própria Urna Eletrônica são lidos e processados:
+
+    * **1. Arquivo de Log de Eventos (`logd.dat` / `*.logd`):**  
+      Registro cronológico gravado segundo a segundo. Cada eleitor que comparece gera registros operacionais no log: a inicialização dos sistemas, o teste de hardware, a chegada do eleitor à mesa receptora, a tentativa de leitura biométrica (ou dispensa manual com código pelo mesário), o tempo despendido na cabine e a emissão do comprovante.  
+      *Nota Constitucional:* O log de eventos protege estritamente o sigilo constitucional do voto (Art. 14, caput, da CF/88). O log **não** registra e nem pode registrar em quem o eleitor votou; ele registra apenas o fluxo operacional e temporal da urna.
+    
+    * **2. Arquivo de Boletim de Urna (`bu.dat` / `*.bu`):**  
+      Documento digital oficial gerado pela urna ao encerrar a votação, formatado na especificação internacional aberta **ASN.1 (Abstract Syntax Notation One - ISO/IEC 8824)**. O BU contém a totalização estática dos votos nominais por candidato, votos em branco, votos nulos, comparecimento e abstenção daquela seção específica.
+
+    ---
+
+    ### 📐 2. Metodologia Estatística e Rigor Científico (Modelo de Spiegelhalter, 2005)
+
+    A plataforma aplica o **Modelo de Efeitos Aleatórios e Controle Estatístico de Processos de David Spiegelhalter (2005)** — padrão acadêmico internacional utilizado em auditorias populacionais, epidemiológicas e de controle de qualidade hospitalar (*"Funnel plots for comparing institutional performance"*, *Statistics in Medicine*).
+
+    ---
+
+    #### 💡 Intuição Prática: O que é o "Sigma" ($\sigma$) e o $Z$-Score?
+
+    Em vez de comparar percentuais brutos isolados — o que geraria distorções entre cidades de portes diferentes —, o painel mede **a quantos desvios-padrão (sigmas $\sigma$) uma seção eleitoral se afastou do comportamento esperado do seu município**:
+
+    * **A Analogia da Altura:** Imagine a altura dos homens adultos no Brasil. A média é de 1,75 m, com uma variação comum de 7 cm (1 sigma):
+      * Um homem de 1,82 m (+1$\sigma$) é alto, mas perfeitamente comum no dia a dia.
+      * Um homem de 1,89 m (+2$\sigma$) já é uma exceção notável (presente em apenas ~2,3% da população).
+      * Um homem de 2,05 m (+4,3$\sigma$) é uma raridade extrema (como um jogador de basquete profissional).
+
+    Na auditoria eleitoral, a lógica é idêntica: se na cidade a média foi de 2% de votos pós-17h, uma seção registrar 3% (+0,8$\sigma$) é uma oscilação natural de fila. Porém, uma seção da mesma cidade registrar 25% de votos tardios (+4,5$\sigma$) equivale estatisticamente a encontrar alguém de 2,15 m de altura na rua — um evento estatisticamente raro que justifica a conferência da ata física do cartório.
+
+    ---
+
+    #### A. Comparação Justa via Técnica *Leave-One-Out* (Exclusão da Própria Seção)
+
+    Cada seção é avaliada estritamente em relação à realidade do seu **próprio município**. Seções ribeirinhas ou rurais não são comparadas a capitais cosmopolitas.
+
+    * **Eliminação de Viés:** Se uma seção atípica de grande porte apresentasse um volume extremo de votos tardios, incluí-la na média municipal puxaria a régua toda para cima, "mascarando" a sua própria anomalia.
+    * A técnica *Leave-One-Out* ("deixar-um-de-fora") calcula a média de referência da cidade **excluindo temporariamente a própria seção em avaliação**, garantindo que a régua nunca seja contaminada pelo objeto da auditoria.
+
+    **Fórmula da Taxa Esperada Municipal:**
+
+    $$
+    p_{\text{mun}} = \frac{\sum_{i \in \text{mun}} \text{Votos}_{i} - \text{Votos}_{\text{secao}}}{\sum_{i \in \text{mun}} \text{Total}_{i} - \text{Total}_{\text{secao}}}
+    $$
+
+    ---
+
+    #### B. $Z$-Score Ajustado com Superdispersão Residual ($\tau^2$ de Spiegelhalter)
+
+    Modelos estatísticos simplistas tratam eleitores como moedas matemáticas perfeitamente idênticas. No mundo real, existem fatores operacionais legítimos: chuvas torrenciais em um bairro, lentidão de transporte ou oscilação de energia em zonas rurais.
+
+    * **O que é o parâmetro $\tau^2$ (tau ao quadrado)?**  
+      Ele quantifica e absorve a "variação natural legítima" que existe entre diferentes bairros e cidades do estado. Isso evita que pequenas seções de 80 eleitores no interior disparem falsos alarmes por mero efeito do acaso amostral.
+
+    * **O que é o MAD (Desvio Absoluto da Mediana) e por que ele é usado?**  
+      Na estatística comum, a média e o desvio padrão tradicional são facilmente enganados por um único número absurdo (por exemplo: se um bilionário entrar em uma padaria, a "renda média" de todos os clientes vira milhões de reais em um segundo).  
+      O **MAD** funciona como uma **régua blindada contra distorções**: em vez de calcular médias que podem ser puxadas por valores extremos, ele mede a dispersão típica olhando apenas para o valor central (a mediana). Dessa forma, se uma única urna na capital tiver um problema bizarro que a faça fechar às 23h, esse caso isolado **não contamina nem distorce a régua de medição** de todas as outras urnas do estado.
+
+    * **Resultado (O que significa o $Z$?):**  
+      O **$Z$** (chamado na ciência de *$Z$-score* ou escore padronizado) funciona como um **termômetro de atipicidade**: ele é a nota final que indica quantos passos (sigmas $\sigma$) a urna se afastou do comportamento esperado.
+      * **$Z = 0$:** A seção operou exatamente na média da sua cidade (temperatura normal de 36,5 °C).
+      * **$Z < 2{,}0\sigma$:** Variação comum do dia a dia, dentro da normalidade.
+      * **$Z \ge 3{,}0\sigma$:** O termômetro entra em zona crítica: a seção funcionou de maneira totalmente atípica em relação a todas as outras urnas da mesma cidade, com menos de 0,13% de chance de ocorrer por mero acaso sob condições normais.
+
+    **Fórmula do $Z$-Score Ajustado de Spiegelhalter:**
+
+    $$
+    z_{\text{ajustado}} = \frac{\text{Taxa Observada} - p_{\text{mun}}}{\sqrt{\frac{p_{\text{mun}}(1 - p_{\text{mun}})}{N} + \tau^2}}
+    $$
+
+    **Fórmula da Superdispersão Residual ($\tau^2$ Robusto via MAD):**
+
+    $$
+    \tau^2 = \max\left(\left(1{,}4826 \cdot \text{MAD}\right)^2 - \text{Mediana}(\text{Variancia Acaso}),\, 0\right)
+    $$
+
+    ---
+
+    #### C. Desvio Multivariado Composto (Norma Euclidiana $L_2$)
+
+    Em vez de avaliar os indicadores de forma fragmentada, o sistema aplica uma distância geométrica no espaço de desvios:
+    * Se uma urna teve apenas um leve atraso pós-17h (+1,2$\sigma$), ela permanece dentro do raio de normalidade.
+    * Se teve apenas uma leve elevação de biometria manual (+1,2$\sigma$), também segue no padrão aceitável.
+    * Porém, se a mesma urna combinou atraso severo (+3$\sigma$) **e** biometria manual muito acima da média (+3$\sigma$), o afastamento conjunto pela hipotenusa dispara para $\sqrt{3^2 + 3^2} = 4{,}24\sigma$!  
+    A **Norma $L_2$** calcula a distância em linha reta do ponto onde a urna operou até o centro da normalidade da eleição.
+
+    **Fórmula da Norma Euclidiana $L_2$:**
+
+    $$
+    Z_{\text{composto}} = \sqrt{\max(z_{\text{pos17}}, 0)^2 + \max(z_{\text{manual}}, 0)^2 + \max(z_{\text{horario}}, 0)^2}
+    $$
+
+    ---
+
+    #### D. Régua Padronizada de Significância Estatística
+    * **Padrão Normal ($Z < 2{,}0\sigma$):** Seção perfeitamente compreendida dentro do intervalo de confiança de 95% do seu município.
+    * **🟡 Atenção ($2{,}0\sigma \le Z < 3{,}0\sigma$):** Desvio moderado em relação à linha de base local (percentil $\approx 97{,}7\%$).
+    * **🟠 Alta Atipicidade ($3{,}0\sigma \le Z < 4{,}5\sigma$):** Desvio severo em relação ao comportamento padrão do município (percentil $\approx 99{,}87\%$).
+    * **🔴 Atipicidade Extrema ($Z \ge 4{,}5\sigma$):** Confluência crítica de desvios simultâneos de horário, fluxo e habilitação.
+
+    ---
+
+    ### 🎯 3. Como Interpretar os Gráficos?
+
+    1. **Gráfico de Dispersão Multivariada ($Z$ Pós-17h vs $Z$ Manual):**
+       * **Concentração Inferior Esquerda:** Reúne mais de 95% das seções brasileiras. São os círculos que operaram rigorosamente dentro do padrão esperado para suas cidades.
+       * **Linhas de Demarcação (+2$\sigma$ amarela e +3$\sigma$ vermelha):** Indicam os limites de significância estatística. Círculos posicionados além da linha vermelha (seja para a direita ou para cima) operaram com taxas significativamente superiores ao restante do município.
+       * **Canto Superior Direito:** Representa a confluência mais crítica da fiscalização — urnas que acumularam fechamento tardio com alta taxa de habilitação sem biometria.
+
+    2. **Gráfico de Distribuição (Modo Faixas de Risco):**
+       * **Barra Azul (Normal, < 2$\sigma$):** Confirma a estabilidade e regularidade da imensa maioria das urnas auditadas no país.
+       * **Barra Amarela (Atenção, 2 a 3$\sigma$):** Seções com atipicidades operacionais moderadas (geralmente explicadas por dinâmica local de filas).
+       * **Barras Laranja e Vermelha ($\ge 3\sigma$):** O foco prioritário da auditoria. Evidencia com clareza o volume exato e a proporção de urnas que demandam verificação cruzada com a Ata da Mesa Receptora e o Boletim de Urna (BU).
+
+    ---
+
+    ### 🔍 4. Como Interpretar os Alertas e Próximos Passos Forenses?
+
+    Um desvio estatístico padronizado ($Z \ge 3{,}0\sigma$) **não constitui prova de fraude**. Ele constitui uma **sinalização objetiva de atipicidade operacional e matemática**.  
+    Explicações legítimas comuns incluem:
+    * Fila física no encerramento decorrente de chuvas severas ou falta pontual de energia na região.
+    * Urna eletrônica com leitor biométrico desgastado ou seção com concentração atípica de eleitores idosos (com perda de relevo papilar).
+    * Comunidades de acesso complexo (seções em áreas ribeirinhas, indígenas ou rurais).
+
+    **O passo forense correto:** Peritos, auditores e cidadãos devem confrontar o número da seção com a **Ata da Mesa Receptora** arquivada no Cartório Eleitoral e com o espelho do Boletim de Urna (BU) para checar as justificativas anotadas pelos mesários.
+
+    ---
+    <p style='margin-top: 0.6rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Painel de Auditoria de Urnas • Versão 2.4.1</p>
+    """, unsafe_allow_html=True)
+
+
 def renderizar_painel_auditoria(
     df: pd.DataFrame,
     modo_escuro: bool,
@@ -29,6 +171,23 @@ def renderizar_painel_auditoria(
     elif "aba_ativa" not in st.session_state:
         st.session_state["aba_ativa"] = OPCOES_NAV[0]
     
+    aba_selecionada = st.segmented_control(
+        "Navegação",
+        options=OPCOES_NAV,
+        key="aba_ativa",
+        selection_mode="single",
+        required=True,
+        label_visibility="collapsed",
+        width="stretch"
+    )
+    if not aba_selecionada:
+        aba_selecionada = OPCOES_NAV[0]
+    
+    # Se estiver na Metodologia, renderiza imediatamente SEM tocar na barra lateral nem filtrar dados
+    if aba_selecionada == OPCOES_NAV[1]:
+        renderizar_metodologia_auditoria()
+        return
+    
     def ir_para_resultados():
         st.session_state["aba_ativa"] = OPCOES_NAV[0]
     
@@ -39,7 +198,10 @@ def renderizar_painel_auditoria(
     
     col_reg, col_uf = st.sidebar.columns([3, 2])
     regioes_disponiveis = ["Todas", "Centro-Oeste", "Nordeste", "Norte", "Sudeste", "Sul"]
-    regiao_selecionada = col_reg.selectbox("Região:", regioes_disponiveis, on_change=ir_para_resultados)
+    reg_salva = st.session_state.get("audit_regiao_salva", "Todas")
+    reg_idx = regioes_disponiveis.index(reg_salva) if reg_salva in regioes_disponiveis else 0
+    regiao_selecionada = col_reg.selectbox("Região:", regioes_disponiveis, index=reg_idx, on_change=ir_para_resultados, key="audit_regiao")
+    st.session_state["audit_regiao_salva"] = regiao_selecionada
     
     df_filtrado = df.copy()
     if regiao_selecionada != "Todas":
@@ -47,27 +209,40 @@ def renderizar_painel_auditoria(
     
     # Filtro Estado (UF) em cascata da região
     ufs_disponiveis = ["Todas"] + sorted(df_filtrado["uf"].unique().tolist())
-    uf_selecionada = col_uf.selectbox("UF:", ufs_disponiveis, on_change=ir_para_resultados)
+    uf_salva = st.session_state.get("audit_uf_salva", "Todas")
+    uf_idx = ufs_disponiveis.index(uf_salva) if uf_salva in ufs_disponiveis else 0
+    uf_selecionada = col_uf.selectbox("UF:", ufs_disponiveis, index=uf_idx, on_change=ir_para_resultados, key="audit_uf")
+    st.session_state["audit_uf_salva"] = uf_selecionada
     if uf_selecionada != "Todas":
         df_filtrado = df_filtrado[df_filtrado["uf"] == uf_selecionada]
     
     # Filtro Município com Nome Real
     municipios_disponiveis = ["Todos"] + sorted(df_filtrado["municipio_display"].unique().tolist())
-    municipio_selecionado = st.sidebar.selectbox("Município:", municipios_disponiveis, on_change=ir_para_resultados)
+    mun_salvo = st.session_state.get("audit_mun_salvo", "Todos")
+    mun_idx = municipios_disponiveis.index(mun_salvo) if mun_salvo in municipios_disponiveis else 0
+    municipio_selecionado = st.sidebar.selectbox("Município:", municipios_disponiveis, index=mun_idx, on_change=ir_para_resultados, key="audit_municipio")
+    st.session_state["audit_mun_salvo"] = municipio_selecionado
     if municipio_selecionado != "Todos":
         df_filtrado = df_filtrado[df_filtrado["municipio_display"] == municipio_selecionado]
     
     # Filtro Zona e Seção lado a lado
     col_zona, col_secao = st.sidebar.columns(2)
     zonas_disponiveis = ["Todas"] + sorted(df_filtrado["zona"].unique().tolist())
-    zona_selecionada = col_zona.selectbox("Zona:", zonas_disponiveis, on_change=ir_para_resultados)
+    zona_salva = st.session_state.get("audit_zona_salva", "Todas")
+    zona_idx = zonas_disponiveis.index(zona_salva) if zona_salva in zonas_disponiveis else 0
+    zona_selecionada = col_zona.selectbox("Zona:", zonas_disponiveis, index=zona_idx, on_change=ir_para_resultados, key="audit_zona")
+    st.session_state["audit_zona_salva"] = zona_selecionada
     if zona_selecionada != "Todas":
         df_filtrado = df_filtrado[df_filtrado["zona"] == zona_selecionada]
     
     secoes_disponiveis = ["Todas"] + sorted(df_filtrado["secao"].unique().tolist())
-    secao_selecionada = col_secao.selectbox("Seção:", secoes_disponiveis, on_change=ir_para_resultados)
+    sec_salva = st.session_state.get("audit_secao_salva", "Todas")
+    sec_idx = secoes_disponiveis.index(sec_salva) if sec_salva in secoes_disponiveis else 0
+    secao_selecionada = col_secao.selectbox("Seção:", secoes_disponiveis, index=sec_idx, on_change=ir_para_resultados, key="audit_secao")
+    st.session_state["audit_secao_salva"] = secao_selecionada
     if secao_selecionada != "Todas":
         df_filtrado = df_filtrado[df_filtrado["secao"] == secao_selecionada]
+    
     
     # Filtros Estatísticos de Atipicidade (Spiegelhalter 2005)
     OPCOES_ATIPICIDADE = {
@@ -150,21 +325,6 @@ def renderizar_painel_auditoria(
     elif venc_sel == "Nº 22 (Flávio Bolsonaro)":
         df_filtrado = df_filtrado[df_filtrado["pres_venc_num"] == 22]
     
-    
-    # ==========================================
-    # NAVEGAÇÃO PRINCIPAL (CONTROLADA POR ESTADO)
-    # ==========================================
-    aba_selecionada = st.segmented_control(
-        "Navegação",
-        options=OPCOES_NAV,
-        key="aba_ativa",
-        selection_mode="single",
-        required=True,
-        label_visibility="collapsed",
-        width="stretch"
-    )
-    if not aba_selecionada:
-        aba_selecionada = OPCOES_NAV[0]
     
     if aba_selecionada == OPCOES_NAV[0]:
         # ==========================================
@@ -590,147 +750,5 @@ def renderizar_painel_auditoria(
         st.markdown("---")
         st.markdown("<p style='margin-top: -1.1rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Versão 2.3.0</p>", unsafe_allow_html=True)
     
-    # ==========================================
-    # ABA: METODOLOGIA & FUNCIONAMENTO (URNAS)
-    # ==========================================
-    else:
-        st.markdown(r"""
-        ## 🗳️ Metodologia Científica & Funcionamento: Painel de Auditoria de Urnas
-
-        > 🔬 **Escopo Técnico Deste Painel:**  
-        > Este módulo é dedicado à auditoria estatística e temporal de **497.895 seções eleitorais**, analisando os arquivos oficiais de **Log de Eventos (`logd.dat`)** e **Boletins de Urna (`bu.dat`)** emitidos pelas urnas eletrônicas brasileiras sob a égide do TSE.  
-        > O objetivo é identificar **comportamentos operacionais atípicos** (votos após às 17h, liberações manuais por mesário e ociosidade) através de modelos determinísticos e inferência científica.
-
-        ---
-
-        ### 📦 1. De Onde Vêm os Dados e o que é Analisado?
-
-        Para cada seção eleitoral, dois tipos de arquivos públicos oficiais emitidos pela própria Urna Eletrônica são lidos e processados:
-
-        * **1. Arquivo de Log de Eventos (`logd.dat` / `*.logd`):**  
-          Registro cronológico gravado segundo a segundo. Cada eleitor que comparece gera registros operacionais no log: a inicialização dos sistemas, o teste de hardware, a chegada do eleitor à mesa receptora, a tentativa de leitura biométrica (ou dispensa manual com código pelo mesário), o tempo despendido na cabine e a emissão do comprovante.  
-          *Nota Constitucional:* O log de eventos protege estritamente o sigilo constitucional do voto (Art. 14, caput, da CF/88). O log **não** registra e nem pode registrar em quem o eleitor votou; ele registra apenas o fluxo operacional e temporal da urna.
-        
-        * **2. Arquivo de Boletim de Urna (`bu.dat` / `*.bu`):**  
-          Documento digital oficial gerado pela urna ao encerrar a votação, formatado na especificação internacional aberta **ASN.1 (Abstract Syntax Notation One - ISO/IEC 8824)**. O BU contém a totalização estática dos votos nominais por candidato, votos em branco, votos nulos, comparecimento e abstenção daquela seção específica.
-
-        ---
-
-        ### 📐 2. Metodologia Estatística e Rigor Científico (Modelo de Spiegelhalter, 2005)
-
-        A plataforma aplica o **Modelo de Efeitos Aleatórios e Controle Estatístico de Processos de David Spiegelhalter (2005)** — padrão acadêmico internacional utilizado em auditorias populacionais, epidemiológicas e de controle de qualidade hospitalar (*"Funnel plots for comparing institutional performance"*, *Statistics in Medicine*).
-
-        ---
-
-        #### 💡 Intuição Prática: O que é o "Sigma" ($\sigma$) e o $Z$-Score?
-
-        Em vez de comparar percentuais brutos isolados — o que geraria distorções entre cidades de portes diferentes —, o painel mede **a quantos desvios-padrão (sigmas $\sigma$) uma seção eleitoral se afastou do comportamento esperado do seu município**:
-
-        * **A Analogia da Altura:** Imagine a altura dos homens adultos no Brasil. A média é de 1,75 m, com uma variação comum de 7 cm (1 sigma):
-          * Um homem de 1,82 m (+1$\sigma$) é alto, mas perfeitamente comum no dia a dia.
-          * Um homem de 1,89 m (+2$\sigma$) já é uma exceção notável (presente em apenas ~2,3% da população).
-          * Um homem de 2,05 m (+4,3$\sigma$) é uma raridade extrema (como um jogador de basquete profissional).
-
-        Na auditoria eleitoral, a lógica é idêntica: se na cidade a média foi de 2% de votos pós-17h, uma seção registrar 3% (+0,8$\sigma$) é uma oscilação natural de fila. Porém, uma seção da mesma cidade registrar 25% de votos tardios (+4,5$\sigma$) equivale estatisticamente a encontrar alguém de 2,15 m de altura na rua — um evento estatisticamente raro que justifica a conferência da ata física do cartório.
-
-        ---
-
-        #### A. Comparação Justa via Técnica *Leave-One-Out* (Exclusão da Própria Seção)
-
-        Cada seção é avaliada estritamente em relação à realidade do seu **próprio município**. Seções ribeirinhas ou rurais não são comparadas a capitais cosmopolitas.
-
-        * **Eliminação de Viés:** Se uma seção atípica de grande porte apresentasse um volume extremo de votos tardios, incluí-la na média municipal puxaria a régua toda para cima, "mascarando" a sua própria anomalia.
-        * A técnica *Leave-One-Out* ("deixar-um-de-fora") calcula a média de referência da cidade **excluindo temporariamente a própria seção em avaliação**, garantindo que a régua nunca seja contaminada pelo objeto da auditoria.
-
-        **Fórmula da Taxa Esperada Municipal:**
-
-        $$
-        p_{\text{mun}} = \frac{\sum_{i \in \text{mun}} \text{Votos}_{i} - \text{Votos}_{\text{secao}}}{\sum_{i \in \text{mun}} \text{Total}_{i} - \text{Total}_{\text{secao}}}
-        $$
-
-        ---
-
-        #### B. $Z$-Score Ajustado com Superdispersão Residual ($\tau^2$ de Spiegelhalter)
-
-        Modelos estatísticos simplistas tratam eleitores como moedas matemáticas perfeitamente idênticas. No mundo real, existem fatores operacionais legítimos: chuvas torrenciais em um bairro, lentidão de transporte ou oscilação de energia em zonas rurais.
-
-        * **O que é o parâmetro $\tau^2$ (tau ao quadrado)?**  
-          Ele quantifica e absorve a "variação natural legítima" que existe entre diferentes bairros e cidades do estado. Isso evita que pequenas seções de 80 eleitores no interior disparem falsos alarmes por mero efeito do acaso amostral.
-
-        * **O que é o MAD (Desvio Absoluto da Mediana) e por que ele é usado?**  
-          Na estatística comum, a média e o desvio padrão tradicional são facilmente enganados por um único número absurdo (por exemplo: se um bilionário entrar em uma padaria, a "renda média" de todos os clientes vira milhões de reais em um segundo).  
-          O **MAD** funciona como uma **régua blindada contra distorções**: em vez de calcular médias que podem ser puxadas por valores extremos, ele mede a dispersão típica olhando apenas para o valor central (a mediana). Dessa forma, se uma única urna na capital tiver um problema bizarro que a faça fechar às 23h, esse caso isolado **não contamina nem distorce a régua de medição** de todas as outras urnas do estado.
-
-        * **Resultado (O que significa o $Z$?):**  
-          O **$Z$** (chamado na ciência de *$Z$-score* ou escore padronizado) funciona como um **termômetro de atipicidade**: ele é a nota final que indica quantos passos (sigmas $\sigma$) a urna se afastou do comportamento esperado.
-          * **$Z = 0$:** A seção operou exatamente na média da sua cidade (temperatura normal de 36,5 °C).
-          * **$Z < 2{,}0\sigma$:** Variação comum do dia a dia, dentro da normalidade.
-          * **$Z \ge 3{,}0\sigma$:** O termômetro entra em zona crítica: a seção funcionou de maneira totalmente atípica em relação a todas as outras urnas da mesma cidade, com menos de 0,13% de chance de ocorrer por mero acaso sob condições normais.
-
-        **Fórmula do $Z$-Score Ajustado de Spiegelhalter:**
-
-        $$
-        z_{\text{ajustado}} = \frac{\text{Taxa Observada} - p_{\text{mun}}}{\sqrt{\frac{p_{\text{mun}}(1 - p_{\text{mun}})}{N} + \tau^2}}
-        $$
-
-        **Fórmula da Superdispersão Residual ($\tau^2$ Robusto via MAD):**
-
-        $$
-        \tau^2 = \max\left(\left(1{,}4826 \cdot \text{MAD}\right)^2 - \text{Mediana}(\text{Variancia Acaso}),\, 0\right)
-        $$
-
-        ---
-
-        #### C. Desvio Multivariado Composto (Norma Euclidiana $L_2$)
-
-        Em vez de avaliar os indicadores de forma fragmentada, o sistema aplica uma distância geométrica no espaço de desvios:
-        * Se uma urna teve apenas um leve atraso pós-17h (+1,2$\sigma$), ela permanece dentro do raio de normalidade.
-        * Se teve apenas uma leve elevação de biometria manual (+1,2$\sigma$), também segue no padrão aceitável.
-        * Porém, se a mesma urna combinou atraso severo (+3$\sigma$) **e** biometria manual muito acima da média (+3$\sigma$), o afastamento conjunto pela hipotenusa dispara para $\sqrt{3^2 + 3^2} = 4{,}24\sigma$!  
-        A **Norma $L_2$** calcula a distância em linha reta do ponto onde a urna operou até o centro da normalidade da eleição.
-
-        **Fórmula da Norma Euclidiana $L_2$:**
-
-        $$
-        Z_{\text{composto}} = \sqrt{\max(z_{\text{pos17}}, 0)^2 + \max(z_{\text{manual}}, 0)^2 + \max(z_{\text{horario}}, 0)^2}
-        $$
-
-        ---
-
-        #### D. Régua Padronizada de Significância Estatística
-        * **Padrão Normal ($Z < 2{,}0\sigma$):** Seção perfeitamente compreendida dentro do intervalo de confiança de 95% do seu município.
-        * **🟡 Atenção ($2{,}0\sigma \le Z < 3{,}0\sigma$):** Desvio moderado em relação à linha de base local (percentil $\approx 97{,}7\%$).
-        * **🟠 Alta Atipicidade ($3{,}0\sigma \le Z < 4{,}5\sigma$):** Desvio severo em relação ao comportamento padrão do município (percentil $\approx 99{,}87\%$).
-        * **🔴 Atipicidade Extrema ($Z \ge 4{,}5\sigma$):** Confluência crítica de desvios simultâneos de horário, fluxo e habilitação.
-
-        ---
-
-        ### 🎯 3. Como Interpretar os Gráficos?
-
-        1. **Gráfico de Dispersão Multivariada ($Z$ Pós-17h vs $Z$ Manual):**
-           * **Concentração Inferior Esquerda:** Reúne mais de 95% das seções brasileiras. São os círculos que operaram rigorosamente dentro do padrão esperado para suas cidades.
-           * **Linhas de Demarcação (+2$\sigma$ amarela e +3$\sigma$ vermelha):** Indicam os limites de significância estatística. Círculos posicionados além da linha vermelha (seja para a direita ou para cima) operaram com taxas significativamente superiores ao restante do município.
-           * **Canto Superior Direito:** Representa a confluência mais crítica da fiscalização — urnas que acumularam fechamento tardio com alta taxa de habilitação sem biometria.
-
-        2. **Gráfico de Distribuição (Modo Faixas de Risco):**
-           * **Barra Azul (Normal, < 2$\sigma$):** Confirma a estabilidade e regularidade da imensa maioria das urnas auditadas no país.
-           * **Barra Amarela (Atenção, 2 a 3$\sigma$):** Seções com atipicidades operacionais moderadas (geralmente explicadas por dinâmica local de filas).
-           * **Barras Laranja e Vermelha ($\ge 3\sigma$):** O foco prioritário da auditoria. Evidencia com clareza o volume exato e a proporção de urnas que demandam verificação cruzada com a Ata da Mesa Receptora e o Boletim de Urna (BU).
-
-        ---
-
-        ### 🔍 4. Como Interpretar os Alertas e Próximos Passos Forenses?
-
-        Um desvio estatístico padronizado ($Z \ge 3{,}0\sigma$) **não constitui prova de fraude**. Ele constitui uma **sinalização objetiva de atipicidade operacional e matemática**.  
-        Explicações legítimas comuns incluem:
-        * Fila física no encerramento decorrente de chuvas severas ou falta pontual de energia na região.
-        * Urna eletrônica com leitor biométrico desgastado ou seção com concentração atípica de eleitores idosos (com perda de relevo papilar).
-        * Comunidades de acesso complexo (seções em áreas ribeirinhas, indígenas ou rurais).
-
-        **O passo forense correto:** Peritos, auditores e cidadãos devem confrontar o número da seção com a **Ata da Mesa Receptora** arquivada no Cartório Eleitoral e com o espelho do Boletim de Urna (BU) para checar as justificativas anotadas pelos mesários.
-
-        ---
-        <p style='margin-top: 0.6rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Painel de Auditoria de Urnas • Versão 2.4.1</p>
-        """, unsafe_allow_html=True)
 
     
