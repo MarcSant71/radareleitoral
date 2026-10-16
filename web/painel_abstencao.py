@@ -362,7 +362,7 @@ def renderizar_metodologia_abstencao(modo_escuro: bool = True, plotly_theme: str
     * Confrontar o espelho do **Boletim de Urna (BU)** impresso na seção com a base digital oficial.
 
     ---
-    <p style='margin-top: 0.6rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Painel de Abstenção & Comparecimento • Versão 2.4.1</p>
+    <p style='margin-top: 0.6rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Painel de Abstenção & Comparecimento • Versão 2.4.2</p>
     """, unsafe_allow_html=True)
 
 

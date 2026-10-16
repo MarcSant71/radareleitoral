@@ -147,7 +147,7 @@ def renderizar_metodologia_auditoria():
     **O passo forense correto:** Peritos, auditores e cidadãos devem confrontar o número da seção com a **Ata da Mesa Receptora** arquivada no Cartório Eleitoral e com o espelho do Boletim de Urna (BU) para checar as justificativas anotadas pelos mesários.
 
     ---
-    <p style='margin-top: 0.6rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Painel de Auditoria de Urnas • Versão 2.4.1</p>
+    <p style='margin-top: 0.6rem; font-size: 0.82rem; font-style: italic; opacity: 0.75;'>Desenvolvido com ❤️ por Dominio Digital © 2026 • Painel de Auditoria de Urnas • Versão 2.4.2</p>
     """, unsafe_allow_html=True)
 
 

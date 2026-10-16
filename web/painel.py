@@ -526,6 +526,18 @@ if modo_escuro:
     [data-testid="stMarkdownContainer"] table tbody tr:hover {
         background-color: rgba(110, 118, 129, 0.12) !important;
     }
+
+    /* 12. SKELETON SCREEN (MODO ESCURO) */
+    .skeleton-card,
+    [data-testid="stMarkdownContainer"] .skeleton-card {
+        background-color: #161b22 !important;
+        border: 1px solid #30363d !important;
+    }
+    .skeleton-line,
+    [data-testid="stMarkdownContainer"] .skeleton-line {
+        background: linear-gradient(90deg, #21262d 25%, #353d48 50%, #21262d 75%) !important;
+        background-size: 200% 100% !important;
+    }
     """
 else:
     css_tema = """
@@ -1051,6 +1063,19 @@ else:
     }
     [data-testid="stMarkdownContainer"] table tbody tr:hover {
         background-color: rgba(241, 245, 249, 0.9) !important;
+    }
+
+    /* 12. SKELETON SCREEN (MODO CLARO) */
+    .skeleton-card,
+    [data-testid="stMarkdownContainer"] .skeleton-card {
+        background-color: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+    }
+    .skeleton-line,
+    [data-testid="stMarkdownContainer"] .skeleton-line {
+        background: linear-gradient(90deg, #e2e8f0 25%, #f8fafc 50%, #e2e8f0 75%) !important;
+        background-size: 200% 100% !important;
     }
     """
 
@@ -1589,6 +1614,126 @@ css_global = """
         font-size: 1.12rem !important;
         line-height: normal !important;
     }
+
+    /* ========================================================
+       SKELETON SCREEN (ESTRUTURA, RESPONSIVIDADE E ANIMAÇÃO SHIMMER)
+       ======================================================== */
+    @keyframes skeletonWave {
+        0% {
+            background-position: 200% 0;
+        }
+        100% {
+            background-position: -200% 0;
+        }
+    }
+    @keyframes fadeInSkeleton {
+        from {
+            opacity: 0;
+            transform: translateY(4px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    [data-testid="stHtml"],
+    div[data-testid="stHtml"] {
+        width: 100% !important;
+    }
+    .skeleton-container {
+        width: 100% !important;
+        margin-top: 0.5rem !important;
+        animation: fadeInSkeleton 0.25s ease-in-out !important;
+    }
+    .skeleton-card {
+        border-radius: 8px !important;
+        position: relative !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+    }
+    .skeleton-line {
+        animation: skeletonWave 1.6s infinite ease-in-out !important;
+        border-radius: 4px !important;
+    }
+
+    /* Grid de KPIs do Skeleton (5 colunas simétricas idênticas aos cards reais) */
+    .skeleton-grid-kpi {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 0.65rem !important;
+        width: 100% !important;
+        margin-bottom: 1.25rem !important;
+    }
+    .skeleton-kpi {
+        flex: 0 0 calc(20% - 0.55rem) !important;
+        max-width: calc(20% - 0.55rem) !important;
+        min-width: 0px !important;
+        min-height: 125px !important;
+        height: 125px !important;
+        padding: 12px 14px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: space-between !important;
+    }
+    @media (max-width: 1150px) and (min-width: 768px) {
+        .skeleton-kpi {
+            flex: 0 0 calc(33.333% - 0.45rem) !important;
+            max-width: calc(33.333% - 0.45rem) !important;
+        }
+    }
+    @media (max-width: 767px) and (min-width: 420px) {
+        .skeleton-kpi {
+            flex: 0 0 calc(50% - 0.35rem) !important;
+            max-width: calc(50% - 0.35rem) !important;
+            min-height: 118px !important;
+            height: 118px !important;
+            padding: 8px 10px !important;
+        }
+    }
+    @media (max-width: 419px) {
+        .skeleton-kpi {
+            flex: 0 0 100% !important;
+            max-width: 100% !important;
+        }
+    }
+
+    /* Barra de Navegação do Skeleton (Segmented Control Placeholder) */
+    .skeleton-nav-bar {
+        width: 100% !important;
+        height: 42px !important;
+        padding: 4px 6px !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        margin-bottom: 1.25rem !important;
+    }
+    .skeleton-tab-pill {
+        height: 32px !important;
+        border-radius: 6px !important;
+    }
+
+    /* Grid de Gráficos do Skeleton (2 colunas lado a lado idênticas) */
+    .skeleton-grid-charts {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 1rem !important;
+        width: 100% !important;
+    }
+    .skeleton-chart-box {
+        flex: 1 1 calc(50% - 0.5rem) !important;
+        min-width: 320px !important;
+        height: 380px !important;
+        padding: 18px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+    }
+    @media (max-width: 850px) {
+        .skeleton-chart-box {
+            flex: 1 1 100% !important;
+            min-width: 100% !important;
+        }
+    }
 """
 
 st.markdown(f"<style>\n{css_global}\n{css_tema}\n</style>", unsafe_allow_html=True)
@@ -1729,8 +1874,98 @@ def carregar_dados():
 
     return df
 
+
+def gerar_skeleton_html() -> str:
+    """Gera a marcação HTML do esqueleto visual (Skeleton Screen) com efeito Shimmer."""
+    return (
+        '<div class="skeleton-container">'
+        '<div class="skeleton-grid-kpi">'
+        '<div class="skeleton-card skeleton-kpi">'
+        '<div class="skeleton-line" style="width: 60%; height: 14px;"></div>'
+        '<div class="skeleton-line" style="width: 45%; height: 32px; margin: 8px 0;"></div>'
+        '<div class="skeleton-line" style="width: 75%; height: 12px;"></div>'
+        '</div>'
+        '<div class="skeleton-card skeleton-kpi">'
+        '<div class="skeleton-line" style="width: 65%; height: 14px;"></div>'
+        '<div class="skeleton-line" style="width: 50%; height: 32px; margin: 8px 0;"></div>'
+        '<div class="skeleton-line" style="width: 70%; height: 12px;"></div>'
+        '</div>'
+        '<div class="skeleton-card skeleton-kpi">'
+        '<div class="skeleton-line" style="width: 70%; height: 14px;"></div>'
+        '<div class="skeleton-line" style="width: 40%; height: 32px; margin: 8px 0;"></div>'
+        '<div class="skeleton-line" style="width: 65%; height: 12px;"></div>'
+        '</div>'
+        '<div class="skeleton-card skeleton-kpi">'
+        '<div class="skeleton-line" style="width: 55%; height: 14px;"></div>'
+        '<div class="skeleton-line" style="width: 48%; height: 32px; margin: 8px 0;"></div>'
+        '<div class="skeleton-line" style="width: 80%; height: 12px;"></div>'
+        '</div>'
+        '<div class="skeleton-card skeleton-kpi">'
+        '<div class="skeleton-line" style="width: 65%; height: 14px;"></div>'
+        '<div class="skeleton-line" style="width: 35%; height: 32px; margin: 8px 0;"></div>'
+        '<div class="skeleton-line" style="width: 60%; height: 12px;"></div>'
+        '</div>'
+        '</div>'
+        '<div class="skeleton-card skeleton-nav-bar">'
+        '<div class="skeleton-line skeleton-tab-pill" style="width: 140px;"></div>'
+        '<div class="skeleton-line skeleton-tab-pill" style="width: 130px;"></div>'
+        '<div class="skeleton-line skeleton-tab-pill" style="width: 110px;"></div>'
+        '<div class="skeleton-line skeleton-tab-pill" style="width: 125px;"></div>'
+        '</div>'
+        '<div class="skeleton-grid-charts">'
+        '<div class="skeleton-card skeleton-chart-box">'
+        '<div class="skeleton-line" style="width: 42%; height: 18px;"></div>'
+        '<div class="skeleton-line" style="width: 68%; height: 12px;"></div>'
+        '<div class="skeleton-line" style="flex: 1; width: 100%; border-radius: 6px; margin-top: 6px;"></div>'
+        '</div>'
+        '<div class="skeleton-card skeleton-chart-box">'
+        '<div class="skeleton-line" style="width: 38%; height: 18px;"></div>'
+        '<div class="skeleton-line" style="width: 62%; height: 12px;"></div>'
+        '<div class="skeleton-line" style="flex: 1; width: 100%; border-radius: 6px; margin-top: 6px;"></div>'
+        '</div>'
+        '</div>'
+        '</div>'
+    )
+
+
+def gerar_skeleton_sidebar_html() -> str:
+    """Gera a marcação HTML do esqueleto visual da barra lateral (Sidebar Ghost)."""
+    return (
+        '<div class="skeleton-container" style="padding-top: 0.2rem;">'
+        '<div class="skeleton-card" style="width: 100%; height: 38px; border-radius: 6px; margin-bottom: 1.1rem; display: flex; align-items: center; padding: 0 10px;">'
+        '<div class="skeleton-line" style="width: 55%; height: 16px;"></div>'
+        '</div>'
+        '<div class="skeleton-line" style="width: 35%; height: 18px; margin-bottom: 0.85rem; border-radius: 4px;"></div>'
+        '<div style="display: flex; gap: 8px; margin-bottom: 0.75rem;">'
+        '<div style="flex: 3;"><div class="skeleton-line" style="width: 60%; height: 12px; margin-bottom: 5px;"></div><div class="skeleton-card" style="height: 36px; border-radius: 6px;"></div></div>'
+        '<div style="flex: 2;"><div class="skeleton-line" style="width: 60%; height: 12px; margin-bottom: 5px;"></div><div class="skeleton-card" style="height: 36px; border-radius: 6px;"></div></div>'
+        '</div>'
+        '<div style="margin-bottom: 0.75rem;">'
+        '<div class="skeleton-line" style="width: 45%; height: 12px; margin-bottom: 5px;"></div>'
+        '<div class="skeleton-card" style="height: 36px; border-radius: 6px;"></div>'
+        '</div>'
+        '<div style="display: flex; gap: 8px; margin-bottom: 0.75rem;">'
+        '<div style="flex: 1;"><div class="skeleton-line" style="width: 50%; height: 12px; margin-bottom: 5px;"></div><div class="skeleton-card" style="height: 36px; border-radius: 6px;"></div></div>'
+        '<div style="flex: 1;"><div class="skeleton-line" style="width: 50%; height: 12px; margin-bottom: 5px;"></div><div class="skeleton-card" style="height: 36px; border-radius: 6px;"></div></div>'
+        '</div>'
+        '<div style="margin-bottom: 0.75rem;">'
+        '<div class="skeleton-line" style="width: 50%; height: 12px; margin-bottom: 5px;"></div>'
+        '<div class="skeleton-card" style="height: 36px; border-radius: 6px;"></div>'
+        '</div>'
+        '<div style="margin-bottom: 0.75rem;">'
+        '<div class="skeleton-line" style="width: 40%; height: 12px; margin-bottom: 5px;"></div>'
+        '<div class="skeleton-card" style="height: 36px; border-radius: 6px;"></div>'
+        '</div>'
+        '<div style="display: flex; align-items: center; gap: 8px; margin-top: 0.9rem;">'
+        '<div class="skeleton-card" style="width: 18px; height: 18px; min-width: 18px; border-radius: 4px;"></div>'
+        '<div class="skeleton-line" style="width: 65%; height: 13px;"></div>'
+        '</div>'
+        '</div>'
+    )
+
+
 st.title("🗳️ Eleições 2026: Ciência de Dados & Estatística Eleitoral")
-st.caption("Plataforma de Ciência de Dados e Análise Estatística da Votação • Base Oficial TSE • **Versão 2.4.1**")
+st.caption("Plataforma de Ciência de Dados e Análise Estatística da Votação • Base Oficial TSE • **Versão 2.4.2**")
 
 MAPA_REGIOES = {
     "AC": "Norte", "AP": "Norte", "AM": "Norte", "PA": "Norte", "RO": "Norte", "RR": "Norte", "TO": "Norte",
@@ -1740,7 +1975,22 @@ MAPA_REGIOES = {
     "PR": "Sul", "RS": "Sul", "SC": "Sul"
 }
 
+# Exibe o Skeleton Screen visual (central + lateral) apenas no primeiro carregamento da sessão (Cold Start)
+skeleton_placeholder = None
+skeleton_sidebar_placeholder = None
+if not st.session_state.get("primeira_carga_concluida", False):
+    skeleton_placeholder = st.empty()
+    skeleton_placeholder.markdown(gerar_skeleton_html(), unsafe_allow_html=True)
+    skeleton_sidebar_placeholder = st.sidebar.empty()
+    skeleton_sidebar_placeholder.markdown(gerar_skeleton_sidebar_html(), unsafe_allow_html=True)
+
 df = carregar_dados()
+
+if skeleton_placeholder is not None:
+    skeleton_placeholder.empty()
+if skeleton_sidebar_placeholder is not None:
+    skeleton_sidebar_placeholder.empty()
+st.session_state["primeira_carga_concluida"] = True
 
 if df.empty:
     st.warning("⚠️ O banco de dados local (eleicoes2026.db) ainda não possui dados auditados ou está vazio.")
