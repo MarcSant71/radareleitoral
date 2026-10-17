@@ -166,7 +166,7 @@ def orquestrar_pipeline(
     ano: int = 2026,
     zerar_banco: bool = False,
     pular_download: bool = False,
-    threads: int = 16
+    threads: int = 24
 ) -> None:
     """
     Executa a cadeia modular do pipeline em ordem estrita de integridade.
@@ -317,12 +317,15 @@ def orquestrar_pipeline(
 def main():
     verificar_trava_producao()
 
+    _cpu_total = os.cpu_count() or 16
+    _default_workers = max(4, min(_cpu_total - 2, 24))
+
     parser = argparse.ArgumentParser(
         description="Inicializador Oficial da Base de Dados Eleitoral — Abrangência Nacional Mandatória (27 UFs)",
         formatter_class=argparse.RawTextHelpFormatter
     )
     parser.add_argument("--ano", type=int, default=2026, help="Ano da eleição (padrão: 2026)")
-    parser.add_argument("--threads", type=int, default=16, help="Número de threads simultâneas para parse (padrão: 16)")
+    parser.add_argument("--threads", type=int, default=_default_workers, help=f"Número de processos paralelos de CPU (padrão adaptativo: {_default_workers})")
     parser.add_argument("--zerar", action="store_true", help="Zera o banco de dados antes de recriar")
     parser.add_argument("--pular-download", action="store_true", help="Utiliza pacotes ZIP já existentes localmente sem consultar a CDN")
     parser.add_argument("--forcar", action="store_true", help="Pula confirmação interativa (para automações e scripts)")

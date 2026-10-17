@@ -4,12 +4,13 @@ Permite auditar uma UF inteira ou municípios/zonas específicas com processamen
 armazenando os resultados no SQLite e exibindo o ranking das seções mais suspeitas.
 """
 
+import os
 import sys
 import argparse
 import re
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 
 _root_dir = Path(__file__).resolve().parent.parent
 _pipeline_dir = _root_dir / "pipeline"
@@ -50,6 +51,27 @@ def processar_log_remoto(reader: RemoteZipRangeReader, filename: str, parser: Ur
         }
     except Exception as e:
         # print(f"Erro ao processar {filename}: {e}", file=sys.stderr)
+        return None
+
+# Worker global para ProcessPoolExecutor (cada processo filho mantém seu parser em memória)
+_WORKER_PARSER: Optional[UrnaLogParser] = None
+
+def _init_parser_worker(uf: Optional[str] = None):
+    global _WORKER_PARSER
+    _WORKER_PARSER = UrnaLogParser(uf=uf)
+
+def _processar_log_mem_worker(item: Tuple[str, bytes]) -> Optional[Dict[str, Any]]:
+    nome_log, raw_bytes = item
+    try:
+        meta = extrair_metadados_nome(nome_log)
+        if not meta:
+            return None
+        global _WORKER_PARSER
+        if _WORKER_PARSER is None:
+            _WORKER_PARSER = UrnaLogParser()
+        metricas = _WORKER_PARSER.parse_from_jez(raw_bytes)
+        return {"meta": meta, "metricas": metricas}
+    except Exception:
         return None
 
 # Catálogo oficial de municípios do TSE
@@ -330,29 +352,18 @@ def executar_auditoria_local_zip(caminho_zip: Path, municipio: Optional[str] = N
         return
 
 
-    # Parser com fuso horário da UF atual
-    parser = UrnaLogParser(uf=uf_zip)
-
-    def processar_mem_item(item):
-        nome_log, raw_bytes = item
-        try:
-            meta = extrair_metadados_nome(nome_log)
-            if not meta:
-                return None
-            metricas = parser.parse_from_jez(raw_bytes)
-            return {"meta": meta, "metricas": metricas}
-        except Exception:
-            return None
+    num_cpus = os.cpu_count() or 16
+    max_workers = min(num_cpus, max(4, threads))
 
     processados = 0
-    CHUNK_SIZE = 1000
+    CHUNK_SIZE = 1500
 
     import time
     t_inicio = time.time()
     sys.stdout.write(f"\rAuditando {uf_zip}:   0.0% | 0 seções/s...                 ")
     sys.stdout.flush()
 
-    with ThreadPoolExecutor(max_workers=threads) as executor:
+    with ProcessPoolExecutor(max_workers=max_workers, initializer=_init_parser_worker, initargs=(uf_zip,)) as executor:
         for chunk_start in range(0, len(alvo_logs), CHUNK_SIZE):
             chunk_names = alvo_logs[chunk_start:chunk_start + CHUNK_SIZE]
             
@@ -364,8 +375,8 @@ def executar_auditoria_local_zip(caminho_zip: Path, municipio: Optional[str] = N
                 except Exception:
                     pass
 
-            # 2. Parse paralelo das seções na memória com as threads configuradas
-            resultados = list(executor.map(processar_mem_item, items))
+            # 2. Parse verdadeiramente paralelo entre múltiplos processos Python (bypassa o GIL)
+            resultados = list(executor.map(_processar_log_mem_worker, items, chunksize=30))
 
             # 3. Gravação em lote atômica no SQLite WAL
             validos = [res for res in resultados if res]

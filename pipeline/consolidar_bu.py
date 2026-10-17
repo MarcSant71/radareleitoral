@@ -11,7 +11,7 @@ import time
 import zipfile
 import argparse
 from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
 from typing import List, Dict, Any, Optional, Tuple
 _root_dir = Path(__file__).resolve().parent.parent
 _pipeline_dir = _root_dir / "pipeline"
@@ -35,6 +35,35 @@ def extrair_meta_bu(filename: str) -> Optional[Dict[str, str]]:
         "zona": m.group(4),
         "secao": m.group(5)
     }
+
+def _parse_bu_worker(item: Tuple[int, bytes]) -> Optional[Tuple]:
+    """Worker de alta velocidade executado em múltiplos processos para decodificação ASN.1."""
+    s_id, raw = item
+    try:
+        res = UrnaBuParser.parse(raw)
+        p = res.get("presidente") or {}
+        g = res.get("governador") or {}
+        votos_cand = p.get("votos") or {}
+        
+        return (
+            s_id,
+            p.get("total_validos", 0),
+            p.get("brancos", 0),
+            p.get("nulos", 0),
+            p.get("vencedor_num"),
+            p.get("vencedor_votos", 0),
+            p.get("vencedor_pct", 0.0),
+            p.get("segundo_num"),
+            p.get("segundo_votos", 0),
+            p.get("segundo_pct", 0.0),
+            votos_cand.get(13, 0),
+            votos_cand.get(22, 0),
+            g.get("vencedor_num"),
+            g.get("vencedor_votos", 0),
+            g.get("vencedor_pct", 0.0)
+        )
+    except Exception:
+        return None
 
 def processar_pacote_uf(zip_path: Path, secoes_map: Dict[Tuple[str, str, str, str, str], int], processados: set, num_threads: int = 16):
     uf = zip_path.stem.split("_")[-1]
@@ -63,74 +92,48 @@ def processar_pacote_uf(zip_path: Path, secoes_map: Dict[Tuple[str, str, str, st
         sys.stdout.write(f"\rConsolidando {uf}:   0.0% | 0 BUs/s...                 ")
         sys.stdout.flush()
 
-        # Processamento em lotes sequenciais de leitura (I/O) + paralelismo de parse (CPU)
+        # Processamento em lotes sequenciais de leitura (I/O) + paralelismo de parse (Processos/CPU)
         TAMANHO_LOTE = 2000
-        lote_buffer = []
         processados_count = 0
         
         conn = get_connection()
         cur = conn.cursor()
         
-        for i in range(0, len(arquivos_pendentes), TAMANHO_LOTE):
-            chunk = arquivos_pendentes[i:i + TAMANHO_LOTE]
-            
-            # Leitura sequencial ultrarrápida do ZIP
-            read_items = []
-            for fname, s_id in chunk:
-                try:
-                    raw = z.read(fname)
-                    read_items.append((s_id, raw))
-                except Exception:
-                    pass
-                    
-            # Parse paralelo em memória
-            def _parse_worker(item):
-                s_id, raw = item
-                res = UrnaBuParser.parse(raw)
-                return (s_id, res)
+        num_cpus = os.cpu_count() or 16
+        max_workers = min(num_cpus, max(4, num_threads))
+        
+        with ProcessPoolExecutor(max_workers=max_workers) as executor:
+            for i in range(0, len(arquivos_pendentes), TAMANHO_LOTE):
+                chunk = arquivos_pendentes[i:i + TAMANHO_LOTE]
                 
-            resultados_chunk = []
-            with ThreadPoolExecutor(max_workers=num_threads) as executor:
-                for s_id, res in executor.map(_parse_worker, read_items):
-                    p = res.get("presidente") or {}
-                    g = res.get("governador") or {}
-                    votos_cand = p.get("votos") or {}
+                # Leitura sequencial ultrarrápida do ZIP
+                read_items = []
+                for fname, s_id in chunk:
+                    try:
+                        read_items.append((s_id, z.read(fname)))
+                    except Exception:
+                        pass
+                        
+                resultados_raw = executor.map(_parse_bu_worker, read_items, chunksize=50)
+                resultados_chunk = [r for r in resultados_raw if r is not None]
+                        
+                # Gravação em lote atômica no SQLite WAL
+                with conn:
+                    cur.executemany("""
+                        INSERT OR REPLACE INTO resultados_eleicao (
+                            secao_id, pres_total_validos, pres_brancos, pres_nulos,
+                            pres_venc_num, pres_venc_votos, pres_venc_pct,
+                            pres_seg_num, pres_seg_votos, pres_seg_pct,
+                            votos_cand_13, votos_cand_22,
+                            gov_venc_num, gov_venc_votos, gov_venc_pct
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, resultados_chunk)
                     
-                    resultados_chunk.append((
-                        s_id,
-                        p.get("total_validos", 0),
-                        p.get("brancos", 0),
-                        p.get("nulos", 0),
-                        p.get("vencedor_num"),
-                        p.get("vencedor_votos", 0),
-                        p.get("vencedor_pct", 0.0),
-                        p.get("segundo_num"),
-                        p.get("segundo_votos", 0),
-                        p.get("segundo_pct", 0.0),
-                        votos_cand.get(13, 0),
-                        votos_cand.get(22, 0),
-                        g.get("vencedor_num"),
-                        g.get("vencedor_votos", 0),
-                        g.get("vencedor_pct", 0.0)
-                    ))
-                    
-            # Gravação em lote atômica no SQLite WAL
-            with conn:
-                cur.executemany("""
-                    INSERT OR REPLACE INTO resultados_eleicao (
-                        secao_id, pres_total_validos, pres_brancos, pres_nulos,
-                        pres_venc_num, pres_venc_votos, pres_venc_pct,
-                        pres_seg_num, pres_seg_votos, pres_seg_pct,
-                        votos_cand_13, votos_cand_22,
-                        gov_venc_num, gov_venc_votos, gov_venc_pct
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, resultados_chunk)
-                
-            processados_count += len(resultados_chunk)
-            taxa = processados_count / max(0.1, time.time() - t0)
-            pct = (processados_count / len(arquivos_pendentes)) * 100.0
-            sys.stdout.write(f"\rConsolidando {uf}: {pct:5.1f}% | {taxa:.0f} BUs/s...                 ")
-            sys.stdout.flush()
+                processados_count += len(resultados_chunk)
+                taxa = processados_count / max(0.1, time.time() - t0)
+                pct = (processados_count / len(arquivos_pendentes)) * 100.0
+                sys.stdout.write(f"\rConsolidando {uf}: {pct:5.1f}% | {taxa:.0f} BUs/s...                 ")
+                sys.stdout.flush()
             
         conn.close()
         sys.stdout.write(f"\rConsolidando {uf}: 100.0% - Concluído! ({total_bu:,} BUs)                                   \n")
