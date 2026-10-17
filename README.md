@@ -1,10 +1,10 @@
 # 📡 Radar Eleitoral - Inteligência de Dados & Auditoria das Urnas
 
-[![Versão](https://img.shields.io/badge/versão-v2.6.0-blue.svg)](CHANGELOG.md)
+[![Versão](https://img.shields.io/badge/versão-v2.7.2-blue.svg)](CHANGELOG.md)
 [![Licença](https://img.shields.io/badge/licença-MIT-green.svg)](LICENSE)
 [![Base Oficial](https://img.shields.io/badge/dados-TSE%20Oficial-yellow.svg)](https://dadosabertos.tse.jus.br/)
 
-Plataforma pública e independente de ciência de dados, análise estatística e visualização quantitativa dos dados oficiais das urnas eletrônicas do Tribunal Superior Eleitoral (TSE) — cobrindo **152 milhões de eleitores** e **497.895 seções eleitorais** em todas as 27 Unidades Federativas.
+Plataforma pública e independente de ciência de dados, análise estatística e visualização quantitativa dos dados oficiais das urnas eletrônicas do Tribunal Superior Eleitoral (TSE) — cobrindo **157 milhões de eleitores** e **497.895 seções eleitorais** em todas as 27 Unidades Federativas.
 
 O projeto é guiado pelo princípio da **total transparência e reprodutibilidade**: todo o código de extração, decodificação ASN.1 dos Boletins de Urna (BU) e análise cronológica de logs das urnas está aberto para que peritos, universidades, partidos e cidadãos possam auditar e reproduzir as análises de forma independente.
 
