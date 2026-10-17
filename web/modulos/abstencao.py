@@ -367,7 +367,7 @@ def renderizar_metodologia_abstencao(modo_escuro: bool = True, plotly_theme: str
 
 
 
-def renderizar_painel_abstencao(
+def renderizar_abstencao(
     df: pd.DataFrame,
     modo_escuro: bool,
     plotly_theme: str,

@@ -1,6 +1,6 @@
-# 📡 Radar Eleitoral — Inteligência de Dados & Auditoria das Urnas
+# 📡 Radar Eleitoral - Inteligência de Dados & Auditoria das Urnas
 
-[![Versão](https://img.shields.io/badge/versão-v2.5.0-blue.svg)](CHANGELOG.md)
+[![Versão](https://img.shields.io/badge/versão-v2.6.0-blue.svg)](CHANGELOG.md)
 [![Licença](https://img.shields.io/badge/licença-MIT-green.svg)](LICENSE)
 [![Base Oficial](https://img.shields.io/badge/dados-TSE%20Oficial-yellow.svg)](https://dadosabertos.tse.jus.br/)
 
@@ -33,13 +33,17 @@ Eleicao2026/
 ├── iniciar_banco.py           # [CLI] Atalho mestre para inicialização e carga do pipeline
 │
 ├── web/                       # [PRODUÇÃO] Plataforma analítica Streamlit
-│   ├── painel.py              # Orquestrador central e roteador de navegação (v2.5.0)
-│   ├── painel_auditoria.py    # Auditoria de urnas, horários, biometria e ranking forense
-│   ├── painel_abstencao.py    # Suíte analítica de abstenção & comparecimento (21 KPIs + 7 abas)
-│   ├── painel_governanca.py   # Governança pública, conformidade LGPD e histórico de versões
-│   ├── estatistica.py         # Motores matemáticos de Spiegelhalter (2005) e Bayes empírico
-│   ├── dados.py               # Camada isolada de dados e compilação analítica
-│   └── db.py                  # Conexão e pooling de consultas SQLite
+│   ├── app.py                 # Orquestrador mestre e roteador do Radar Eleitoral
+│   ├── versao.py              # Resolução de versão e metadados (SSOT)
+│   ├── modulos/               # [FERRAMENTAS] Módulos analíticos e telas
+│   │   ├── auditoria.py       # Auditoria de urnas, horários, biometria e ranking forense
+│   │   ├── abstencao.py       # Suíte analítica de abstenção & comparecimento
+│   │   └── governanca.py      # Governança pública, conformidade LGPD e histórico
+│   ├── motores/               # [MOTORES] Inferência matemática e modelos estatísticos
+│   │   └── estatistica.py     # Motor de Spiegelhalter (2005) e superdispersão residual
+│   └── dados/                 # [DADOS] Camada de acesso, cache e banco
+│       ├── carregador.py      # Leitura Parquet de alta performance e normalização
+│       └── db.py              # Conexão e pooling SQLite WAL
 │
 ├── pipeline/                  # [MOTOR DE DADOS] Pacote modular de engenharia eleitoral
 │   ├── __init__.py            # Pacote Python canônico
@@ -55,9 +59,9 @@ Eleicao2026/
 │
 ├── scripts/                   # [OPERAÇÃO LOCAL & DEPLOY]
 │   ├── iniciar_banco.cmd      # Inicializador da base de dados e compilação do Parquet (Windows)
-│   ├── painel.cmd             # Atalho local para abrir o painel Streamlit no navegador
+│   ├── rodarlocal.cmd         # Atalho local para abrir o Radar Eleitoral no navegador
 │   ├── atualizar_dados.cmd    # Rotina complementar de atualização incremental
-│   └── deploy.ps1             # Pipeline de empacotamento, SCP e deploy remoto na VPS Hetzner
+│   └── subirproducao.ps1      # Pipeline de empacotamento, SCP e deploy remoto na VPS Hetzner
 │
 ├── db/                        # [BASE DE DADOS] (Estrutura preservada no git via .gitkeep)
 │   ├── eleicoes2026.db        # Banco de dados relacional SQLite WAL (gerado localmente)
@@ -123,12 +127,12 @@ O orquestrador detecta automaticamente os turnos disponíveis, verifica/baixa os
 ### Execução Direta via Script (Windows)
 Basta executar o atalho incluído na pasta `scripts`:
 ```cmd
-.\scripts\painel.cmd
+.\scripts\rodarlocal.cmd
 ```
 
 ### Execução Manual via Terminal
 ```bash
-streamlit run web/painel.py
+streamlit run web/app.py
 ```
 O painel abrirá automaticamente no navegador em `http://localhost:8501`.
 
@@ -144,7 +148,7 @@ docker compose up -d --build
 
 Para automatizar a promoção para servidores remotos (VPS), utilize o playbook PowerShell:
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\deploy.ps1 -ServerIp "<IP_DO_SERVIDOR>"
+powershell -ExecutionPolicy Bypass -File .\scripts\subirproducao.ps1 -ServerIp "<IP_DO_SERVIDOR>"
 ```
 
 ---

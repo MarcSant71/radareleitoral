@@ -56,7 +56,7 @@ def verificar_trava_producao() -> None:
         print("═" * 80, file=sys.stderr)
         print("Este pipeline executa download massivo (25GB+) e alto consumo de CPU/I/O.", file=sys.stderr)
         print("Ele NUNCA deve ser executado no servidor público de produção.", file=sys.stderr)
-        print("Execute localmente na sua máquina e suba os artefatos via scripts/deploy.ps1.", file=sys.stderr)
+        print("Execute localmente na sua máquina e suba os artefatos via scripts/subirproducao.ps1.", file=sys.stderr)
         print("═" * 80 + "\n", file=sys.stderr)
         sys.exit(1)
 
@@ -293,7 +293,7 @@ def orquestrar_pipeline(
     print(f"Tempo Total de Execução: {round(t_total / 60, 1)} minutos ({round(t_total, 1)}s)")
     print("═" * 80)
     print("Para subir os dados para o servidor de produção, execute:")
-    print("   powershell -File scripts/deploy.ps1")
+    print("   powershell -File scripts/subirproducao.ps1")
     print("═" * 80)
 
 

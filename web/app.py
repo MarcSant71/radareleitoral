@@ -12,26 +12,22 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-_source_dir = Path(__file__).resolve().parent
-if str(_source_dir) not in sys.path:
-    sys.path.insert(0, str(_source_dir))
+_web_dir = Path(__file__).resolve().parent
+_root_dir = _web_dir.parent
+for _p in (_web_dir, _root_dir):
+    if str(_p) not in sys.path:
+        sys.path.insert(0, str(_p))
 
-import importlib
-from db import DB_PATH
-import estatistica
-import painel_abstencao
-import painel_auditoria
-import painel_governanca
-
-
-from estatistica import aplicar_motor_estatistico, aplicar_motor_abstencao
-from painel_abstencao import renderizar_painel_abstencao
-from painel_auditoria import renderizar_painel_auditoria
-from painel_governanca import renderizar_painel_governanca
+from dados.db import DB_PATH
+from dados.carregador import obter_dados_analiticos, PARQUET_CACHE_PATH, MAPA_REGIOES
+from motores.estatistica import aplicar_motor_estatistico, aplicar_motor_abstencao
+from modulos.auditoria import renderizar_auditoria
+from modulos.abstencao import renderizar_abstencao
+from modulos.governanca import renderizar_governanca
 from versao import VERSAO_APP, COMMIT_APP, VERSAO_DISPLAY
 
 st.set_page_config(
-    page_title="Radar Eleitoral — Inteligência Analítica e Auditoria de Urnas",
+    page_title="Radar Eleitoral - Inteligência Analítica e Auditoria de Urnas",
     page_icon="📡",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -1245,7 +1241,7 @@ css_global = """
         margin: 0 !important;
     }
     [data-testid="stSidebarHeader"]::before {
-        content: "PAINEL" !important;
+        content: "RADAR ELEITORAL" !important;
         font-size: 0.82rem !important;
         font-weight: 700 !important;
         letter-spacing: 0.05em !important;
@@ -1787,18 +1783,20 @@ st.markdown(f"<style>\n{css_global}\n{css_tema}\n</style>", unsafe_allow_html=Tr
 if "exibir_governanca" not in st.session_state:
     st.session_state["exibir_governanca"] = False
 
-# Sincronização via URL caso acesse ?painel=governanca
-if "painel" in st.query_params and st.query_params["painel"].lower() in ["governanca", "gov", "lgpd", "vers", "info"]:
+# Sincronização via URL caso acesse ?ferramenta=governanca
+if "ferramenta" in st.query_params and st.query_params["ferramenta"].lower() in ["governanca", "gov", "lgpd", "vers", "info"]:
     st.session_state["exibir_governanca"] = True
 
 is_gov = st.session_state.get("exibir_governanca", False)
 btn_help_label = "✕" if is_gov else "?"
-btn_help_tooltip = "Fechar Governança e voltar ao painel" if is_gov else "Governança Pública, Termos da LGPD, Criptografia e Histórico de Versões"
+btn_help_tooltip = "Fechar Governança e voltar à ferramenta" if is_gov else "Governança Pública, Termos da LGPD, Criptografia e Histórico de Versões"
 
 if st.button(btn_help_label, key="btn_help", help=btn_help_tooltip):
     st.session_state["exibir_governanca"] = not is_gov
-    if not st.session_state["exibir_governanca"] and "painel" in st.query_params:
-        del st.query_params["painel"]
+    if not st.session_state["exibir_governanca"] and "ferramenta" in st.query_params:
+        del st.query_params["ferramenta"]
+    elif st.session_state["exibir_governanca"]:
+        st.query_params["ferramenta"] = "governanca"
     st.rerun()
 
 if st.button("🌙" if not modo_escuro else "☀️", key="btn_theme_toggle", help="Alternar tema claro / escuro"):
@@ -1825,7 +1823,6 @@ def fmt_float_br(val, decimals=1, force_sign=False) -> str:
         return f"{sign}{res}"
     except (ValueError, TypeError):
         return str(val)
-from dados import obter_dados_analiticos, PARQUET_CACHE_PATH, MAPA_REGIOES
 
 
 @st.cache_data(show_spinner=False)
@@ -1923,11 +1920,11 @@ def gerar_skeleton_sidebar_html() -> str:
 
 MAPA_FERRAMENTAS = {
     "🗳️ Auditoria de Urnas": {
-        "titulo": "📡 Radar Eleitoral: Auditoria de Urnas",
+        "titulo": "📡 Radar Eleitoral - Auditoria de Urnas",
         "caption": f"Plataforma Independente de Análise Estatística e Auditoria Eleitoral • Base Oficial TSE • **{VERSAO_DISPLAY}**",
     },
     "📉 Análise de Abstenção": {
-        "titulo": "📡 Radar Eleitoral: Análise de Abstenção",
+        "titulo": "📡 Radar Eleitoral - Análise de Abstenção",
         "caption": f"Plataforma Independente de Análise Estatística e Comparecimento Eleitoral • Base Oficial TSE • **{VERSAO_DISPLAY}**",
     },
 }
@@ -1940,7 +1937,7 @@ def obter_cabecalho_ferramenta(nome_ferramenta: str) -> dict:
     for emoji in ["🗳️", "📉", "📊", "📡", "🔍"]:
         nome_limpo = nome_limpo.replace(emoji, "").strip()
     return {
-        "titulo": f"📡 Radar Eleitoral: {nome_limpo}",
+        "titulo": f"📡 Radar Eleitoral - {nome_limpo}",
         "caption": f"Plataforma Independente de Ciência e Inteligência de Dados Eleitorais • Base Oficial TSE • **{VERSAO_DISPLAY}**",
     }
 
@@ -1951,13 +1948,13 @@ placeholder_caption = st.empty()
 
 # Estimativa preliminar para Cold Start (preserva coerência visual antes de montar a barra lateral)
 if st.session_state.get("exibir_governanca", False):
-    placeholder_titulo.title("📡 Radar Eleitoral: Governança Pública & LGPD")
+    placeholder_titulo.title("📡 Radar Eleitoral - Governança Pública & LGPD")
     placeholder_caption.caption(f"Diretrizes Institucionais, Conformidade Legal e Histórico de Versões • **{VERSAO_DISPLAY}**")
 else:
     ferramenta_inicial = "🗳️ Auditoria de Urnas"
-    if "painel" in st.query_params and "abst" in st.query_params["painel"].lower():
+    if "ferramenta" in st.query_params and "abst" in st.query_params["ferramenta"].lower():
         ferramenta_inicial = "📉 Análise de Abstenção"
-    elif st.session_state.get("painel_ativo") == "📉 Análise de Abstenção":
+    elif st.session_state.get("ferramenta_ativa") == "📉 Análise de Abstenção":
         ferramenta_inicial = "📉 Análise de Abstenção"
 
     cabecalho_inicial = obter_cabecalho_ferramenta(ferramenta_inicial)
@@ -2002,45 +1999,43 @@ st.sidebar.markdown(
     unsafe_allow_html=True
 )
 
-opcoes_painel = [
+opcoes_ferramenta = [
     "🗳️ Auditoria de Urnas",
     "📉 Análise de Abstenção"
 ]
 
-idx_painel_inicial = 0
-if "painel" in st.query_params:
-    qp = st.query_params["painel"].lower()
+idx_ferramenta_inicial = 0
+if "ferramenta" in st.query_params:
+    qp = st.query_params["ferramenta"].lower()
     if "abst" in qp:
-        idx_painel_inicial = 1
-elif st.session_state.get("painel_ativo") in opcoes_painel:
-    idx_painel_inicial = opcoes_painel.index(st.session_state["painel_ativo"])
-elif st.session_state.get("plataforma_ativa") in opcoes_painel:
-    idx_painel_inicial = opcoes_painel.index(st.session_state["plataforma_ativa"])
+        idx_ferramenta_inicial = 1
+elif st.session_state.get("ferramenta_ativa") in opcoes_ferramenta:
+    idx_ferramenta_inicial = opcoes_ferramenta.index(st.session_state["ferramenta_ativa"])
 
-def ao_mudar_painel():
+def ao_mudar_ferramenta():
     st.session_state["exibir_governanca"] = False
-    sel = st.session_state.get("painel_ativo")
+    sel = st.session_state.get("ferramenta_ativa")
     if sel == "📉 Análise de Abstenção":
-        st.query_params["painel"] = "abstencao"
+        st.query_params["ferramenta"] = "abstencao"
     else:
-        st.query_params["painel"] = "auditoria"
+        st.query_params["ferramenta"] = "auditoria"
 
-painel_ativo = st.sidebar.selectbox(
+ferramenta_ativa = st.sidebar.selectbox(
     "Ferramenta:",
-    options=opcoes_painel,
-    index=idx_painel_inicial,
+    options=opcoes_ferramenta,
+    index=idx_ferramenta_inicial,
     label_visibility="collapsed",
-    key="painel_ativo",
-    on_change=ao_mudar_painel,
+    key="ferramenta_ativa",
+    on_change=ao_mudar_ferramenta,
     help="Selecione a ferramenta desejada."
 )
 
 # Sincroniza o cabeçalho dinâmico com a ferramenta ativa ou com o modo de governança
 if st.session_state.get("exibir_governanca", False):
-    placeholder_titulo.title("📡 Radar Eleitoral: Governança Pública & LGPD")
+    placeholder_titulo.title("📡 Radar Eleitoral - Governança Pública & LGPD")
     placeholder_caption.caption(f"Diretrizes Institucionais, Conformidade Legal e Histórico de Versões • **{VERSAO_DISPLAY}**")
 else:
-    cabecalho_ativo = obter_cabecalho_ferramenta(painel_ativo)
+    cabecalho_ativo = obter_cabecalho_ferramenta(ferramenta_ativa)
     placeholder_titulo.title(cabecalho_ativo["titulo"])
     placeholder_caption.caption(cabecalho_ativo["caption"])
 
@@ -2085,12 +2080,12 @@ else:
     if "turno" in df.columns:
         df = df[df["turno"] == 1]
 
-plataforma = painel_ativo
+plataforma = ferramenta_ativa
 if st.session_state.get("exibir_governanca", False):
-    renderizar_painel_governanca(modo_escuro, plotly_theme)
-elif painel_ativo == "📉 Análise de Abstenção":
-    renderizar_painel_abstencao(df, modo_escuro, plotly_theme, fmt_int_br, fmt_float_br)
+    renderizar_governanca(modo_escuro, plotly_theme)
+elif ferramenta_ativa == "📉 Análise de Abstenção":
+    renderizar_abstencao(df, modo_escuro, plotly_theme, fmt_int_br, fmt_float_br)
 else:
-    renderizar_painel_auditoria(df, modo_escuro, plotly_theme, fmt_int_br, fmt_float_br)
+    renderizar_auditoria(df, modo_escuro, plotly_theme, fmt_int_br, fmt_float_br)
 
 st.session_state["primeira_carga_concluida"] = True

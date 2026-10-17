@@ -335,7 +335,7 @@ def _gerar_cache_auditoria(
     }
 
 
-def renderizar_painel_auditoria(
+def renderizar_auditoria(
     df: pd.DataFrame,
     modo_escuro: bool,
     plotly_theme: str,

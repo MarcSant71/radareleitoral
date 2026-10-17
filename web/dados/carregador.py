@@ -8,12 +8,8 @@ import gc
 import sqlite3
 from pathlib import Path
 import pandas as pd
-try:
-    from db import DB_PATH
-    from estatistica import aplicar_motor_estatistico, aplicar_motor_abstencao
-except ImportError:
-    from web.db import DB_PATH
-    from web.estatistica import aplicar_motor_estatistico, aplicar_motor_abstencao
+from dados.db import DB_PATH
+from motores.estatistica import aplicar_motor_estatistico, aplicar_motor_abstencao
 
 MAPA_REGIOES = {
     "AC": "Norte", "AP": "Norte", "AM": "Norte", "PA": "Norte", "RO": "Norte", "RR": "Norte", "TO": "Norte",

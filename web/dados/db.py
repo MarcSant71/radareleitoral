@@ -19,8 +19,12 @@ def get_db_path() -> Path:
     if env_path:
         return Path(env_path).resolve()
 
-    project_root = Path(__file__).resolve().parent.parent
-    return (project_root / "db" / "eleicoes2026.db").resolve()
+    p = Path(__file__).resolve()
+    for parent in p.parents:
+        if (parent / "db").exists() or (parent / "README.md").exists():
+            return (parent / "db" / "eleicoes2026.db").resolve()
+
+    return (p.parents[2] / "db" / "eleicoes2026.db").resolve()
 
 DB_PATH = get_db_path()
 

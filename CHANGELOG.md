@@ -7,6 +7,21 @@ e este projeto adere estritamente ao [Semantic Versioning (SemVer 2.0.0)](https:
 
 ---
 
+## [2.6.0] - 2026-10-17
+
+### Adicionado
+- **Identidade Oficial Radar Eleitoral:** Transição da marca para *Radar Eleitoral*, desacoplando a ferramenta de um ano fixo e preparando a plataforma como uma suíte analítica ampla e multipropósito.
+- **Arquitetura Modular e Desacoplada (`web/`):**
+  - **Orquestrador Central (`web/app.py`):** Ponto de entrada canônico da aplicação Streamlit.
+  - **Módulos Analíticos (`web/modulos/`):** Ferramentas isoladas por domínio (`auditoria.py`, `abstencao.py`, `governanca.py`).
+  - **Motores Matemáticos (`web/motores/`):** Modelos de inferência de Spiegelhalter (2005) e superdispersão residual (`estatistica.py`).
+  - **Camada de Dados e Cache (`web/dados/`):** Conexão SQLite WAL com pooling e carregamento analítico colunar Parquet (`db.py`, `carregador.py`).
+- **Roteamento Semântico por Ferramenta na URL:** Substituição da chave legada por `?ferramenta=abstencao`, `?ferramenta=auditoria` e `?ferramenta=governanca`.
+- **Cabeçalho Reativo e Dinâmico:** Sincronização em tempo real do título e subtítulo da página de acordo com a ferramenta ativa na barra lateral.
+- **Scripts Operacionais Intuitivos:** Renomeação de scripts na pasta `scripts/` para `subirproducao.ps1` e `rodarlocal.cmd`.
+
+---
+
 ## [2.5.0] - 2026-10-16
 
 ### Adicionado

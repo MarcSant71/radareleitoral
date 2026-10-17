@@ -29,8 +29,7 @@ for _p in (_pipeline_dir, _web_dir):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
-from pipeline.db import DB_PATH, get_connection
-from estatistica import aplicar_motor_estatistico, aplicar_motor_abstencao
+from motores.estatistica import aplicar_motor_estatistico, aplicar_motor_abstencao
 
 PARQUET_PATH = DB_PATH.with_suffix(".parquet")
 
