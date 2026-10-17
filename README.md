@@ -91,8 +91,8 @@ Os pacotes de dados brutos são obtidos diretamente dos endpoints da CDN de Dado
 
 1. **Clone o repositório:**
    ```bash
-   git clone https://github.com/MarcSant71/eleicoes2026.git
-   cd eleicoes2026
+   git clone https://github.com/MarcSant71/radareleitoral.git
+   cd radareleitoral
    ```
 
 2. **Crie um ambiente virtual e instale as dependências:**
