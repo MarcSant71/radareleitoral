@@ -24,7 +24,7 @@ e este projeto adere estritamente ao [Semantic Versioning (SemVer 2.0.0)](https:
 - **Filtros Granulares de Precisão:** Recorte por Estado (UF), Município, Zona Eleitoral, Nível de Atenção (Alta, Média e Baixa Prioridade) e busca textual por colégio, rua ou CEP.
 - **Tabela Analítica & Exportação de Dados:** Listagem estruturada de colégios para auditoria com exportação em formato tabular (CSV) e raio-x detalhado de seções por escola.
 - **Metodologia Institucional de Mapeamento:** Documentação didática com critérios de priorização para auxílio a fiscais de votação e conferência cívica.
-- **Sincronização Geoespacial de Alta Velocidade:** Otimização na ingestão e armazenamento colunar dos locais de votação de todas as 27 Unidades da Federação.
+- **Sincronização Geoespacial de Alta Velocidade:** Otimização no processamento e armazenamento colunar dos locais de votação de todas as 27 Unidades da Federação.
 
 ---
 
@@ -42,15 +42,15 @@ e este projeto adere estritamente ao [Semantic Versioning (SemVer 2.0.0)](https:
 ## [2.5.0] - 2026-10-16
 
 ### Adicionado
-- **Motor Modular de Engenharia de Dados:** Reestruturação do pipeline de ingestão e processamento de dados eleitorais, permitindo execuções modulares, reproduzíveis e resilientes a falhas.
-- **Orquestrador Central de Ingestão:** Consolidação do fluxo de auditoria em etapas sequenciais padronizadas de download, auditoria de logs, consolidação de BUs e compilação analítica.
+- **Motor Modular de Engenharia de Dados:** Reestruturação do pipeline de processamento de dados eleitorais, permitindo execuções modulares, reproduzíveis e resilientes a falhas.
+- **Orquestrador Central de Processamento:** Consolidação do fluxo de auditoria em etapas sequenciais padronizadas de download, auditoria de logs, consolidação de BUs e compilação analítica.
 - **Detecção Autônoma de Turnos Eleitorais:** Monitoramento contínuo de publicações oficiais para assimilação automática de múltiplos pleitos e turnos eleitorais.
 - **Suporte Multiturno no Painel:** Alternância dinâmica de dados por pleito e turno eleitoral, mantendo mensagens informativas durante períodos de apuração.
 - **Políticas Estritas de Integridade Operacional:** Implementação de travas de confirmação para prevenir execuções concorrentes ou em ambientes inadequados.
 
 ### Modificado
-- **Processamento Nacional Completo:** Padronização da ingestão em lote cobrindo 100% das 27 Unidades da Federação com verificação incremental de integridade.
-- **Comunicação e Feedback de Processamento:** Notificações em tempo real sobre o progresso das etapas de ingestão e cálculo dos modelos matemáticos.
+- **Processamento Nacional Completo:** Padronização do processamento em lote cobrindo 100% das 27 Unidades da Federação com verificação incremental de integridade.
+- **Comunicação e Feedback de Processamento:** Notificações em tempo real sobre o progresso das etapas de processamento e cálculo dos modelos matemáticos.
 
 ---
 

@@ -64,7 +64,7 @@ def verificar_trava_producao() -> None:
 
 def detectar_turnos_disponiveis(ano: int = 2026, dados_dir: Optional[Path] = None) -> List[int]:
     """
-    Detecta autonomamente os turnos eleitorais disponíveis para ingestão.
+    Detecta autonomamente os turnos eleitorais disponíveis para processamento.
     Verifica primeiro no disco local (dados_brutos/) e, se ausente, sonda
     a CDN oficial do TSE via requisição HEAD leve para o arquivo sentinela (AC).
     Retorna lista com os turnos disponíveis, ex: [1], [2], ou [1, 2].
@@ -197,7 +197,7 @@ def orquestrar_pipeline(
                 INSERT OR IGNORE INTO pleitos (codigo, ano, turno, descricao, data_votacao)
                 VALUES (?, ?, ?, ?, ?)
             """, (cod_pleito, a, t, desc_pleito, dt_pleito))
-            status_turno = "dados disponíveis para ingestão" if t in turnos else "aguardando publicação TSE"
+            status_turno = "dados disponíveis para processamento" if t in turnos else "aguardando publicação TSE"
             print(f"[+] Pleito '{cod_pleito}' ({desc_pleito}) registrado no banco ({status_turno}).")
     conn.close()
     print("[+] Schema do SQLite validado e pleitos estruturados (1º e 2º Turnos).\n")
@@ -267,7 +267,7 @@ def orquestrar_pipeline(
         total_bus_geral += total_bus_turno
         print(f"[+] Total de BUs processados ({turno}º Turno): {total_bus_turno:,}\n")
 
-    # Consolida zonas_totais abrangendo todos os pleitos ingeridos
+    # Consolida zonas_totais abrangendo todos os pleitos processados
     print("[*] Atualizando agregação de zonas eleitorais (zonas_totais)...")
     atualizar_zonas_totais()
     print("[+] Tabela 'zonas_totais' consolidada com chave primária por pleito.\n")
