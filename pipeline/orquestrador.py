@@ -103,9 +103,10 @@ def detectar_turnos_disponiveis(ano: int = 2026, dados_dir: Optional[Path] = Non
     return sorted(turnos_detectados)
 
 
-def exibir_banner_e_confirmar(ufs: List[str], turnos: List[int], ano: int, zerar_banco: bool, forcar: bool) -> None:
+def exibir_banner_e_confirmar(turnos: List[int], ano: int, zerar_banco: bool, forcar: bool) -> None:
     """
     Exibe os alertas mandatórios de governança antes de iniciar o processo.
+    Abrangência estritamente nacional (todas as 27 UFs).
     """
     if sys.platform == "win32":
         try:
@@ -125,43 +126,34 @@ def exibir_banner_e_confirmar(ufs: List[str], turnos: List[int], ano: int, zerar
         desc_turnos = " e ".join(f"{t}º Turno" for t in turnos)
 
     desc_pleito = f"Eleições Gerais {ano} — {desc_turnos}"
-    if len(ufs) < 27:
-        desc_pleito += f" [Depuração Técnica: {ufs[0]}]"
     print(f"Pleito: {desc_pleito}")
+    print(f"Escopo Mandatório: Território Nacional Completo ({len(UFS_BRASIL)} UFs)")
     print(f"Diretório de Armazenamento: {DEFAULT_OUTPUT_DIR}")
     print(f"Banco Alvo: {DB_PATH}")
     print("─" * 80)
-    print("IMPORTANTE! LEIA COM ATENÇÃO!")
-    print("  1. DOWNLOAD MASSIVO DE DADOS:")
+    print("IMPORTANTE! GOVERNANÇA DE INTEGRIDADE E AUDITORIA:")
+    print("  1. ABRANGÊNCIA NACIONAL OBRIGATÓRIA (ZERO DADOS PARCIAIS):")
+    print("     Para garantir validade estatística e impedir conclusões distorcidas ou")
+    print("     enviesadas, a base eleitoral processa rigorosamente todas as 27 UFs do Brasil.")
     multiplicador_turnos = len(turnos)
-    if len(ufs) >= 27:
-        gb_min = 25 * multiplicador_turnos
-        gb_max = 30 * multiplicador_turnos
-        print(f"     O volume estimado de download totaliza cerca de {gb_min} a {gb_max} GB (497.895 seções por turno).")
-        print("     Arquivos já existentes localmente serão verificados e preservados automaticamente.")
-    else:
-        print(f"     O volume estimado de download é de aproximadamente {len(ufs) * 1.0 * multiplicador_turnos:.1f} GB.")
+    gb_min = 25 * multiplicador_turnos
+    gb_max = 30 * multiplicador_turnos
+    print(f"     Volume estimado de download: cerca de {gb_min} a {gb_max} GB (497.895 seções por turno).")
+    print("     Arquivos já existentes localmente serão verificados e preservados automaticamente.")
     print("  2. RESET DO BANCO DE DADOS:")
     if zerar_banco:
         print("     O banco de dados será inicializado/zerado com a estrutura oficial completa (--zerar ativo).")
     else:
-        print("     O banco existente será preservado e atualizado de forma incremental.")
+        print("     O banco existente será preservado e atualizado de forma incremental (resume inteligente).")
     print("  3. SEGURANÇA OPERACIONAL:")
-    print("     Recomenda-se rodar esta rotina exclusivamente no seu ambiente local.")
+    print("     Execute esta rotina exclusivamente no seu ambiente local (Local-First).")
     print("     Não execute em servidores VPS em nuvem sob risco de esgotamento de recursos.")
     print("  4. PROCESSAMENTO INTENSIVO E TEMPO ESTIMADO:")
-    if len(ufs) >= 27:
-        tempo_min = 30 * multiplicador_turnos
-        tempo_max = 50 * multiplicador_turnos
-        print(f"     O tempo total estimado é de aproximadamente {tempo_min} a {tempo_max} minutos.")
-        print("     Os tempos estimados dependem da velocidade da internet e da capacidade de processamento do computador.")
-        print("     Recomenda-se manter o computador ligado e desativar o modo de suspensão/hibernação.")
-    else:
-        tempo_min = max(1, round(len(ufs) * 1.5 * multiplicador_turnos))
-        tempo_max = max(2, round(len(ufs) * 2.5 * multiplicador_turnos))
-        print(f"     Processamento de {len(ufs)} UF(s). Tempo estimado: cerca de {tempo_min} a {tempo_max} minutos.")
-        print("     Os tempos estimados dependem da velocidade da internet e da capacidade de processamento do computador.")
-        print("     Exige alto uso de múltiplos núcleos de CPU e leitura contínua de disco.")
+    tempo_min = 30 * multiplicador_turnos
+    tempo_max = 50 * multiplicador_turnos
+    print(f"     O tempo total estimado é de aproximadamente {tempo_min} a {tempo_max} minutos.")
+    print("     Os tempos estimados dependem da velocidade da internet e da capacidade do computador.")
+    print("     Recomenda-se manter o computador ligado e desativar o modo de suspensão/hibernação.")
     print("═" * 80 + "\n")
 
     if not forcar:
@@ -173,8 +165,6 @@ def exibir_banner_e_confirmar(ufs: List[str], turnos: List[int], ano: int, zerar
 
 
 def orquestrar_pipeline(
-    ufs: List[str],
-    turnos: List[int],
     ano: int = 2026,
     zerar_banco: bool = False,
     pular_download: bool = False,
@@ -182,8 +172,10 @@ def orquestrar_pipeline(
 ) -> None:
     """
     Executa a cadeia modular do pipeline em ordem estrita de integridade.
-    Processa todos os turnos especificados ou auto-detectados.
+    Processa obrigatoriamente todas as 27 UFs para todos os turnos detectados.
     """
+    ufs = UFS_BRASIL
+    turnos = detectar_turnos_disponiveis(ano=ano)
     t_inicio_total = time.time()
 
     # 1. Inicialização do Banco de Dados
@@ -328,33 +320,21 @@ def main():
     verificar_trava_producao()
 
     parser = argparse.ArgumentParser(
-        description="Inicializador da Base de Dados Eleitoral",
+        description="Inicializador Oficial da Base de Dados Eleitoral — Abrangência Nacional Mandatória (27 UFs)",
         formatter_class=argparse.RawTextHelpFormatter
     )
-    parser.add_argument("--uf", default=None, help="Sigla de UF específica para depuração técnica isolada (ex: BA, SP)")
-    parser.add_argument("--turno", type=int, default=None, choices=[1, 2], help="Turno específico da eleição (1 ou 2). Se omitido, auto-detecta turnos disponíveis.")
     parser.add_argument("--ano", type=int, default=2026, help="Ano da eleição (padrão: 2026)")
     parser.add_argument("--threads", type=int, default=16, help="Número de threads simultâneas para parse (padrão: 16)")
     parser.add_argument("--zerar", action="store_true", help="Zera o banco de dados antes de recriar")
-    parser.add_argument("--pular-download", action="store_true", help="Utiliza pacotes ZIP já existentes localmente sem baixar da CDN")
+    parser.add_argument("--pular-download", action="store_true", help="Utiliza pacotes ZIP já existentes localmente sem consultar a CDN")
     parser.add_argument("--forcar", action="store_true", help="Pula confirmação interativa (para automações e scripts)")
 
     args = parser.parse_args()
 
-    if args.uf:
-        ufs_alvo = [args.uf.upper()]
-    else:
-        ufs_alvo = UFS_BRASIL
+    turnos_alvo = detectar_turnos_disponiveis(ano=args.ano)
 
-    if args.turno is not None:
-        turnos_alvo = [args.turno]
-    else:
-        turnos_alvo = detectar_turnos_disponiveis(ano=args.ano)
-
-    exibir_banner_e_confirmar(ufs_alvo, turnos_alvo, args.ano, args.zerar, args.forcar)
+    exibir_banner_e_confirmar(turnos_alvo, args.ano, args.zerar, args.forcar)
     orquestrar_pipeline(
-        ufs=ufs_alvo,
-        turnos=turnos_alvo,
         ano=args.ano,
         zerar_banco=args.zerar,
         pular_download=args.pular_download,

@@ -148,28 +148,15 @@ UFS_BRASIL = [
 ]
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Downloader Resiliente de Pacotes de Urna do TSE (Brasil Inteiro)")
-    parser.add_argument("--uf", default=None, help="Sigla de um estado individual (ex: BA, SP, RJ)")
-    parser.add_argument("--ufs", nargs="+", default=None, help="Lista de estados (ex: --ufs SP RJ MG BA)")
-    parser.add_argument("--todas", action="store_true", help="Baixa os pacotes de TODAS as 27 UFs do Brasil sequencialmente")
+    parser = argparse.ArgumentParser(description="Downloader Oficial dos Pacotes de Urna do TSE — Território Nacional Completo (27 UFs)")
     parser.add_argument("--destino", default=None, help="Diretório de destino no storage (opcional)")
     parser.add_argument("--turno", type=int, default=1, help="Turno da eleição (padrão: 1)")
 
     args = parser.parse_args()
     dest = Path(args.destino) if args.destino else None
+    lista_ufs = UFS_BRASIL
 
-    if args.todas:
-        lista_ufs = UFS_BRASIL
-    elif args.ufs:
-        lista_ufs = [u.upper() for u in args.ufs]
-    elif args.uf:
-        lista_ufs = [args.uf.upper()]
-    else:
-        print("Erro: Especifique --uf, --ufs ou --todas.", file=sys.stderr)
-        parser.print_help()
-        sys.exit(1)
-
-    print(f"Total de estados a baixar: {len(lista_ufs)} ({', '.join(lista_ufs)})")
+    print(f"Total de estados a baixar (Território Nacional Mandatório): {len(lista_ufs)} ({', '.join(lista_ufs)})")
     for i, estado in enumerate(lista_ufs, 1):
         print(f"\n[{i}/{len(lista_ufs)}] Iniciando processamento de {estado}...")
         try:
