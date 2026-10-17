@@ -75,6 +75,9 @@ if csv_mun:
                     MAPA_MUNICIPIOS[cd] = nm
     except Exception:
         pass
+else:
+    print("[!] AVISO: Catálogo 'municipio_tse_ibge.csv' não encontrado em dados_brutos/municipios/.")
+    print("    As seções serão registradas com códigos numéricos oficiais do TSE.")
 
 def salvar_em_lote(resultados: List[Dict[str, Any]]) -> None:
     if not resultados:
