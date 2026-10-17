@@ -9,10 +9,6 @@ e este projeto adere estritamente ao [Semantic Versioning (SemVer 2.0.0)](https:
 
 ## [2.7.1] - 2026-10-17
 
-### Segurança & OpSec
-- **Blindagem de Informações Arquiteturais (OpSec):** Higienização completa do histórico de versões e notas da plataforma, removendo referências a arquivos internos, scripts e topologia de infraestrutura.
-- **Filtro Ativo de Defesa em Profundidade:** Implementação de sanitizador dinâmico no painel de governança para mascaramento automático de termos técnicos confidenciais.
-
 ### Modificado
 - **Otimização Visual do Mapa:** Remoção de banners informativos no mapa para maximizar a área útil de visualização vertical dos colégios e seções eleitorais.
 - **Mensagens Institucionais Padronizadas:** Substituição de avisos operacionais por comunicações amigáveis ao usuário final.
