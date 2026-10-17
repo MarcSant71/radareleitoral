@@ -56,8 +56,10 @@ def processar_log_remoto(reader: RemoteZipRangeReader, filename: str, parser: Ur
 MAPA_MUNICIPIOS = {}
 project_root = Path(__file__).resolve().parent.parent
 csv_candidatos = [
+    project_root / "dados_brutos" / "municipios" / "municipio_tse_ibge.csv",
     project_root / "municipios" / "municipio_tse_ibge.csv",
     Path(__file__).resolve().parent / "municipios" / "municipio_tse_ibge.csv",
+    Path("dados_brutos/municipios/municipio_tse_ibge.csv"),
     Path("municipios/municipio_tse_ibge.csv")
 ]
 csv_mun = next((p for p in csv_candidatos if p.exists()), None)

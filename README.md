@@ -69,7 +69,8 @@ RadarEleitoral/
 │
 ├── dados_brutos/              # [PACOTES BRUTOS DE ENTRADA] (Preservado no git via .gitkeep)
 │   ├── arquivos_urna/         # Pacotes ZIP oficiais do TSE (bu, logs, rdv)
-│   └── fiscais_mapa/          # JSONs geoespaciais e critérios dos locais de votação
+│   ├── fiscais_mapa/          # JSONs geoespaciais e critérios dos locais de votação
+│   └── municipios/            # Catálogo de-para oficial de códigos TSE e municípios IBGE
 ├── .streamlit/                # Configurações de tema, porta e renderização
 ├── Caddyfile                  # Configuração de Proxy Reverso HTTPS (Caddy Server com OWASP)
 ├── Dockerfile                 # Contêiner Docker otimizado para o Streamlit (Python 3.11-slim)

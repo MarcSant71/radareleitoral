@@ -25,6 +25,7 @@ dados_brutos/*
 !dados_brutos/.gitkeep
 !dados_brutos/arquivos_urna/.gitkeep
 !dados_brutos/fiscais_mapa/.gitkeep
+!dados_brutos/municipios/municipio_tse_ibge.csv
 antigos/
 *.zip
 *.tar.gz
