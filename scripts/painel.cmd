@@ -1,9 +1,9 @@
 @echo off
-title Painel de Auditoria - Eleicoes 2026
+title Radar Eleitoral - Inteligencia de Dados e Auditoria
 cd /d "%~dp0\.."
 
 echo ===============================================================================
-echo            PAINEL INTERATIVO DE AUDITORIA ELEITORAL 2026
+echo            RADAR ELEITORAL - AUDITORIA E INTELIGENCIA DE DADOS
 echo ===============================================================================
 echo Banco de Dados: db\eleicoes2026.db (497.895 secoes)
 echo Abrindo navegador em http://localhost:8501 ...

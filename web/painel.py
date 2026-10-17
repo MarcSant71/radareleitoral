@@ -31,8 +31,8 @@ from painel_governanca import renderizar_painel_governanca
 from versao import VERSAO_APP, COMMIT_APP, VERSAO_DISPLAY
 
 st.set_page_config(
-    page_title="Eleições 2026 - Ciência de Dados & Estatística Eleitoral",
-    page_icon="🗳️",
+    page_title="Radar Eleitoral — Inteligência Analítica e Auditoria de Urnas",
+    page_icon="📡",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -1921,8 +1921,8 @@ def gerar_skeleton_sidebar_html() -> str:
     )
 
 
-st.title("🗳️ Eleições 2026: Ciência de Dados & Estatística Eleitoral")
-st.caption(f"Plataforma de Ciência de Dados e Análise Estatística da Votação • Base Oficial TSE • **{VERSAO_DISPLAY}**")
+st.title("📡 Radar Eleitoral: Inteligência de Dados & Auditoria das Urnas")
+st.caption(f"Plataforma Independente de Análise Estatística e Auditoria Eleitoral • Base Oficial TSE • **{VERSAO_DISPLAY}**")
 
 # Exibe o Skeleton Screen visual (central + lateral) apenas no primeiro carregamento da sessão (Cold Start)
 skeleton_placeholder = None
@@ -1951,11 +1951,56 @@ if "regiao" not in df.columns:
     df["regiao"] = df["uf"].map(MAPA_REGIOES).fillna("Outra").astype("category")
 
 # ==========================================
-# SELETOR DE ELEIÇÃO & TURNO (SIDEBAR)
+# SELETOR DE FERRAMENTA (SIDEBAR)
 # ==========================================
 st.sidebar.markdown(
     """
     <div style="font-size: 0.70rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-bottom: 0.25rem;">
+        📊 Ferramenta
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+opcoes_painel = [
+    "🗳️ Auditoria de Urnas",
+    "📉 Análise de Abstenção"
+]
+
+idx_painel_inicial = 0
+if "painel" in st.query_params:
+    qp = st.query_params["painel"].lower()
+    if "abst" in qp:
+        idx_painel_inicial = 1
+elif st.session_state.get("painel_ativo") in opcoes_painel:
+    idx_painel_inicial = opcoes_painel.index(st.session_state["painel_ativo"])
+elif st.session_state.get("plataforma_ativa") in opcoes_painel:
+    idx_painel_inicial = opcoes_painel.index(st.session_state["plataforma_ativa"])
+
+def ao_mudar_painel():
+    st.session_state["exibir_governanca"] = False
+    sel = st.session_state.get("painel_ativo")
+    if sel == "📉 Análise de Abstenção":
+        st.query_params["painel"] = "abstencao"
+    else:
+        st.query_params["painel"] = "auditoria"
+
+painel_ativo = st.sidebar.selectbox(
+    "Ferramenta:",
+    options=opcoes_painel,
+    index=idx_painel_inicial,
+    label_visibility="collapsed",
+    key="painel_ativo",
+    on_change=ao_mudar_painel,
+    help="Selecione a ferramenta desejada."
+)
+
+# ==========================================
+# SELETOR DE ELEIÇÃO & TURNO (SIDEBAR)
+# ==========================================
+st.sidebar.markdown(
+    """
+    <div style="font-size: 0.70rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-top: 0.5rem; margin-bottom: 0.25rem;">
         🗳️ Eleição & Turno
     </div>
     """,
@@ -1989,51 +2034,6 @@ if turno_ativo == "2º Turno":
 else:
     if "turno" in df.columns:
         df = df[df["turno"] == 1]
-
-# ==========================================
-# SELETOR DE PAINEL (SIDEBAR)
-# ==========================================
-st.sidebar.markdown(
-    """
-    <div style="font-size: 0.70rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-top: 0.5rem; margin-bottom: 0.25rem;">
-        📊 Painel Analítico
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-opcoes_painel = [
-    "🗳️ Auditoria de Urnas",
-    "📉 Análise de Abstenção"
-]
-
-idx_painel_inicial = 0
-if "painel" in st.query_params:
-    qp = st.query_params["painel"].lower()
-    if "abst" in qp:
-        idx_painel_inicial = 1
-elif st.session_state.get("painel_ativo") in opcoes_painel:
-    idx_painel_inicial = opcoes_painel.index(st.session_state["painel_ativo"])
-elif st.session_state.get("plataforma_ativa") in opcoes_painel:
-    idx_painel_inicial = opcoes_painel.index(st.session_state["plataforma_ativa"])
-
-def ao_mudar_painel():
-    st.session_state["exibir_governanca"] = False
-    sel = st.session_state.get("painel_ativo")
-    if sel == "📉 Análise de Abstenção":
-        st.query_params["painel"] = "abstencao"
-    else:
-        st.query_params["painel"] = "auditoria"
-
-painel_ativo = st.sidebar.selectbox(
-    "Painel:",
-    options=opcoes_painel,
-    index=idx_painel_inicial,
-    label_visibility="collapsed",
-    key="painel_ativo",
-    on_change=ao_mudar_painel,
-    help="Selecione o painel analítico desejado."
-)
 
 plataforma = painel_ativo
 if st.session_state.get("exibir_governanca", False):

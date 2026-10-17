@@ -1,4 +1,4 @@
-# Changelog — Eleições 2026
+# Changelog — Radar Eleitoral
 
 Todas as alterações notáveis nesta plataforma são documentadas neste arquivo.
 

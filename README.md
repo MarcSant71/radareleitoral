@@ -1,4 +1,4 @@
-# 🗳️ Eleições 2026 — Ciência de Dados & Estatística Eleitoral
+# 📡 Radar Eleitoral — Inteligência de Dados & Auditoria das Urnas
 
 [![Versão](https://img.shields.io/badge/versão-v2.5.0-blue.svg)](CHANGELOG.md)
 [![Licença](https://img.shields.io/badge/licença-MIT-green.svg)](LICENSE)
