@@ -24,6 +24,7 @@ $ItemsToInclude = @(
     "requirements.txt",
     ".streamlit",
     "web",
+    "CHANGELOG.md",
     "index.html",
     "og_preview.png"
 )
@@ -46,8 +47,11 @@ Write-Host "[*] Resolvendo metadados de versao e commit..." -ForegroundColor Yel
 $GitCommit = try { (git rev-parse --short HEAD).Trim() } catch { "prod" }
 $Changelog = if (Test-Path "$ProjectDir\CHANGELOG.md") { Get-Content "$ProjectDir\CHANGELOG.md" -Raw } else { "" }
 $VersionMatch = [regex]::Match($Changelog, '##\s*\[(\d+\.\d+\.\d+)\]\s*-\s*([0-9-]+)')
-$AppVersion = if ($VersionMatch.Success) { $VersionMatch.Groups[1].Value } else { "2.4.4" }
-$AppDate = if ($VersionMatch.Success) { $VersionMatch.Groups[2].Value } else { (Get-Date -Format "yyyy-MM-dd") }
+if (-not $VersionMatch.Success) {
+    throw "Erro critico: Nao foi possivel extrair a versao SemVer do CHANGELOG.md"
+}
+$AppVersion = $VersionMatch.Groups[1].Value
+$AppDate = $VersionMatch.Groups[2].Value
 
 $BuildInfo = @{
     versao = $AppVersion
@@ -55,7 +59,8 @@ $BuildInfo = @{
     data = $AppDate
 } | ConvertTo-Json
 
-Set-Content -Path "$ProjectDir\web\version.json" -Value $BuildInfo -Encoding UTF8
+# Grava version.json em UTF-8 SEM BOM para compatibilidade com Python em Linux
+[System.IO.File]::WriteAllText("$ProjectDir\web\version.json", $BuildInfo, [System.Text.UTF8Encoding]::new($false))
 Write-Host "[+] Versao resolvida para o build: v$AppVersion ($GitCommit)" -ForegroundColor Green
 
 Write-Host "[*] Compactando arquivos essenciais..." -ForegroundColor Yellow

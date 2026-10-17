@@ -378,7 +378,15 @@ def renderizar_auditoria(
     # ==========================================
     # FILTROS LATERAIS (SIDEBAR)
     # ==========================================
-    st.sidebar.header("🔍 Filtros")
+    st.sidebar.markdown(
+        """
+        <div style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-top: 0.65rem; margin-bottom: 0.35rem;">
+            <span style="font-size: 0.95em; line-height: 1;">🔍</span>
+            <span>Filtros</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     
     col_reg, col_uf = st.sidebar.columns([3, 2])
     regioes_disponiveis = ["Todas", "Centro-Oeste", "Nordeste", "Norte", "Sudeste", "Sul"]

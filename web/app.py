@@ -1783,8 +1783,8 @@ st.markdown(f"<style>\n{css_global}\n{css_tema}\n</style>", unsafe_allow_html=Tr
 if "exibir_governanca" not in st.session_state:
     st.session_state["exibir_governanca"] = False
 
-# Sincronização via URL caso acesse ?ferramenta=governanca
-if "ferramenta" in st.query_params and st.query_params["ferramenta"].lower() in ["governanca", "gov", "lgpd", "vers", "info"]:
+# Sincronização canônica via URL caso acesse ?ferramenta=governanca
+if st.query_params.get("ferramenta", "").lower() == "governanca":
     st.session_state["exibir_governanca"] = True
 
 is_gov = st.session_state.get("exibir_governanca", False)
@@ -1952,7 +1952,7 @@ if st.session_state.get("exibir_governanca", False):
     placeholder_caption.caption(f"Diretrizes Institucionais, Conformidade Legal e Histórico de Versões • **{VERSAO_DISPLAY}**")
 else:
     ferramenta_inicial = "🗳️ Auditoria de Urnas"
-    if "ferramenta" in st.query_params and "abst" in st.query_params["ferramenta"].lower():
+    if st.query_params.get("ferramenta", "").lower() == "abstencao":
         ferramenta_inicial = "📉 Análise de Abstenção"
     elif st.session_state.get("ferramenta_ativa") == "📉 Análise de Abstenção":
         ferramenta_inicial = "📉 Análise de Abstenção"
@@ -1992,8 +1992,9 @@ if "regiao" not in df.columns:
 # ==========================================
 st.sidebar.markdown(
     """
-    <div style="font-size: 0.70rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-bottom: 0.25rem;">
-        📊 Ferramenta
+    <div style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-bottom: 0.35rem;">
+        <span style="font-size: 0.95em; line-height: 1;">📊</span>
+        <span>Ferramenta</span>
     </div>
     """,
     unsafe_allow_html=True
@@ -2005,10 +2006,8 @@ opcoes_ferramenta = [
 ]
 
 idx_ferramenta_inicial = 0
-if "ferramenta" in st.query_params:
-    qp = st.query_params["ferramenta"].lower()
-    if "abst" in qp:
-        idx_ferramenta_inicial = 1
+if st.query_params.get("ferramenta", "").lower() == "abstencao":
+    idx_ferramenta_inicial = 1
 elif st.session_state.get("ferramenta_ativa") in opcoes_ferramenta:
     idx_ferramenta_inicial = opcoes_ferramenta.index(st.session_state["ferramenta_ativa"])
 
@@ -2045,8 +2044,9 @@ else:
 # ==========================================
 st.sidebar.markdown(
     """
-    <div style="font-size: 0.70rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-top: 0.5rem; margin-bottom: 0.25rem;">
-        🗳️ Eleição & Turno
+    <div style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-top: 0.65rem; margin-bottom: 0.35rem;">
+        <span style="font-size: 0.95em; line-height: 1;">🗳️</span>
+        <span>Eleição & Turno</span>
     </div>
     """,
     unsafe_allow_html=True

@@ -21,6 +21,7 @@ RUN pip install --no-cache-dir -r requirements.txt \
 COPY web/ web/
 COPY db/ db/
 COPY .streamlit/ .streamlit/
+COPY CHANGELOG.md .
 
 EXPOSE 8501
 
