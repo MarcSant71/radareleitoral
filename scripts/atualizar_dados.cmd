@@ -18,7 +18,7 @@ cd /d "%~dp0\.."
 
 echo ===============================================================================
 echo            ATUALIZACAO E CONSOLIDACAO DE DADOS - ELEICOES 2026
-echo            Abrangencia Mandatoria: Territorio Nacional (27 UFs)
+echo            Escopo: Territorio Nacional Completo (27 UFs)
 echo ===============================================================================
 echo.
 

@@ -127,14 +127,12 @@ def exibir_banner_e_confirmar(turnos: List[int], ano: int, zerar_banco: bool, fo
 
     desc_pleito = f"Eleições Gerais {ano} — {desc_turnos}"
     print(f"Pleito: {desc_pleito}")
-    print(f"Escopo Mandatório: Território Nacional Completo ({len(UFS_BRASIL)} UFs)")
+    print(f"Escopo: Território Nacional Completo ({len(UFS_BRASIL)} UFs)")
     print(f"Diretório de Armazenamento: {DEFAULT_OUTPUT_DIR}")
     print(f"Banco Alvo: {DB_PATH}")
     print("─" * 80)
-    print("IMPORTANTE! GOVERNANÇA DE INTEGRIDADE E AUDITORIA:")
-    print("  1. ABRANGÊNCIA NACIONAL OBRIGATÓRIA (ZERO DADOS PARCIAIS):")
-    print("     Para garantir validade estatística e impedir conclusões distorcidas ou")
-    print("     enviesadas, a base eleitoral processa rigorosamente todas as 27 UFs do Brasil.")
+    print("IMPORTANTE! LEIA COM ATENÇÃO:")
+    print("  1. DOWNLOAD DE DADOS:")
     multiplicador_turnos = len(turnos)
     gb_min = 25 * multiplicador_turnos
     gb_max = 30 * multiplicador_turnos

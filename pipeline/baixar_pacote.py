@@ -156,7 +156,7 @@ if __name__ == "__main__":
     dest = Path(args.destino) if args.destino else None
     lista_ufs = UFS_BRASIL
 
-    print(f"Total de estados a baixar (Território Nacional Mandatório): {len(lista_ufs)} ({', '.join(lista_ufs)})")
+    print(f"Total de estados a baixar (Território Nacional Completo): {len(lista_ufs)} ({', '.join(lista_ufs)})")
     for i, estado in enumerate(lista_ufs, 1):
         print(f"\n[{i}/{len(lista_ufs)}] Iniciando processamento de {estado}...")
         try:
