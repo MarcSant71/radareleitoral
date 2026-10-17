@@ -141,7 +141,10 @@ def main():
     parser = argparse.ArgumentParser(description="Consolidador de Boletins de Urna (BU) - Eleições 2026")
     parser.add_argument("--uf", default=None, help="Processa apenas uma UF específica (ex: BA, AC, SP)")
     parser.add_argument("--threads", type=int, default=16, help="Número de threads simultâneas de parsing")
-    default_dir = os.environ.get("DADOS_DIR", "dados_brutos")
+    default_dir = os.environ.get("DADOS_DIR")
+    if not default_dir:
+        cand_urna = Path("dados_brutos/arquivos_urna")
+        default_dir = str(cand_urna) if cand_urna.exists() else "dados_brutos"
     parser.add_argument("--dir", default=default_dir, help=f"Pasta com os pacotes ZIP brutos (padrão: {default_dir})")
     args = parser.parse_args()
     

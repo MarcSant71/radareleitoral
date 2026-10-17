@@ -78,6 +78,8 @@ def detectar_turnos_disponiveis(ano: int = 2026, dados_dir: Optional[Path] = Non
             arquivos_locais = list(pasta.glob(f"*_{ano}_{t}t_*.zip"))
             if not arquivos_locais:
                 arquivos_locais = list(pasta.glob(f"*_{t}t_*.zip"))
+            if not arquivos_locais and pasta.parent.exists() and pasta.name != "dados_brutos":
+                arquivos_locais = list(pasta.parent.glob(f"*_{ano}_{t}t_*.zip"))
             if len(arquivos_locais) > 0:
                 turnos_detectados.append(t)
                 continue
@@ -229,6 +231,8 @@ def orquestrar_pipeline(
                     candidatos = list(DEFAULT_OUTPUT_DIR.glob(f"*_{ano}_{turno}t_{uf.upper()}.zip"))
                     if not candidatos:
                         candidatos = list(DEFAULT_OUTPUT_DIR.glob(f"*_{turno}t_{uf.upper()}.zip"))
+                    if not candidatos and DEFAULT_OUTPUT_DIR.parent.exists() and DEFAULT_OUTPUT_DIR.name != "dados_brutos":
+                        candidatos = list(DEFAULT_OUTPUT_DIR.parent.glob(f"*_{ano}_{turno}t_{uf.upper()}.zip"))
                     if candidatos:
                         local_zip = candidatos[0]
                 if local_zip.exists():
@@ -279,6 +283,18 @@ def orquestrar_pipeline(
     print("ETAPA 5/5: MATERIALIZAÇÃO DO CACHE COLUNAR ANALÍTICO (Parquet)")
     print("=" * 80)
     df = compilar_dataset_parquet(forcar=True)
+
+    # 6. Sincronização Geoespacial de Locais de Votação (Mapa de Fiscais & Seções)
+    from pipeline.processamento_locais import PARQUET_LOCAIS_PATH, PARQUET_SECOES_PATH, consolidar_locais_nacionais
+    if not PARQUET_LOCAIS_PATH.exists() or not PARQUET_SECOES_PATH.exists():
+        print("\n" + "=" * 80)
+        print("ETAPA ADICIONAL: SINCRONIZAÇÃO GEOESPACIAL DE LOCAIS DE VOTAÇÃO (MAPA)")
+        print("=" * 80)
+        try:
+            consolidar_locais_nacionais()
+        except Exception as e:
+            print(f"[!] Aviso: Não foi possível sincronizar locais de votação automaticamente ({e}).")
+
     t_total = time.time() - t_inicio_total
 
     print("\n" + "═" * 80)

@@ -30,15 +30,20 @@ $ItemsToInclude = @(
 )
 
 if ($IncludeDatabase) {
-    if (Test-Path "$ProjectDir\db\eleicoes2026.db") {
-        Write-Host "[!] Modo Completo: Incluindo banco SQLite (178MB)..." -ForegroundColor Magenta
+    if (Test-Path "$ProjectDir\db\eleicoes.db") {
+        Write-Host "[!] Modo Completo: Incluindo banco SQLite (db\eleicoes.db)..." -ForegroundColor Magenta
+        $ItemsToInclude += "db\eleicoes.db"
+    } elseif (Test-Path "$ProjectDir\db\eleicoes2026.db") {
+        Write-Host "[!] Modo Completo: Incluindo banco SQLite legado (db\eleicoes2026.db)..." -ForegroundColor Magenta
         $ItemsToInclude += "db\eleicoes2026.db"
     }
 } else {
     Write-Host "[i] Deploy Rapido: Preservando SQLite existente na VPS (use -IncludeDatabase para atualizar o .db)" -ForegroundColor Cyan
 }
 
-if (Test-Path "$ProjectDir\db\eleicoes2026.parquet") {
+if (Test-Path "$ProjectDir\db\eleicoes.parquet") {
+    $ItemsToInclude += "db\eleicoes.parquet"
+} elseif (Test-Path "$ProjectDir\db\eleicoes2026.parquet") {
     $ItemsToInclude += "db\eleicoes2026.parquet"
 }
 if (Test-Path "$ProjectDir\db\locais_votacao.parquet") {

@@ -13,7 +13,7 @@ def get_db_path() -> Path:
     Localiza o banco SQLite de forma estrita e determinística.
     Prioridade:
     1. Variável de ambiente DATABASE_PATH (se informada)
-    2. Pasta db/ relativa à raiz do projeto (db/eleicoes2026.db)
+    2. Pasta db/ relativa à raiz do projeto (db/eleicoes.db ou legado db/eleicoes2026.db)
     """
     env_path = os.environ.get("DATABASE_PATH")
     if env_path:
@@ -22,9 +22,21 @@ def get_db_path() -> Path:
     p = Path(__file__).resolve()
     for parent in p.parents:
         if (parent / "db").exists() or (parent / "README.md").exists():
-            return (parent / "db" / "eleicoes2026.db").resolve()
+            novo = (parent / "db" / "eleicoes.db").resolve()
+            if novo.exists():
+                return novo
+            legado = (parent / "db" / "eleicoes2026.db").resolve()
+            if legado.exists():
+                return legado
+            return novo
 
-    return (p.parents[2] / "db" / "eleicoes2026.db").resolve()
+    novo = (p.parents[2] / "db" / "eleicoes.db").resolve()
+    if novo.exists():
+        return novo
+    legado = (p.parents[2] / "db" / "eleicoes2026.db").resolve()
+    if legado.exists():
+        return legado
+    return novo
 
 DB_PATH = get_db_path()
 

@@ -330,7 +330,9 @@ if __name__ == "__main__":
             return Path(env_dir).resolve()
         project_root = Path(__file__).resolve().parent.parent
         candidatos = [
+            project_root / "dados_brutos" / "arquivos_urna",
             project_root / "dados_brutos",
+            Path("dados_brutos/arquivos_urna"),
             Path("dados_brutos"),
             Path("./dados")
         ]

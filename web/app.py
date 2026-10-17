@@ -1,6 +1,6 @@
 """
-Painel Interativo de Auditoria Eleitoral 2026 (Clone Avançado do esteleicao.com).
-Conecta diretamente ao banco relacional SQLite local (eleicoes2026.db) para exibir
+Painel Interativo de Auditoria Eleitoral (Radar Eleitoral).
+Conecta diretamente ao banco relacional SQLite local (eleicoes.db) para exibir
 anomalias de votos pós-17h, liberação manual por mesário e ociosidade.
 """
 

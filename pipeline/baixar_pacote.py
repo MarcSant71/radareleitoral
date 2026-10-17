@@ -24,7 +24,7 @@ env_dir = os.environ.get("DADOS_DIR")
 if env_dir and Path(env_dir).exists():
     DEFAULT_OUTPUT_DIR = Path(env_dir).resolve()
 else:
-    DEFAULT_OUTPUT_DIR = project_root / "dados_brutos"
+    DEFAULT_OUTPUT_DIR = project_root / "dados_brutos" / "arquivos_urna"
 
 def baixar_pacote_uf(uf: str, destino_dir: Optional[Path] = None, turno: int = 1) -> Path:
     uf = uf.upper()

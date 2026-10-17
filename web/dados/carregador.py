@@ -20,6 +20,10 @@ MAPA_REGIOES = {
 }
 
 PARQUET_CACHE_PATH = DB_PATH.with_suffix(".parquet")
+if not PARQUET_CACHE_PATH.exists():
+    _legado_parquet = DB_PATH.parent / "eleicoes2026.parquet"
+    if _legado_parquet.exists():
+        PARQUET_CACHE_PATH = _legado_parquet
 PARQUET_LOCAIS_PATH = DB_PATH.parent / "locais_votacao.parquet"
 PARQUET_SECOES_PATH = DB_PATH.parent / "locais_secoes.parquet"
 

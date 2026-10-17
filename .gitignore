@@ -7,18 +7,24 @@ venv/
 env/
 
 # Banco de dados SQLite e Cache Parquet de grande porte (>100MB excede limite do GitHub)
+# Banco de dados SQLite e Cache Parquet de grande porte (>100MB excede limite do GitHub)
 # Devem ser gerados localmente via scripts/iniciar_banco.cmd ou baixados separadamente.
 db/*.db
 db/*.db-wal
 db/*.db-shm
 db/*.parquet
+*.db
 *.parquet
 !db/.gitkeep
 evidencias/
 
-# Dados brutos baixados da CDN do TSE (25GB+)
+# Dados brutos baixados da CDN do TSE e fontes externas (25GB+)
+dados_brutos/**/*
 dados_brutos/*
+!dados_brutos/**/.gitkeep
 !dados_brutos/.gitkeep
+!dados_brutos/arquivos_urna/.gitkeep
+!dados_brutos/fiscais_mapa/.gitkeep
 antigos/
 *.zip
 *.tar.gz

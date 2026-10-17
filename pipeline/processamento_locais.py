@@ -1,5 +1,5 @@
 """
-Módulo de Ingestão e Processamento dos Locais de Votação e Seções Mapeadas.
+Módulo de Processamento e Consolidação dos Locais de Votação e Seções Mapeadas.
 Baixa o catálogo nacional georreferenciado e consolida no SQLite e cache Parquet.
 """
 
@@ -13,34 +13,55 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import pandas as pd
 
 PROJECT_DIR = Path(__file__).resolve().parent.parent
-DB_PATH = PROJECT_DIR / "db" / "eleicoes2026.db"
+from pipeline.db import DB_PATH
 PARQUET_LOCAIS_PATH = PROJECT_DIR / "db" / "locais_votacao.parquet"
 PARQUET_SECOES_PATH = PROJECT_DIR / "db" / "locais_secoes.parquet"
-INDICE_CACHE_PATH = PROJECT_DIR / "db" / "locais_indice.json"
+DADOS_BRUTOS_LOCAIS = PROJECT_DIR / "dados_brutos" / "fiscais_mapa"
 
 BASE_URL = "https://brasil.arvor.co/assets/fiscais_mapa/"
 
 
 def baixar_indice() -> dict:
-    """Baixa o manifesto geral de metadados e critérios."""
+    """Baixa ou carrega do cache local em dados_brutos o manifesto geral de metadados e critérios."""
+    DADOS_BRUTOS_LOCAIS.mkdir(parents=True, exist_ok=True)
+    cache_file = DADOS_BRUTOS_LOCAIS / "indice.json"
+    if cache_file.exists():
+        try:
+            with open(cache_file, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+
     url = f"{BASE_URL}indice.json"
     req = urllib.request.Request(url, headers={"User-Agent": "RadarEleitoral/2.6.0"})
     with urllib.request.urlopen(req, timeout=20) as resp:
         data = json.loads(resp.read().decode("utf-8"))
-    
-    # Salva cache local do índice
-    with open(INDICE_CACHE_PATH, "w", encoding="utf-8") as f:
+
+    with open(cache_file, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
-    
+
     return data
 
 
 def baixar_uf(uf: str) -> tuple[str, dict]:
-    """Baixa o arquivo JSON de locais e seções de uma UF específica."""
+    """Baixa ou carrega do cache local em dados_brutos o arquivo JSON de locais e seções de uma UF específica."""
+    DADOS_BRUTOS_LOCAIS.mkdir(parents=True, exist_ok=True)
+    cache_file = DADOS_BRUTOS_LOCAIS / f"{uf}.json"
+    if cache_file.exists():
+        try:
+            with open(cache_file, "r", encoding="utf-8") as f:
+                return uf, json.load(f)
+        except Exception:
+            pass
+
     url = f"{BASE_URL}uf/{uf}.json"
     req = urllib.request.Request(url, headers={"User-Agent": "RadarEleitoral/2.6.0"})
     with urllib.request.urlopen(req, timeout=30) as resp:
         data = json.loads(resp.read().decode("utf-8"))
+
+    with open(cache_file, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False)
+
     return uf, data
 
 
@@ -149,9 +170,27 @@ def consolidar_locais_nacionais(max_workers: int = 8) -> tuple[int, int]:
     cur = conn.cursor()
     cur.execute("DROP TABLE IF EXISTS locais_votacao;")
     cur.execute("DROP TABLE IF EXISTS locais_secoes;")
+    cur.execute("DROP TABLE IF EXISTS locais_criterios;")
 
     df_locais.to_sql("locais_votacao", conn, if_exists="replace", index=False)
     df_secoes.to_sql("locais_secoes", conn, if_exists="replace", index=False)
+
+    # Persiste os critérios e metodologia diretamente no banco SQLite (eliminando a necessidade do JSON solto)
+    criterios = indice.get("criterios", {})
+    if criterios:
+        rows_crit = []
+        for letra, d in criterios.items():
+            if isinstance(d, dict):
+                rows_crit.append({
+                    "codigo": letra,
+                    "nome": d.get("nome"),
+                    "mede": d.get("mede"),
+                    "conferir": d.get("conferir"),
+                    "explicacao_comum": d.get("explicacao_comum"),
+                    "secoes": d.get("secoes")
+                })
+        if rows_crit:
+            pd.DataFrame(rows_crit).to_sql("locais_criterios", conn, if_exists="replace", index=False)
 
     # Criação de índices para pesquisas ultrarrápidas
     cur.execute("CREATE INDEX IF NOT EXISTS idx_locais_uf ON locais_votacao(uf);")

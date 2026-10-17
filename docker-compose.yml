@@ -6,7 +6,7 @@ services:
     container_name: eleicoes2026_painel
     restart: unless-stopped
     environment:
-      - DATABASE_PATH=/app/db/eleicoes2026.db
+      - DATABASE_PATH=/app/db/eleicoes.db
     deploy:
       resources:
         limits:

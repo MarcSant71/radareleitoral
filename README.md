@@ -64,10 +64,12 @@ RadarEleitoral/
 │   └── subirproducao.ps1      # Pipeline de empacotamento, SCP e deploy remoto na VPS Hetzner
 │
 ├── db/                        # [BASE DE DADOS] (Estrutura preservada no git via .gitkeep)
-│   ├── eleicoes2026.db        # Banco de dados relacional SQLite WAL (gerado localmente)
-│   └── eleicoes2026.parquet   # Cache colunar analítico (gerado localmente)
+│   ├── eleicoes.db            # Banco de dados relacional SQLite WAL (gerado localmente)
+│   └── eleicoes.parquet       # Cache colunar analítico (gerado localmente)
 │
-├── dados_brutos/              # [PACOTES TSE] (Estrutura preservada no git via .gitkeep)
+├── dados_brutos/              # [PACOTES BRUTOS DE ENTRADA] (Preservado no git via .gitkeep)
+│   ├── arquivos_urna/         # Pacotes ZIP oficiais do TSE (bu, logs, rdv)
+│   └── fiscais_mapa/          # JSONs geoespaciais e critérios dos locais de votação
 ├── .streamlit/                # Configurações de tema, porta e renderização
 ├── Caddyfile                  # Configuração de Proxy Reverso HTTPS (Caddy Server com OWASP)
 ├── Dockerfile                 # Contêiner Docker otimizado para o Streamlit (Python 3.11-slim)
@@ -118,7 +120,7 @@ Os pacotes de dados brutos são obtidos diretamente dos endpoints da CDN de Dado
      python -m pipeline
      ```
 
-O orquestrador detecta automaticamente os turnos disponíveis, verifica/baixa os pacotes da CDN oficial, audita os logs, decodifica os Boletins de Urna e compila o dataset analítico Parquet em `db/eleicoes2026.parquet`.
+O orquestrador detecta automaticamente os turnos disponíveis, verifica/baixa os pacotes da CDN oficial, audita os logs, decodifica os Boletins de Urna e compila o dataset analítico Parquet em `db/eleicoes.parquet`.
 
 ---
 

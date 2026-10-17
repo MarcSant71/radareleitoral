@@ -1,7 +1,6 @@
 @echo off
 title Atualizar Dados - Eleicoes 2026
 cd /d "%~dp0\.."
-if exist "W:\Apps\Eleicoes2026" set DADOS_DIR=W:\Apps\Eleicoes2026
 
 echo ===============================================================================
 echo            ATUALIZACAO E CONSOLIDACAO DE DADOS - ELEICOES 2026
@@ -21,7 +20,7 @@ if %ERRORLEVEL% NEQ 0 (
 
 echo.
 echo ===============================================================================
-echo [2/3] Auditando e consolidando secoes no SQLite (db\eleicoes2026.db)...
+echo [2/3] Auditando e consolidando secoes no SQLite (db\eleicoes.db)...
 echo       (Secoes ja consolidadas sao puladas em fracao de segundo)
 echo ===============================================================================
 echo.
