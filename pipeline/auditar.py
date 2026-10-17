@@ -298,10 +298,10 @@ def executar_auditoria(uf: str = "BA", municipio: Optional[str] = None, limite: 
             if res:
                 salvar_no_banco(res)
             pct = (processados / len(alvo_logs)) * 100.0
-            sys.stdout.write(f"\rAuditando {uf}: {pct:5.1f}% ({processados:,}/{len(alvo_logs):,} seções)...                 ")
+            sys.stdout.write(f"\rConsolidando {uf}: {pct:5.1f}% ({processados:,}/{len(alvo_logs):,} seções)...                 ")
             sys.stdout.flush()
 
-    sys.stdout.write(f"\rAuditando {uf}: 100.0% - Concluído! ({len(alvo_logs):,} seções)                                   \n")
+    sys.stdout.write(f"\rConsolidando {uf}: 100.0% - Concluído! ({len(alvo_logs):,} seções)                                   \n")
     sys.stdout.flush()
     exibir_ranking(limit=15, uf=uf)
 
@@ -346,7 +346,7 @@ def executar_auditoria_local_zip(caminho_zip: Path, municipio: Optional[str] = N
             pass
 
     if not alvo_logs:
-        sys.stdout.write(f"\rAuditando {uf_zip}: 100.0% - Concluído! (Arquivo já processado)                          \n")
+        sys.stdout.write(f"\rConsolidando {uf_zip}: 100.0% - Concluído! (Arquivo já processado)                          \n")
         sys.stdout.flush()
         z.close()
         return
@@ -360,7 +360,7 @@ def executar_auditoria_local_zip(caminho_zip: Path, municipio: Optional[str] = N
 
     import time
     t_inicio = time.time()
-    sys.stdout.write(f"\rAuditando {uf_zip}:   0.0% | 0 seções/s...                 ")
+    sys.stdout.write(f"\rConsolidando {uf_zip}:   0.0% | 0 seções/s...                 ")
     sys.stdout.flush()
 
     with ProcessPoolExecutor(max_workers=max_workers, initializer=_init_parser_worker, initargs=(uf_zip,)) as executor:
@@ -387,11 +387,11 @@ def executar_auditoria_local_zip(caminho_zip: Path, municipio: Optional[str] = N
             tempo_decorrido = max(0.1, time.time() - t_inicio)
             taxa = processados / tempo_decorrido
             pct = (processados / len(alvo_logs)) * 100.0
-            sys.stdout.write(f"\rAuditando {uf_zip}: {pct:5.1f}% | {taxa:.0f} seções/s...                 ")
+            sys.stdout.write(f"\rConsolidando {uf_zip}: {pct:5.1f}% | {taxa:.0f} seções/s...                 ")
             sys.stdout.flush()
 
     z.close()
-    sys.stdout.write(f"\rAuditando {uf_zip}: 100.0% - Concluído! ({len(todos_logs):,} seções)                                   \n")
+    sys.stdout.write(f"\rConsolidando {uf_zip}: 100.0% - Concluído! ({len(todos_logs):,} seções)                                   \n")
     sys.stdout.flush()
     if exibir_ranking_final:
         exibir_ranking(limit=25)
