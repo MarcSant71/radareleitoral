@@ -18,6 +18,7 @@ services:
     volumes:
       - ./db:/app/db
       - ./web:/app/web
+      - ./CHANGELOG.md:/app/CHANGELOG.md:ro
       - ./index.html:/usr/local/lib/python3.11/site-packages/streamlit/static/index.html:ro
       - ./og_preview.png:/usr/local/lib/python3.11/site-packages/streamlit/static/og_preview.png:ro
     networks:
