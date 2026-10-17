@@ -73,7 +73,10 @@ class UrnaBuParser:
         """
         resultado = {
             "presidente": None,
-            "governador": None
+            "governador": None,
+            "total_aptos": 0,
+            "comparecimento": 0,
+            "faltosos": 0
         }
         
         try:
@@ -99,11 +102,30 @@ class UrnaBuParser:
             elements = inner_tree[0]["children"]
             if len(elements) < 9:
                 return resultado
-                
+
+            # Extrai comparecimento oficial (Elemento 6 de EntidadeBoletimUrna)
+            comparecimento = 0
+            if len(elements) > 6 and elements[6].get("val"):
+                comparecimento = int.from_bytes(elements[6]["val"], "big")
+
             # Elemento 8 é resultadosVotacaoPorEleicao (SequenceOf)
             res_votacao = elements[8]
             if not res_votacao.get("children"):
                 return resultado
+
+            # Extrai total de eleitores aptos da eleição (Elemento 1 dentro de cada eleicao)
+            total_aptos = 0
+            for el_cand in res_votacao["children"]:
+                ch_el = el_cand.get("children", [])
+                if len(ch_el) > 1 and ch_el[1].get("val"):
+                    aptos_val = int.from_bytes(ch_el[1]["val"], "big")
+                    if aptos_val > total_aptos:
+                        total_aptos = aptos_val
+
+            faltosos = max(0, total_aptos - comparecimento)
+            resultado["total_aptos"] = total_aptos
+            resultado["comparecimento"] = comparecimento
+            resultado["faltosos"] = faltosos
                 
             for eleicao in res_votacao["children"]:
                 if len(eleicao.get("children", [])) < 5:

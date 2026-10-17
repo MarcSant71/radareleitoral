@@ -604,7 +604,17 @@ def renderizar_abstencao(
     dp_minutos = (df_filtrado["hora_ult_dec"].std() * 60.0) if secoes_com_log > 1 else 0.0
     pct_secoes_pos17 = ((df_filtrado["votos_apos_17h"] > 0).sum() * 100.0 / max(secoes_com_log, 1))
     df_amostra_corr = df_filtrado.sample(20_000, random_state=42) if secoes_com_log > 20_000 else df_filtrado
-    corr_abst_hora = df_amostra_corr["pct_abstencao"].rank().corr(df_amostra_corr["hora_ult_dec"].rank()) if secoes_com_log > 10 else 0.0
+    
+    def _calcular_corr_spearman(s1: pd.Series, s2: pd.Series) -> float:
+        try:
+            if len(s1) <= 10 or s1.std() == 0 or s2.std() == 0:
+                return 0.0
+            val = s1.rank().corr(s2.rank())
+            return float(val) if pd.notnull(val) else 0.0
+        except Exception:
+            return 0.0
+
+    corr_abst_hora = _calcular_corr_spearman(df_amostra_corr["pct_abstencao"], df_amostra_corr["hora_ult_dec"]) if secoes_com_log > 10 else 0.0
     qtd_cruzamento = int((df_filtrado["score_cruzado"] >= limite_cruzamento).sum())
 
     # Métricas de Biometria
@@ -613,7 +623,7 @@ def renderizar_abstencao(
     pct_sem_digital_geral = ((tot_votos_log - tot_bio_sucesso) * 100.0 / tot_votos_log) if tot_votos_log > 0 else 0.0
     pct_manual_geral = (tot_bio_manual * 100.0 / tot_votos_log) if tot_votos_log > 0 else 0.0
     dp_sem_digital = df_filtrado["pct_manual_calc"].std() if secoes_com_log > 1 else 0.0
-    corr_abst_manual = df_amostra_corr["pct_abstencao"].rank().corr(df_amostra_corr["pct_manual_calc"].rank()) if secoes_com_log > 10 else 0.0
+    corr_abst_manual = _calcular_corr_spearman(df_amostra_corr["pct_abstencao"], df_amostra_corr["pct_manual_calc"]) if secoes_com_log > 10 else 0.0
     qtd_z3_sem_digital = int((df_filtrado["z_manual"] >= 3.0).sum())
     qtd_z3_manual = int((df_filtrado["z_manual"] >= 3.0).sum())
 

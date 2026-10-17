@@ -45,7 +45,7 @@ def _parse_bu_worker(item: Tuple[int, bytes]) -> Optional[Tuple]:
         g = res.get("governador") or {}
         votos_cand = p.get("votos") or {}
         
-        return (
+        dados_resultado = (
             s_id,
             p.get("total_validos", 0),
             p.get("brancos", 0),
@@ -62,6 +62,15 @@ def _parse_bu_worker(item: Tuple[int, bytes]) -> Optional[Tuple]:
             g.get("vencedor_votos", 0),
             g.get("vencedor_pct", 0.0)
         )
+
+        dados_secao = (
+            res.get("total_aptos", 0),
+            res.get("comparecimento", 0),
+            res.get("faltosos", 0),
+            s_id
+        )
+        
+        return (dados_resultado, dados_secao)
     except Exception:
         return None
 
@@ -115,7 +124,9 @@ def processar_pacote_uf(zip_path: Path, secoes_map: Dict[Tuple[str, str, str, st
                         pass
                         
                 resultados_raw = executor.map(_parse_bu_worker, read_items, chunksize=50)
-                resultados_chunk = [r for r in resultados_raw if r is not None]
+                chunk_valid = [r for r in resultados_raw if r is not None]
+                resultados_chunk = [r[0] for r in chunk_valid]
+                secoes_chunk = [r[1] for r in chunk_valid]
                         
                 # Gravação em lote atômica no SQLite WAL
                 with conn:
@@ -128,6 +139,12 @@ def processar_pacote_uf(zip_path: Path, secoes_map: Dict[Tuple[str, str, str, st
                             gov_venc_num, gov_venc_votos, gov_venc_pct
                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, resultados_chunk)
+
+                    cur.executemany("""
+                        UPDATE secoes 
+                        SET total_aptos = ?, comparecimento_bu = ?, faltosos_bu = ?
+                        WHERE id = ?
+                    """, secoes_chunk)
                     
                 processados_count += len(resultados_chunk)
                 taxa = processados_count / max(0.1, time.time() - t0)
@@ -144,6 +161,7 @@ def main():
     parser = argparse.ArgumentParser(description="Consolidador de Boletins de Urna (BU) - Eleições 2026")
     parser.add_argument("--uf", default=None, help="Processa apenas uma UF específica (ex: BA, AC, SP)")
     parser.add_argument("--threads", type=int, default=16, help="Número de threads simultâneas de parsing")
+    parser.add_argument("--forcar", action="store_true", help="Força o reprocessamento de seções já existentes")
     default_dir = os.environ.get("DADOS_DIR")
     if not default_dir:
         cand_urna = Path("dados_brutos/arquivos_urna")
@@ -174,9 +192,14 @@ def main():
         secoes_map[(pleito, uf, mu, zn, se)] = s_id
     print(f"Seções cadastradas no banco: {len(secoes_map):,}")
     
-    cur.execute("SELECT secao_id FROM resultados_eleicao")
-    processados = {row[0] for row in cur.fetchall()}
-    print(f"Seções já com resultados consolidados: {len(processados):,}")
+    if args.forcar:
+        processados = set()
+        print("Modo --forcar ativo: todas as seções serão consolidadas novamente.")
+    else:
+        # Seções concluídas são aquelas que já possuem resultados E dados de aptos/comparecimento preenchidos
+        cur.execute("SELECT r.secao_id FROM resultados_eleicao r JOIN secoes s ON s.id = r.secao_id WHERE s.total_aptos > 0")
+        processados = {row[0] for row in cur.fetchall()}
+        print(f"Seções já consolidadas com aptos e resultados: {len(processados):,}")
     conn.close()
     
     # Lista arquivos ZIP
