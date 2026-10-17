@@ -10,9 +10,9 @@ e este projeto adere estritamente ao [Semantic Versioning (SemVer 2.0.0)](https:
 ## [2.7.2] - 2026-10-17
 
 ### Corrigido
-- **Apuração Nacional de Abstenção:** Normalização dos indicadores oficiais de comparecimento e eleitorado apto a partir dos Boletins de Urna (BU), restaurando a distribuição real de abstenção e correlações temporais em todas as 497.895 seções eleitorais do país.
-- **Estabilidade nos Modelos de Correlação:** Aprimoramento nos cálculos estatísticos das matrizes de dispersão entre abstenção, horários de votação e modalidades de habilitação de eleitores.
-- **Blindagem da Aplicação:** Ativação de políticas estritas de controle de origem em requisições de comunicação interativa.
+- **Dados Oficiais de Abstenção:** Correção no cálculo de eleitores faltosos e comparecimento em todas as 497.895 seções do país, refletindo com exatidão a taxa oficial de abstenção (média de 20,7%) e permitindo análises precisas nos gráficos e no mapa.
+- **Estabilidade nos Gráficos e Cálculos:** Eliminação de travamentos ao cruzar horários de votação, biometria e abstenção, garantindo exibição estável mesmo ao filtrar poucas seções.
+- **Segurança e Privacidade:** Bloqueio de conexões externas não autorizadas, garantindo que as consultas e filtros do painel funcionem de forma isolada e segura apenas na página oficial.
 
 ---
 
