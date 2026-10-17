@@ -52,36 +52,103 @@ def processar_log_remoto(reader: RemoteZipRangeReader, filename: str, parser: Ur
         # print(f"Erro ao processar {filename}: {e}", file=sys.stderr)
         return None
 
-# Carrega catálogo oficial de nomes de municípios do TSE
-MAPA_MUNICIPIOS = {}
-project_root = Path(__file__).resolve().parent.parent
-csv_candidatos = [
-    project_root / "dados_brutos" / "municipios" / "municipio_tse_ibge.csv",
-    project_root / "municipios" / "municipio_tse_ibge.csv",
-    Path(__file__).resolve().parent / "municipios" / "municipio_tse_ibge.csv",
-    Path("dados_brutos/municipios/municipio_tse_ibge.csv"),
-    Path("municipios/municipio_tse_ibge.csv")
-]
-csv_mun = next((p for p in csv_candidatos if p.exists()), None)
-if csv_mun:
+# Catálogo oficial de municípios do TSE
+URL_MUNICIPIOS_TSE = "https://cdn.tse.jus.br/estatistica/sead/odsele/municipio_tse_ibge/municipio_tse_ibge.zip"
+MAPA_MUNICIPIOS: Dict[str, str] = {}
+
+def garantir_municipios_csv(destino_dir: Optional[Path] = None) -> Optional[Path]:
+    """
+    Garante a presença do catálogo oficial de municípios do TSE (municipio_tse_ibge.csv).
+    Se ausente no diretório dados_brutos/municipios/, efetua o download e extração
+    automática a partir da CDN oficial do TSE.
+    """
+    import zipfile
+    import urllib.request
+    import io
+
+    project_root = Path(__file__).resolve().parent.parent
+    destino = destino_dir or (project_root / "dados_brutos" / "municipios")
+    csv_final = destino / "municipio_tse_ibge.csv"
+
+    if csv_final.exists() and csv_final.stat().st_size > 1024:
+        return csv_final
+
+    # Se destino_dir não foi customizado, verifica eventuais caminhos legados
+    if destino_dir is None:
+        candidatos = [
+            project_root / "municipios" / "municipio_tse_ibge.csv",
+            Path(__file__).resolve().parent / "municipios" / "municipio_tse_ibge.csv",
+        ]
+        for c in candidatos:
+            if c.exists() and c.stat().st_size > 1024:
+                return c
+
+    # Baixa automaticamente da CDN oficial do TSE
+    destino.mkdir(parents=True, exist_ok=True)
+    print("[*] Catálogo de municípios ausente. Baixando da CDN do TSE (municipio_tse_ibge.zip)...")
     try:
-        import csv
-        with open(csv_mun, mode='r', encoding='latin1') as f:
-            reader = csv.DictReader(f, delimiter=';')
+        req = urllib.request.Request(
+            URL_MUNICIPIOS_TSE,
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RadarEleitoral/2.6.0"}
+        )
+        with urllib.request.urlopen(req, timeout=25) as resp:
+            zip_bytes = resp.read()
+
+        with zipfile.ZipFile(io.BytesIO(zip_bytes)) as z:
+            for member in z.namelist():
+                if member.endswith("municipio_tse_ibge.csv"):
+                    with z.open(member) as src, open(csv_final, "wb") as dst:
+                        dst.write(src.read())
+                    print(f"[+] Catálogo de municípios extraído com sucesso: {csv_final.name} ({round(csv_final.stat().st_size / 1024, 1)} KB)")
+                    return csv_final
+
+        print("[!] AVISO: 'municipio_tse_ibge.csv' não encontrado dentro do ZIP da CDN do TSE.")
+        return None
+    except Exception as e:
+        print(f"[!] AVISO: Falha ao baixar catálogo de municípios do TSE ({e}).")
+        print("    As seções serão registradas com códigos numéricos oficiais do TSE.")
+        return None
+
+
+def carregar_mapa_municipios(forcar: bool = False) -> Dict[str, str]:
+    """
+    Carrega o mapeamento oficial código TSE (5 dígitos) -> Nome do município em memória.
+    Garante o download do arquivo se ausente.
+    """
+    global MAPA_MUNICIPIOS
+    if MAPA_MUNICIPIOS and not forcar:
+        return MAPA_MUNICIPIOS
+
+    import csv
+    csv_path = garantir_municipios_csv()
+    if not csv_path or not csv_path.exists():
+        return MAPA_MUNICIPIOS
+
+    try:
+        with open(csv_path, mode="r", encoding="latin1") as f:
+            reader = csv.DictReader(f, delimiter=";")
             for row in reader:
-                cd = str(row.get('CD_MUNICIPIO_TSE', '')).zfill(5)
-                nm = str(row.get('NM_MUNICIPIO_TSE', '')).strip().title()
+                cd = str(row.get("CD_MUNICIPIO_TSE", "")).strip().zfill(5)
+                nm = str(row.get("NM_MUNICIPIO_TSE", "")).strip().title()
                 if cd and nm:
                     MAPA_MUNICIPIOS[cd] = nm
-    except Exception:
-        pass
-else:
-    print("[!] AVISO: Catálogo 'municipio_tse_ibge.csv' não encontrado em dados_brutos/municipios/.")
-    print("    As seções serão registradas com códigos numéricos oficiais do TSE.")
+    except Exception as e:
+        print(f"[!] Erro ao analisar CSV de municípios ({e}).")
+
+    return MAPA_MUNICIPIOS
+
+
+# Pré-carrega catálogo se já estiver em disco local; se ausente, será obtido sob demanda
+_proj_root = Path(__file__).resolve().parent.parent
+if (_proj_root / "dados_brutos" / "municipios" / "municipio_tse_ibge.csv").exists():
+    carregar_mapa_municipios()
+
 
 def salvar_em_lote(resultados: List[Dict[str, Any]]) -> None:
     if not resultados:
         return
+    if not MAPA_MUNICIPIOS:
+        carregar_mapa_municipios()
     conn = get_connection()
     with conn:
         cur = conn.cursor()
@@ -180,6 +247,7 @@ def exibir_ranking(limit: int = 15, uf: Optional[str] = None) -> None:
 
 def executar_auditoria(uf: str = "BA", municipio: Optional[str] = None, limite: int = 50, threads: int = 8) -> None:
     init_db()
+    carregar_mapa_municipios()
     zip_url = f"{CDN_BASE_URL}/bu_imgbu_logjez_rdv_vscmr_2026_1t_{uf.upper()}.zip"
     print(f"\n[1/3] Conectando ao pacote da CDN para {uf.upper()}...")
     reader = RemoteZipRangeReader(zip_url)
@@ -218,6 +286,7 @@ def executar_auditoria(uf: str = "BA", municipio: Optional[str] = None, limite: 
 def executar_auditoria_local_zip(caminho_zip: Path, municipio: Optional[str] = None, limite: Optional[int] = None, threads: int = 8, exibir_ranking_final: bool = False) -> None:
     import zipfile
     init_db()
+    carregar_mapa_municipios()
     caminho = Path(caminho_zip)
     if not caminho.exists():
         print(f"Erro: Arquivo local {caminho} não encontrado.", file=sys.stderr)

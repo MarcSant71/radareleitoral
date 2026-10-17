@@ -212,6 +212,10 @@ def orquestrar_pipeline(
     conn.close()
     print("[+] Schema do SQLite validado e pleitos estruturados (1º e 2º Turnos).\n")
 
+    # Garante o catálogo oficial de municípios do TSE de forma automatizada
+    from pipeline.auditar import garantir_municipios_csv
+    garantir_municipios_csv()
+
     total_bus_geral = 0
 
     # Processa Etapas 2, 3 e 4 para cada turno disponível
@@ -286,7 +290,13 @@ def orquestrar_pipeline(
 
     # 6. Sincronização Geoespacial de Locais de Votação (Mapa de Fiscais & Seções)
     from pipeline.processamento_locais import PARQUET_LOCAIS_PATH, PARQUET_SECOES_PATH, consolidar_locais_nacionais
-    if not PARQUET_LOCAIS_PATH.exists() or not PARQUET_SECOES_PATH.exists():
+    conn = get_connection(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("SELECT count(*) FROM sqlite_master WHERE type='table' AND name='locais_votacao'")
+    tem_tabela_locais = (cur.fetchone()[0] > 0)
+    conn.close()
+
+    if zerar_banco or not tem_tabela_locais or not PARQUET_LOCAIS_PATH.exists() or not PARQUET_SECOES_PATH.exists():
         print("\n" + "=" * 80)
         print("ETAPA ADICIONAL: SINCRONIZAÇÃO GEOESPACIAL DE LOCAIS DE VOTAÇÃO (MAPA)")
         print("=" * 80)
