@@ -76,7 +76,7 @@ def renderizar_mapa(
     Renderiza o módulo completo do Mapa de Fiscais e Seções Prioritárias.
     """
     if df_locais.empty:
-        st.warning("⚠️ O catálogo de locais de votação ainda não foi carregado. Execute `python pipeline/ingestao_locais.py` para sincronizar os dados.")
+        st.warning("⚠️ O catálogo geoespacial de locais de votação está temporariamente em sincronização. Por favor, tente novamente em instantes.")
         st.stop()
 
     # ==========================================
@@ -226,7 +226,6 @@ def renderizar_mapa(
             return
 
         # Amostragem defensiva para visão nacional (evita estourar memória do navegador)
-        aviso_amostragem = False
         limite_pontos = 6000
         total_pontos_validos = len(df_geo)
         if total_pontos_validos > limite_pontos:
@@ -234,13 +233,6 @@ def renderizar_mapa(
             ordem_risco = {"alto": 0, "medio": 1, "baixo": 2}
             df_geo["_ordem"] = df_geo["risco"].astype(str).map(ordem_risco).fillna(3).astype(int)
             df_geo = df_geo.sort_values("_ordem").head(limite_pontos)
-            aviso_amostragem = True
-
-        if aviso_amostragem:
-            st.warning(
-                f"⚡ **Visualização Nacional Otimizada:** Exibindo os {limite_pontos:,} prédios mais prioritários de um total de {total_pontos_validos:,} no país. "
-                "Para visualizar 100% dos locais de um município ou bairro, selecione o **Estado (UF)** no menu lateral."
-            )
 
         # Cálculo do centro e zoom ideal do mapa
         lat_centro = float(df_geo["lat"].median())

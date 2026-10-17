@@ -2005,8 +2005,8 @@ if skeleton_sidebar_placeholder is not None:
     skeleton_sidebar_placeholder.empty()
 
 if df.empty:
-    st.warning("⚠️ O banco de dados local (eleicoes2026.db) ainda não possui dados auditados ou está vazio.")
-    st.info("Execute o arquivo `atualizar_dados.cmd` para sincronizar os dados brutos e consolidar o banco.")
+    st.warning("⚠️ A base de dados analítica está temporariamente em sincronização.")
+    st.info("Por favor, tente novamente em instantes ou selecione outro pleito.")
     st.stop()
 
 # Garante coluna de região como categoria leve

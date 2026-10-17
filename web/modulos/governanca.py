@@ -8,11 +8,25 @@ from pathlib import Path
 import streamlit as st
 
 
+def _sanitizar_texto_opsec(txt: str) -> str:
+    """Higieniza notas públicas removendo caminhos de código e detalhes de infraestrutura interna."""
+    # Remove caminhos de arquivos (.py, .ps1, .cmd, .parquet, .db, .json, .sh, etc.)
+    txt = re.sub(r"`?[a-zA-Z0-9_\-\.\/]+\.(?:py|ps1|cmd|sh|parquet|db|json|toml|yml|yaml|sql)`?", "", txt)
+    # Remove referências diretas a diretórios internos de código
+    txt = re.sub(r"`?(?:web|pipeline|scripts|db|dados|motores|modulos)\/`?", "", txt)
+    # Remove menções a comandos internos de terminal
+    txt = re.sub(r"`?python\s+-[m\w\s\.-]+`?", "", txt)
+    # Remove parênteses que ficaram vazios após a remoção de caminhos: ( ) ou ()
+    txt = re.sub(r"\(\s*\)", "", txt)
+    # Limpa espaços duplos residuais
+    txt = re.sub(r"\s{2,}", " ", txt).strip()
+    return txt
+
+
 def obter_tabela_changelog_markdown() -> str:
     """
-    Lê o CHANGELOG.md (SSOT oficial de versionamento) e constrói dinamicamente
-    a tabela Markdown com o histórico completo de versões e notas de engenharia.
-    Garante que novas versões apareçam automaticamente sem necessidade de manutenção duplicada.
+    Lê o CHANGELOG.md e constrói dinamicamente a tabela Markdown com o histórico
+    oficial de entregas e melhorias da plataforma, aplicando filtros estritos de OpSec.
     """
     web_dir = Path(__file__).resolve().parent.parent
     root_dir = web_dir.parent
@@ -28,7 +42,7 @@ def obter_tabela_changelog_markdown() -> str:
 
     if not content:
         return """
-| Versão | Data | Classificação | Principais Entregas & Notas de Engenharia |
+| Versão | Data | Classificação | Principais Entregas & Melhorias da Plataforma |
 | :--- | :---: | :---: | :--- |
 | **v2.7.0** | **17/10/2026** | `MINOR` | Módulo Geoespacial de Fiscais & Seções e Camadas OpenStreetMap. |
 """
@@ -37,7 +51,7 @@ def obter_tabela_changelog_markdown() -> str:
     matches = list(re.finditer(pattern, content, re.MULTILINE))
 
     linhas_tabela = [
-        "| Versão | Data | Classificação | Principais Entregas & Notas de Engenharia |",
+        "| Versão | Data | Classificação | Principais Entregas & Melhorias da Plataforma |",
         "| :--- | :---: | :---: | :--- |"
     ]
 
@@ -65,7 +79,7 @@ def obter_tabela_changelog_markdown() -> str:
 
         itens = []
         for l in bloco.split("\n"):
-            l_str = l.strip()
+            l_str = _sanitizar_texto_opsec(l.strip())
             if not l_str or l_str.startswith("### "):
                 continue
             if l_str.startswith("- ") or l_str.startswith("* "):
@@ -140,8 +154,8 @@ def renderizar_conteudo_governanca(modo_escuro: bool = True, plotly_theme: str =
         1. **Assinaturas Digitais Criptográficas do TSE (Chaves ICP-Brasil):**  
            Cada arquivo emitido pela urna eletrônica (`.bu` e `.logd`) contém um resumo criptográfico (**Hash SHA-512**) assinado digitalmente com o certificado emitido pela Autoridade Certificadora da Justiça Eleitoral na Cerimônia Pública de Lacração dos Sistemas.  
            *Qualquer alteração* — de um único bit, voto ou milissegundo — romperia a cadeia de custódia e invalidaria a assinatura criptográfica oficial.
-        2. **Código Determinístico em Python (Zero Alucinação):**  
-           O processamento da base `eleicoes2026.db` utiliza rotinas determinísticas com bibliotecas canônicas da indústria (`asn1crypto`, `sqlite3`, `pandas`, `numpy`). Não são utilizados modelos opacos de inteligência artificial generativa na apuração dos números; o motor apenas consolida os registros oficiais da memória da urna.
+        2. **Código Determinístico e Auditável (Zero Alucinação):**  
+           O processamento analítico dos dados utiliza rotinas matemáticas e determinísticas em estrito alinhamento às especificações oficiais abertas do TSE (ISO/IEC 8824 e ASN.1). Não são utilizados modelos opacos de inteligência artificial generativa na apuração dos números; o motor apenas consolida e sumariza os registros oficiais emitidos pelas urnas.
         3. **Reprodutibilidade 100% Pública:**  
            Qualquer pesquisador, auditor, universidade ou cidadão pode baixar os pacotes brutos diretamente dos servidores do TSE e executar os scripts de conferência. Os números consolidados baterão de forma idêntica, voto por voto, evento por evento.
 
