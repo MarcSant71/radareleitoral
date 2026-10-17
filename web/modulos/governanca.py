@@ -3,7 +3,83 @@ Módulo de Governança Pública, Proteção de Dados (LGPD), Segurança Criptogr
 Centraliza as diretrizes institucionais, conformidade legal e changelog de desenvolvimento do sistema.
 """
 
+import re
+from pathlib import Path
 import streamlit as st
+
+
+def obter_tabela_changelog_markdown() -> str:
+    """
+    Lê o CHANGELOG.md (SSOT oficial de versionamento) e constrói dinamicamente
+    a tabela Markdown com o histórico completo de versões e notas de engenharia.
+    Garante que novas versões apareçam automaticamente sem necessidade de manutenção duplicada.
+    """
+    web_dir = Path(__file__).resolve().parent.parent
+    root_dir = web_dir.parent
+
+    content = ""
+    for p in [root_dir / "CHANGELOG.md", web_dir / "CHANGELOG.md", Path("CHANGELOG.md")]:
+        if p.exists():
+            try:
+                content = p.read_text(encoding="utf-8")
+                break
+            except Exception:
+                pass
+
+    if not content:
+        return """
+| Versão | Data | Classificação | Principais Entregas & Notas de Engenharia |
+| :--- | :---: | :---: | :--- |
+| **v2.7.0** | **17/10/2026** | `MINOR` | Módulo Geoespacial de Fiscais & Seções e Camadas OpenStreetMap. |
+"""
+
+    pattern = r"^##\s*\[(\d+\.\d+\.\d+)\]\s*-\s*([0-9-]+)"
+    matches = list(re.finditer(pattern, content, re.MULTILINE))
+
+    linhas_tabela = [
+        "| Versão | Data | Classificação | Principais Entregas & Notas de Engenharia |",
+        "| :--- | :---: | :---: | :--- |"
+    ]
+
+    for i, m in enumerate(matches):
+        versao = m.group(1)
+        data_iso = m.group(2)
+        d_pts = data_iso.split("-")
+        data_br = f"{d_pts[2]}/{d_pts[1]}/{d_pts[0]}" if len(d_pts) == 3 else data_iso
+
+        v_nums = [int(x) for x in versao.split(".")]
+        if i < len(matches) - 1:
+            prev_nums = [int(x) for x in matches[i + 1].group(1).split(".")]
+            if v_nums[0] > prev_nums[0]:
+                semver_type = "MAJOR"
+            elif v_nums[1] > prev_nums[1]:
+                semver_type = "MINOR"
+            else:
+                semver_type = "PATCH"
+        else:
+            semver_type = "MINOR"
+
+        start = m.end()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(content)
+        bloco = content[start:end].strip().strip("---").strip()
+
+        itens = []
+        for l in bloco.split("\n"):
+            l_str = l.strip()
+            if not l_str or l_str.startswith("### "):
+                continue
+            if l_str.startswith("- ") or l_str.startswith("* "):
+                itens.append("• " + l_str[2:].strip())
+            elif l_str.startswith("• "):
+                itens.append(l_str)
+            else:
+                itens.append(l_str)
+
+        descricao = "<br>".join(itens)
+        descricao = descricao.replace("|", "\\|")
+        linhas_tabela.append(f"| **v{versao}** | **{data_br}** | `{semver_type}` | {descricao} |")
+
+    return "\n".join(linhas_tabela)
 
 
 def renderizar_conteudo_governanca(modo_escuro: bool = True, plotly_theme: str = "plotly_dark"):
@@ -100,22 +176,7 @@ def renderizar_conteudo_governanca(modo_escuro: bool = True, plotly_theme: str =
         <h3 style='margin-top: 0.25rem; margin-bottom: 0.75rem;'>🏷️ Histórico de Versões & Evolução da Plataforma</h3>
         """, unsafe_allow_html=True)
 
-        st.markdown("""
-        | Versão | Data | Classificação | Principais Entregas & Notas de Engenharia |
-        | :--- | :---: | :---: | :--- |
-        | **v2.6.0** | **17/10/2026** | `MINOR` | **Identidade Radar Eleitoral & Arquitetura Modular:**<br>• **Evolução da Marca:** Oficialização do nome *Radar Eleitoral* para desacoplar a plataforma de um ano específico e torná-la um canivete suíço analítico multiano.<br>• **Arquitetura Modular (`web/`):** Reorganização limpa por responsabilidade com orquestrador central (`app.py`), módulos de ferramentas (`modulos/`), modelos de inferência (`motores/`) e camada de persistência/cache (`dados/`).<br>• **Roteamento Semântico via URL:** Gestão limpa de rotas via `?ferramenta=abstencao`, `?ferramenta=auditoria` e `?ferramenta=governanca`.<br>• **Cabeçalho Reativo e Dinâmico:** Sincronização em tempo real do título e subtítulo de acordo com a ferramenta selecionada na barra lateral. |
-        | **v2.5.0** | **16/10/2026** | `MINOR` | **Engenharia de Dados Modular & Orquestrador Mestre (`pipeline/`):**<br>• Transformação da pasta `pipeline/` em pacote Python canônico com auto-detecção de turnos via HTTP sentinela e orquestrador em 5 etapas (`iniciar_banco.py`).<br>• Tabela dimensão de pleitos no SQLite com suporte relacional pré-catalogado para 1º e 2º turnos.<br>• Travas de governança e segurança operacional contra execuções acidentais em produção. |
-        | **v2.4.4** | **16/10/2026** | `PATCH` | **Suporte a Múltiplos Turnos & Evolução da Plataforma:**<br>• **Estrutura para o 2º Turno:** Preparação da plataforma e das rotinas analíticas para a auditoria dos dados do segundo turno.<br>• **Seletor de Turno:** Novo controle no menu lateral permitindo alternar a visualização conforme a fase da eleição.<br>• **Endereço Institucional:** Transição para o domínio definitivo e unificado da plataforma (`eleicao.dominiodigital.dev.br`). |
-        | **v2.4.3** | **16/10/2026** | `PATCH` | **Otimização de Desempenho & Fluidez de Interface:**<br>• **Armazenamento Colunar de Alta Performance:** Estruturação de cache analítico pré-processado (Parquet) com validação de integridade por timestamp, reduzindo a latência de inicialização para sub-segundo.<br>• **Exportação Sob Demanda:** Processamento postergado de relatórios CSV via chamada sob demanda, eliminando consumo de banda e tráfego desnecessário na carga da página.<br>• **Alinhamento Visual do Esqueleto de Carga:** Sincronização geométrica do indicador visual (*skeleton*) com a disposição real dos filtros e gráficos, eliminando oscilações visuais na renderização inicial.<br>• **Navegação Persistente:** Transição instantânea entre o painel de dados e o caderno metodológico com preservação de estado em memória e sem disparos redundantes de processamento. |
-        | **v2.4.2** | **15/10/2026** | `PATCH` | **Skeleton Screen com Shimmer & Otimização de Transições:**<br>• Introdução de Skeleton Screen pulsante com gradiente de onda fluida (shimmer) durante o carregamento inicial (cold start), eliminando telas em branco.<br>• Supressão do segundo spinner no cold start e polimento visual da governança (remoção de botões redundantes e otimização vertical).<br>• Desacoplamento da renderização metodológica com tempo de resposta inferior a 15ms e persistência contextual de filtros no `session_state`. |
-        | **v2.4.1** | **15/10/2026** | `PATCH` | **Otimização de Desempenho & Vetorização Numérica:**<br>• Vetorização via NumPy dos critérios de triagem forense, acelerando a renderização em mais de 90%.<br>• Pré-agregação server-side dos histogramas de distribuição temporal, reduzindo o volume de tráfego em 99,8%.<br>• Amostragem otimizada de dispersão WebGL e métricas de correlação, eliminando latências de renderização em servidores de produção. |
-        | **v2.4.0** | **15/10/2026** | `MINOR` | **Módulo Analítico de Abstenção & Comparecimento Eleitoral:**<br>• Integração completa do painel de abstenção com modelo de Funil de Spiegelhalter (2005) e limites de controle paramétricos (95% e 99.8%).<br>• Incorporação da base oficial consolidada do TSE com 152 milhões de eleitores aptos e 497.895 seções apuradas.<br>• Suíte analítica com 21 KPIs (3x7) e 7 abas: *Comparar*, *Distribuição*, *Funil*, *Sinalizadas*, *Horário*, *Sem Digital* e *Cruzamento*.<br>• Detecção automatizada de seções com baixa abstenção anômala (*turnout spikes*) e geração de diagnósticos forenses objetivos.<br>• Desacoplamento arquitetural: separação modular entre painéis analíticos e tela dedicada de governança jurídica/LGPD. |
-        | **v2.3.0** | **15/10/2026** | `MINOR` | **Didática Forense & Acessibilidade Universal:**<br>• Reformulação didática e acessível do caderno metodológico: tradução intuitiva da inferência estatística de Spiegelhalter (2005), analogias conceituais (MAD e o bilionário na padaria, termômetro do *z*-score e Teorema de Pitágoras/Norma Euclidiana $L_2$ multivariada) e renderização matemática isolada em blocos KaTeX.<br>• Subsistema universal de tooltips flutuantes de alto contraste invertido com suporte completo ao motor BaseWeb (cards e controles) e ao Glide Data Grid (`st.dataframe`).<br>• Conformidade com critérios WCAG de legibilidade visual em modo escuro e microinterações táteis nos ícones de ajuda contextual (?). |
-        | **v2.2.0** | **14/10/2026** | `PATCH` | **Experiência Analítica Dual & Calibração Visual:**<br>• Nova visualização de distribuição em modo duplo: *Faixas de Risco Forense* (visão intuitiva com contagens e percentuais por categoria) e *Histograma Contínuo* (visão técnica detalhada até 12σ) com seletor e ajuda contextual explicativa (?).<br>• *Viewport* dinâmico inteligente no gráfico de dispersão multivariada (calibrado no 99,5º percentil), eliminando a aglomeração causada por seções com horários extremos.<br>• Desacoplamento geométrico das anotações de significância (+2σ e +3σ), eliminando sobreposições de texto.<br>• Sincronização do manifesto de módulos dinâmicos e conformidade com diretrizes de governança e LGPD. |
-        | **v2.1.0** | **14/10/2026** | `MAJOR` | **Implementação do Motor Estatístico de Spiegelhalter (2005):**<br>• Substituição de regras heurísticas e pesos arbitrários por inferência estatística baseada em desvios padronizados (*z*-scores em sigmas σ).<br>• Adoção da técnica *Leave-One-Out* municipal para eliminação de viés e falsos alarmes.<br>• Estimativa robusta da superdispersão τ² intra-UF via MAD.<br>• Métricas multivariadas compostas (Norma Euclidiana $L_2$) e novos diagnósticos objetivos de alerta.<br>• Identificação formal de versionamento em toda a plataforma. |
-        | **v2.0.0** | **13/10/2026** | `MAJOR` | **Auditoria Nacional Consolidada (27 UFs):**<br>• Processamento paralelo e decodificação ASN.1 dos 497.895 BUs e logs de eventos do TSE em escala nacional.<br>• Arquitetura SQLite WAL de alta performance com baixo consumo de memória RAM.<br>• Suporte nativo a Tema Claro/Escuro instantâneo e layout responsivo. |
-        | **v1.0.0** | **11/10/2026** | `MINOR` | Protótipo inicial de extração de dados abertos do TSE e ranking exploratório forense. |
-        """, unsafe_allow_html=True)
+        st.markdown(obter_tabela_changelog_markdown(), unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown(

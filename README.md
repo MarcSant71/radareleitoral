@@ -28,7 +28,7 @@ O projeto é guiado pelo princípio da **total transparência e reprodutibilidad
 O projeto é estruturado com separação estrita entre a camada de apresentação web, o pacote modular de dados e os scripts operacionais:
 
 ```text
-Eleicao2026/
+RadarEleitoral/
 │
 ├── iniciar_banco.py           # [CLI] Atalho mestre para inicialização e carga do pipeline
 │

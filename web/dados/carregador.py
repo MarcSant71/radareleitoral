@@ -20,6 +20,46 @@ MAPA_REGIOES = {
 }
 
 PARQUET_CACHE_PATH = DB_PATH.with_suffix(".parquet")
+PARQUET_LOCAIS_PATH = DB_PATH.parent / "locais_votacao.parquet"
+PARQUET_SECOES_PATH = DB_PATH.parent / "locais_secoes.parquet"
+
+
+def obter_locais_votacao() -> pd.DataFrame:
+    """Carrega o catálogo nacional de locais de votação com geolocalização (~0.08s)."""
+    if PARQUET_LOCAIS_PATH.exists():
+        try:
+            return pd.read_parquet(PARQUET_LOCAIS_PATH)
+        except Exception:
+            pass
+
+    if DB_PATH.exists():
+        conn = sqlite3.connect(DB_PATH)
+        try:
+            df = pd.read_sql_query("SELECT * FROM locais_votacao", conn)
+            conn.close()
+            return df
+        except Exception:
+            conn.close()
+    return pd.DataFrame()
+
+
+def obter_secoes_mapeadas() -> pd.DataFrame:
+    """Carrega o catálogo de seções mapeadas com seus critérios e apontamento ao local (~0.04s)."""
+    if PARQUET_SECOES_PATH.exists():
+        try:
+            return pd.read_parquet(PARQUET_SECOES_PATH)
+        except Exception:
+            pass
+
+    if DB_PATH.exists():
+        conn = sqlite3.connect(DB_PATH)
+        try:
+            df = pd.read_sql_query("SELECT * FROM locais_secoes", conn)
+            conn.close()
+            return df
+        except Exception:
+            conn.close()
+    return pd.DataFrame()
 
 
 def obter_dados_analiticos(forcar_reprocessamento: bool = False) -> pd.DataFrame:

@@ -1,4 +1,4 @@
-# Diretrizes do Projeto Eleições 2026
+# Diretrizes do Projeto Radar Eleitoral
 
 ## 1. Fluxo Obrigatório de Homologação e Deploy (Local-First)
 
@@ -13,13 +13,13 @@
    - O usuário valida e testa a aplicação localmente em `http://localhost:8501` através do script `scripts\rodarlocal.cmd`.
    - O Streamlit recarrega automaticamente as mudanças (*Hot Reload / Rerun*).
    - Enquanto o usuário não der o sinal verde explícito, nenhum arquivo é enviado para o servidor de produção (VPS Hetzner) e nenhum commit de release é gerado.
-   - **Gatilho de Autorização Automática (`aprovadopd`):** A palavra-chave **`aprovadopd`** enviada pelo usuário é a autorização formal e definitiva para executar o ciclo completo de commit e deploy em produção.
+   - **Gatilho de Autorização Automática (`pacotepd`):** A palavra-chave **`pacotepd`** enviada pelo usuário é a autorização formal e definitiva para executar o ciclo completo de commit e deploy em produção ("empacotar tudo e jogar para pd").
 3. **Versionamento Semântico (SemVer 2.0.0):**
    - **PATCH (`x.y.Z`):** Correções de bugs, ajustes visuais, CSS, polimento de contrastes e manutenção.
    - **MINOR (`x.Y.z`):** Novas funcionalidades retrocompatíveis, novas telas, novos filtros ou grandes marcos consolidados de produto.
    - **MAJOR (`X.y.z`):** Mudanças estruturais que quebrem contratos ou bancos de dados.
-4. **Deploy Único em Produção (Disparado por `aprovadopd` ou OK explícito):**
-   - Ao receber `aprovadopd`:
+4. **Deploy Único em Produção (Disparado por `pacotepd` ou OK explícito):**
+   - Ao receber `pacotepd`:
      1. Garantir sincronização de versionamento e changelog (`CHANGELOG.md`, `web/version.json`, `web/modulos/governanca.py`, `README.md`).
      2. Executar `git add -A` e `git commit -m "feat/fix/refactor: ... [vX.Y.Z]"`.
      3. Executar `git push origin main`.

@@ -41,6 +41,12 @@ if ($IncludeDatabase) {
 if (Test-Path "$ProjectDir\db\eleicoes2026.parquet") {
     $ItemsToInclude += "db\eleicoes2026.parquet"
 }
+if (Test-Path "$ProjectDir\db\locais_votacao.parquet") {
+    $ItemsToInclude += "db\locais_votacao.parquet"
+}
+if (Test-Path "$ProjectDir\db\locais_secoes.parquet") {
+    $ItemsToInclude += "db\locais_secoes.parquet"
+}
 
 # Resolve versao do CHANGELOG.md e commit hash do Git de forma automatica
 Write-Host "[*] Resolvendo metadados de versao e commit..." -ForegroundColor Yellow

@@ -7,6 +7,23 @@ e este projeto adere estritamente ao [Semantic Versioning (SemVer 2.0.0)](https:
 
 ---
 
+## [2.7.0] - 2026-10-17
+
+### Adicionado
+- **Módulo Geoespacial de Fiscais & Seções (`web/modulos/mapa.py`):**
+  - Mapeamento interativo de **71.118 prédios de votação** e **176.946 seções sinalizadas** em todo o Brasil.
+  - Renderização geoespacial com Leaflet 1.9.4 e MarkerCluster via `st.iframe` sem dependências pesadas de backend.
+  - **Gaveta Lateral Flutuante (*In-Map Side Drawer*):** Inspeção ágil de colégios e seções auditadas diretamente sobre o mapa ao clicar em qualquer pino (experiência idêntica ao `brasil.arvor.co`), eliminando rolagem vertical e exibindo diagnósticos, métricas de comparecimento, percentuais e alertas de log sem latência de backend.
+  - Camadas de mapa 100% livres com OpenStreetMap ativado por padrão e seletor com suporte a Esri Dark Canvas e Satélite (zero dependência de Google ou chaves de API).
+  - Filtros granulares por UF, Município, Zona Eleitoral, Nível de Prioridade (Alta, Média, Baixa) e Busca Textual por Colégio, Rua, Bairro ou CEP.
+  - Tabela analítica com exportação em CSV sob demanda (`UTF-8 com BOM`) e visualizador com raio-x detalhado de seções e alertas de log por prédio escolar.
+  - Documentação didática com Metodologia e Critérios de Mapeamento Georreferenciado para orientação de fiscais de urna.
+- **Pipeline de Ingestão e Cache Geoespacial (`pipeline/ingestao_locais.py`):**
+  - Download paralelo dos dados de locais das 28 UFs e geração de cache colunar Parquet (`locais_votacao.parquet` e `locais_secoes.parquet`).
+  - Integração no `scripts/subirproducao.ps1` para sincronização ultrarrápida com a VPS.
+
+---
+
 ## [2.6.0] - 2026-10-17
 
 ### Adicionado

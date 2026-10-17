@@ -19,10 +19,17 @@ for _p in (_web_dir, _root_dir):
         sys.path.insert(0, str(_p))
 
 from dados.db import DB_PATH
-from dados.carregador import obter_dados_analiticos, PARQUET_CACHE_PATH, MAPA_REGIOES
+from dados.carregador import (
+    obter_dados_analiticos,
+    obter_locais_votacao,
+    obter_secoes_mapeadas,
+    PARQUET_CACHE_PATH,
+    MAPA_REGIOES
+)
 from motores.estatistica import aplicar_motor_estatistico, aplicar_motor_abstencao
 from modulos.auditoria import renderizar_auditoria
 from modulos.abstencao import renderizar_abstencao
+from modulos.mapa import renderizar_mapa
 from modulos.governanca import renderizar_governanca
 from versao import VERSAO_APP, COMMIT_APP, VERSAO_DISPLAY
 
@@ -1830,6 +1837,16 @@ def carregar_dados() -> pd.DataFrame:
     return obter_dados_analiticos()
 
 
+@st.cache_data(show_spinner=False)
+def carregar_locais() -> pd.DataFrame:
+    return obter_locais_votacao()
+
+
+@st.cache_data(show_spinner=False)
+def carregar_secoes_locais() -> pd.DataFrame:
+    return obter_secoes_mapeadas()
+
+
 
 def gerar_skeleton_html() -> str:
     """Gera a marcação HTML do esqueleto visual (Skeleton Screen) com efeito Shimmer."""
@@ -1927,6 +1944,10 @@ MAPA_FERRAMENTAS = {
         "titulo": "📡 Radar Eleitoral - Análise de Abstenção",
         "caption": f"Plataforma Independente de Análise Estatística e Comparecimento Eleitoral • Base Oficial TSE • **{VERSAO_DISPLAY}**",
     },
+    "🗺️ Mapa de Fiscais & Seções": {
+        "titulo": "📡 Radar Eleitoral - Mapa de Fiscais & Seções",
+        "caption": f"Mapeamento Geoespacial de Prédios de Votação e Seções Prioritárias • Base Oficial TSE • **{VERSAO_DISPLAY}**",
+    },
 }
 
 
@@ -1934,7 +1955,7 @@ def obter_cabecalho_ferramenta(nome_ferramenta: str) -> dict:
     if nome_ferramenta in MAPA_FERRAMENTAS:
         return MAPA_FERRAMENTAS[nome_ferramenta]
     nome_limpo = nome_ferramenta
-    for emoji in ["🗳️", "📉", "📊", "📡", "🔍"]:
+    for emoji in ["🗳️", "📉", "📊", "📡", "🔍", "🗺️"]:
         nome_limpo = nome_limpo.replace(emoji, "").strip()
     return {
         "titulo": f"📡 Radar Eleitoral - {nome_limpo}",
@@ -1952,10 +1973,15 @@ if st.session_state.get("exibir_governanca", False):
     placeholder_caption.caption(f"Diretrizes Institucionais, Conformidade Legal e Histórico de Versões • **{VERSAO_DISPLAY}**")
 else:
     ferramenta_inicial = "🗳️ Auditoria de Urnas"
-    if st.query_params.get("ferramenta", "").lower() == "abstencao":
+    qp_f = st.query_params.get("ferramenta", "").lower()
+    if qp_f == "abstencao":
         ferramenta_inicial = "📉 Análise de Abstenção"
+    elif qp_f == "mapa":
+        ferramenta_inicial = "🗺️ Mapa de Fiscais & Seções"
     elif st.session_state.get("ferramenta_ativa") == "📉 Análise de Abstenção":
         ferramenta_inicial = "📉 Análise de Abstenção"
+    elif st.session_state.get("ferramenta_ativa") == "🗺️ Mapa de Fiscais & Seções":
+        ferramenta_inicial = "🗺️ Mapa de Fiscais & Seções"
 
     cabecalho_inicial = obter_cabecalho_ferramenta(ferramenta_inicial)
     placeholder_titulo.title(cabecalho_inicial["titulo"])
@@ -2002,12 +2028,16 @@ st.sidebar.markdown(
 
 opcoes_ferramenta = [
     "🗳️ Auditoria de Urnas",
-    "📉 Análise de Abstenção"
+    "📉 Análise de Abstenção",
+    "🗺️ Mapa de Fiscais & Seções"
 ]
 
 idx_ferramenta_inicial = 0
-if st.query_params.get("ferramenta", "").lower() == "abstencao":
+qp_f = st.query_params.get("ferramenta", "").lower()
+if qp_f == "abstencao":
     idx_ferramenta_inicial = 1
+elif qp_f == "mapa":
+    idx_ferramenta_inicial = 2
 elif st.session_state.get("ferramenta_ativa") in opcoes_ferramenta:
     idx_ferramenta_inicial = opcoes_ferramenta.index(st.session_state["ferramenta_ativa"])
 
@@ -2016,6 +2046,8 @@ def ao_mudar_ferramenta():
     sel = st.session_state.get("ferramenta_ativa")
     if sel == "📉 Análise de Abstenção":
         st.query_params["ferramenta"] = "abstencao"
+    elif sel == "🗺️ Mapa de Fiscais & Seções":
+        st.query_params["ferramenta"] = "mapa"
     else:
         st.query_params["ferramenta"] = "auditoria"
 
@@ -2042,49 +2074,54 @@ else:
 # ==========================================
 # SELETOR DE ELEIÇÃO & TURNO (SIDEBAR)
 # ==========================================
-st.sidebar.markdown(
-    """
-    <div style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-top: 0.65rem; margin-bottom: 0.35rem;">
-        <span style="font-size: 0.95em; line-height: 1;">🗳️</span>
-        <span>Eleição & Turno</span>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-col_ano, col_turno = st.sidebar.columns([1, 1])
-with col_ano:
-    eleicao_ativa = st.selectbox(
-        "Ano:",
-        options=["2026"],
-        index=0,
-        label_visibility="collapsed",
-        key="seletor_ano"
-    )
-with col_turno:
-    turno_ativo = st.selectbox(
-        "Turno:",
-        options=["1º Turno", "2º Turno"],
-        index=0,
-        label_visibility="collapsed",
-        key="seletor_turno"
+if ferramenta_ativa != "🗺️ Mapa de Fiscais & Seções":
+    st.sidebar.markdown(
+        """
+        <div style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-top: 0.65rem; margin-bottom: 0.35rem;">
+            <span style="font-size: 0.95em; line-height: 1;">🗳️</span>
+            <span>Eleição & Turno</span>
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
-if turno_ativo == "2º Turno":
-    if "turno" in df.columns and (df["turno"] == 2).any():
-        df = df[df["turno"] == 2]
+    col_ano, col_turno = st.sidebar.columns([1, 1])
+    with col_ano:
+        eleicao_ativa = st.selectbox(
+            "Ano:",
+            options=["2026"],
+            index=0,
+            label_visibility="collapsed",
+            key="seletor_ano"
+        )
+    with col_turno:
+        turno_ativo = st.selectbox(
+            "Turno:",
+            options=["1º Turno", "2º Turno"],
+            index=0,
+            label_visibility="collapsed",
+            key="seletor_turno"
+        )
+
+    if turno_ativo == "2º Turno":
+        if "turno" in df.columns and (df["turno"] == 2).any():
+            df = df[df["turno"] == 2]
+        else:
+            st.info("🗳️ **2º Turno — Aguardando Apuração Oficial do TSE**\n\nOs dados de votação e boletins de urna do segundo turno serão integrados e disponibilizados para auditoria forense e análise estatística assim que os pacotes oficiais forem homologados e publicados pelo Tribunal Superior Eleitoral.")
+            st.stop()
     else:
-        st.info("🗳️ **2º Turno — Aguardando Apuração Oficial do TSE**\n\nOs dados de votação e boletins de urna do segundo turno serão integrados e disponibilizados para auditoria forense e análise estatística assim que os pacotes oficiais forem homologados e publicados pelo Tribunal Superior Eleitoral.")
-        st.stop()
-else:
-    if "turno" in df.columns:
-        df = df[df["turno"] == 1]
+        if "turno" in df.columns:
+            df = df[df["turno"] == 1]
 
 plataforma = ferramenta_ativa
 if st.session_state.get("exibir_governanca", False):
     renderizar_governanca(modo_escuro, plotly_theme)
 elif ferramenta_ativa == "📉 Análise de Abstenção":
     renderizar_abstencao(df, modo_escuro, plotly_theme, fmt_int_br, fmt_float_br)
+elif ferramenta_ativa == "🗺️ Mapa de Fiscais & Seções":
+    df_locais = carregar_locais()
+    df_secoes_locais = carregar_secoes_locais()
+    renderizar_mapa(df_locais, df_secoes_locais, modo_escuro, plotly_theme, fmt_int_br, fmt_float_br)
 else:
     renderizar_auditoria(df, modo_escuro, plotly_theme, fmt_int_br, fmt_float_br)
 

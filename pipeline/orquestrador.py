@@ -45,6 +45,7 @@ def verificar_trava_producao() -> None:
     """
     indicadores_producao = [
         os.path.exists("/opt/eleicao2026"),
+        os.path.exists("/opt/radareleitoral"),
         os.environ.get("PRODUCTION") == "1",
         os.environ.get("ENV") == "production",
         "hetzner" in platform.node().lower(),
