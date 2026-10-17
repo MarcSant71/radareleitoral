@@ -1921,8 +1921,48 @@ def gerar_skeleton_sidebar_html() -> str:
     )
 
 
-st.title("📡 Radar Eleitoral: Inteligência de Dados & Auditoria das Urnas")
-st.caption(f"Plataforma Independente de Análise Estatística e Auditoria Eleitoral • Base Oficial TSE • **{VERSAO_DISPLAY}**")
+MAPA_FERRAMENTAS = {
+    "🗳️ Auditoria de Urnas": {
+        "titulo": "📡 Radar Eleitoral: Auditoria de Urnas",
+        "caption": f"Plataforma Independente de Análise Estatística e Auditoria Eleitoral • Base Oficial TSE • **{VERSAO_DISPLAY}**",
+    },
+    "📉 Análise de Abstenção": {
+        "titulo": "📡 Radar Eleitoral: Análise de Abstenção",
+        "caption": f"Plataforma Independente de Análise Estatística e Comparecimento Eleitoral • Base Oficial TSE • **{VERSAO_DISPLAY}**",
+    },
+}
+
+
+def obter_cabecalho_ferramenta(nome_ferramenta: str) -> dict:
+    if nome_ferramenta in MAPA_FERRAMENTAS:
+        return MAPA_FERRAMENTAS[nome_ferramenta]
+    nome_limpo = nome_ferramenta
+    for emoji in ["🗳️", "📉", "📊", "📡", "🔍"]:
+        nome_limpo = nome_limpo.replace(emoji, "").strip()
+    return {
+        "titulo": f"📡 Radar Eleitoral: {nome_limpo}",
+        "caption": f"Plataforma Independente de Ciência e Inteligência de Dados Eleitorais • Base Oficial TSE • **{VERSAO_DISPLAY}**",
+    }
+
+
+# Cabeçalho dinâmico sincronizado com a ferramenta ativa
+placeholder_titulo = st.empty()
+placeholder_caption = st.empty()
+
+# Estimativa preliminar para Cold Start (preserva coerência visual antes de montar a barra lateral)
+if st.session_state.get("exibir_governanca", False):
+    placeholder_titulo.title("📡 Radar Eleitoral: Governança Pública & LGPD")
+    placeholder_caption.caption(f"Diretrizes Institucionais, Conformidade Legal e Histórico de Versões • **{VERSAO_DISPLAY}**")
+else:
+    ferramenta_inicial = "🗳️ Auditoria de Urnas"
+    if "painel" in st.query_params and "abst" in st.query_params["painel"].lower():
+        ferramenta_inicial = "📉 Análise de Abstenção"
+    elif st.session_state.get("painel_ativo") == "📉 Análise de Abstenção":
+        ferramenta_inicial = "📉 Análise de Abstenção"
+
+    cabecalho_inicial = obter_cabecalho_ferramenta(ferramenta_inicial)
+    placeholder_titulo.title(cabecalho_inicial["titulo"])
+    placeholder_caption.caption(cabecalho_inicial["caption"])
 
 # Exibe o Skeleton Screen visual (central + lateral) apenas no primeiro carregamento da sessão (Cold Start)
 skeleton_placeholder = None
@@ -1994,6 +2034,16 @@ painel_ativo = st.sidebar.selectbox(
     on_change=ao_mudar_painel,
     help="Selecione a ferramenta desejada."
 )
+
+# Sincroniza o cabeçalho dinâmico com a ferramenta ativa ou com o modo de governança
+if st.session_state.get("exibir_governanca", False):
+    placeholder_titulo.title("📡 Radar Eleitoral: Governança Pública & LGPD")
+    placeholder_caption.caption(f"Diretrizes Institucionais, Conformidade Legal e Histórico de Versões • **{VERSAO_DISPLAY}**")
+else:
+    cabecalho_ativo = obter_cabecalho_ferramenta(painel_ativo)
+    placeholder_titulo.title(cabecalho_ativo["titulo"])
+    placeholder_caption.caption(cabecalho_ativo["caption"])
+
 
 # ==========================================
 # SELETOR DE ELEIÇÃO & TURNO (SIDEBAR)
