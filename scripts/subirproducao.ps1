@@ -107,5 +107,5 @@ ssh.exe -o StrictHostKeyChecking=accept-new "root@$ServerIp" $RemoteCommand
 Remove-Item $TempArchive -Force
 Write-Host "========================================" -ForegroundColor Green
 Write-Host "[+] DEPLOY CONCLUIDO COM SUCESSO!" -ForegroundColor Green
-Write-Host "Acesse seu painel em: https://eleicao.dominiodigital.dev.br" -ForegroundColor Cyan
+Write-Host "Acesse seu painel em: https://radareleitoral.dominiodigital.dev.br" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Green

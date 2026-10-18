@@ -24,7 +24,7 @@
      2. Executar `git add -A` e `git commit -m "feat/fix/refactor: ... [vX.Y.Z]"`.
      3. Executar `git push origin main`.
      4. Executar deploy para a VPS Hetzner via script oficial: `powershell -ExecutionPolicy Bypass -File scripts\subirproducao.ps1`.
-     5. Validar health check `200 OK` na URL oficial (`https://eleicao.dominiodigital.dev.br`).
+     5. Validar health check `200 OK` na URL oficial (`https://radareleitoral.dominiodigital.dev.br`).
 5. **OpSec em Changelogs e Páginas Públicas:**
    - NUNCA divulgar detalhes técnicos de infraestrutura, portas internas, configurações de firewall ou dados sensíveis em changelogs públicos ou rodapés.
 
@@ -42,7 +42,7 @@
   - `Referrer-Policy: strict-origin-when-cross-origin`.
   - `Permissions-Policy: geolocation=(), microphone=(), camera=()`.
   - `Strict-Transport-Security: max-age=31536000; includeSubDomains` (HSTS estrito).
-- **Proteção do IP de Origem:** Requisições diretas por IP na porta 80 devem SEMPRE redirecionar (301) para o domínio oficial HTTPS (`https://eleicao2026.dominiodigital.dev.br`), impedindo que scanners (Shodan, Censys) contornem o Cloudflare.
+- **Proteção do IP de Origem:** Requisições diretas por IP na porta 80 devem SEMPRE redirecionar (301) para o domínio oficial HTTPS (`https://radareleitoral.dominiodigital.dev.br`), impedindo que scanners (Shodan, Censys) contornem o Cloudflare.
 
 ## 4. Segurança de Borda (Cloudflare / WAF)
 - **HSTS Ativo:** Forçar HTTPS na borda da CDN.
