@@ -96,7 +96,7 @@ def gerar_card_candidato_html(
     fmt_int_br,
     fmt_float_br
 ) -> str:
-    """Gera o HTML compacto do card do candidato sem identação para evitar conflito com Markdown."""
+    """Gera o HTML compacto do card do candidato em layout horizontal otimizado para visualização de alta densidade."""
     pct = (votos / total_validos * 100) if total_validos > 0 else 0.0
     bg_card = "#161b22" if modo_escuro else "#ffffff"
     border_color = "#30363d" if modo_escuro else "#e2e8f0"
@@ -105,22 +105,22 @@ def gerar_card_candidato_html(
 
     cor = cand["cor"]
     borda = cor if na_frente else border_color
-    shadow = f"box-shadow: 0 0 16px {cor}33;" if na_frente else ""
-    badge_html = f'<span style="background-color: {cor}; color: #ffffff; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 9999px;">LIDERANÇA</span>' if na_frente else '<span></span>'
+    shadow = f"box-shadow: 0 0 12px {cor}33;" if na_frente else ""
+    badge_html = f'<span style="background-color: {cor}; color: #ffffff; font-size: 0.68rem; font-weight: 700; padding: 1px 6px; border-radius: 9999px; letter-spacing: 0.03em;">LIDERANÇA</span>' if na_frente else ''
 
     return (
-        f'<div style="background-color: {bg_card}; border: 2px solid {borda}; border-radius: 12px; padding: 1.25rem; {shadow}">'
-        f'<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">'
-        f'<div style="display: flex; align-items: center; gap: 0.5rem;">'
-        f'<span style="background-color: {cor}; color: #ffffff; font-weight: 800; font-size: 0.9rem; padding: 2px 8px; border-radius: 6px;">{cand["numero"]}</span>'
-        f'<span style="font-weight: 700; color: {cor}; font-size: 0.95rem;">{cand["partido"]}</span>'
-        f'</div>'
+        f'<div style="background-color: {bg_card}; border: 1.5px solid {borda}; border-radius: 8px; padding: 0.5rem 0.85rem; {shadow}; display: flex; justify-content: space-between; align-items: center; min-height: 56px;">'
+        f'<div style="display: flex; flex-direction: column; gap: 2px;">'
+        f'<div style="display: flex; align-items: center; gap: 0.4rem;">'
+        f'<span style="background-color: {cor}; color: #ffffff; font-weight: 800; font-size: 0.72rem; padding: 1px 5px; border-radius: 4px;">{cand["numero"]}</span>'
+        f'<span style="font-weight: 700; color: {cor}; font-size: 0.8rem;">{cand["partido"]}</span>'
         f'{badge_html}'
         f'</div>'
-        f'<h3 style="margin: 0 0 0.5rem 0; font-size: 1.35rem; font-weight: 800; color: {text_color}; letter-spacing: -0.02em;">{cand["nome_urna"]}</h3>'
-        f'<div style="display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.35rem;">'
-        f'<span style="font-size: 2.5rem; font-weight: 900; color: {cor}; line-height: 1;">{fmt_float_br(pct)}%</span>'
-        f'<span style="font-size: 0.95rem; color: {sub_color}; font-weight: 600;">{fmt_int_br(votos)} votos</span>'
+        f'<span style="font-size: 1.05rem; font-weight: 800; color: {text_color}; letter-spacing: -0.01em; white-space: nowrap;">{cand["nome_urna"]}</span>'
+        f'</div>'
+        f'<div style="text-align: right;">'
+        f'<div style="font-size: 1.85rem; font-weight: 900; color: {cor}; line-height: 1;">{fmt_float_br(pct)}%</div>'
+        f'<div style="font-size: 0.75rem; color: {sub_color}; font-weight: 600; margin-top: 1px;">{fmt_int_br(votos)} votos</div>'
         f'</div>'
         f'</div>'
     )
@@ -160,15 +160,15 @@ def renderizar_placar_candidatos(
             unsafe_allow_html=True
         )
 
-    # Barra proporcional horizontal de disputa (Tug-of-war)
+    # Barra proporcional horizontal de disputa compacta (Tug-of-war)
     bar_html = (
-        f'<div style="margin-top: 1rem; margin-bottom: 0.5rem;">'
-        f'<div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 700; color: {sub_color}; margin-bottom: 4px;">'
+        f'<div style="margin-top: 0.4rem; margin-bottom: 0.25rem;">'
+        f'<div style="display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 700; color: {sub_color}; margin-bottom: 2px;">'
         f'<span>{cand_1["nome_urna"]} ({fmt_float_br(p1)}%)</span>'
         f'<span>Diferença: {fmt_int_br(delta_votos)} votos ({fmt_float_br(delta_pct)} pp)</span>'
         f'<span>{cand_2["nome_urna"]} ({fmt_float_br(p2)}%)</span>'
         f'</div>'
-        f'<div style="width: 100%; height: 14px; background-color: #30363d; border-radius: 9999px; overflow: hidden; display: flex; position: relative;">'
+        f'<div style="width: 100%; height: 8px; background-color: #30363d; border-radius: 9999px; overflow: hidden; display: flex; position: relative;">'
         f'<div style="width: {p1}%; height: 100%; background-color: {cand_1["cor"]};"></div>'
         f'<div style="width: {p2}%; height: 100%; background-color: {cand_2["cor"]};"></div>'
         f'<div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background-color: #ffffff; opacity: 0.8; z-index: 2;"></div>'
@@ -247,18 +247,18 @@ def renderizar_mapa_nacional(
 
     fig.update_layout(
         template=plotly_theme,
-        margin={"r": 0, "t": 10, "l": 0, "b": 10},
+        margin={"r": 0, "t": 0, "l": 0, "b": 0},
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         legend=dict(
             orientation="h",
             yanchor="bottom",
-            y=1.02,
+            y=1.01,
             xanchor="center",
             x=0.5,
             title_text=""
         ),
-        height=520
+        height=415
     )
 
     st.plotly_chart(fig, width="stretch")
@@ -372,18 +372,18 @@ def renderizar_mapa_estadual(
 
     fig.update_layout(
         template=plotly_theme,
-        margin={"r": 0, "t": 10, "l": 0, "b": 10},
+        margin={"r": 0, "t": 0, "l": 0, "b": 0},
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         legend=dict(
             orientation="h",
             yanchor="bottom",
-            y=1.02,
+            y=1.01,
             xanchor="center",
             x=0.5,
             title_text=""
         ),
-        height=520
+        height=415
     )
 
     st.plotly_chart(fig, width="stretch")
@@ -527,31 +527,33 @@ def renderizar_painel_votacao(
             unsafe_allow_html=True
         )
 
+    def clicar_voltar_estado():
+        st.session_state["painel_mun_ativo"] = None
+        if "seletor_mun_painel" in st.session_state:
+            st.session_state["seletor_mun_painel"] = "Todos os Municípios"
+
+    def clicar_voltar_nacional():
+        st.session_state["painel_uf_ativa"] = None
+        st.session_state["painel_mun_ativo"] = None
+        if "seletor_uf_painel" in st.session_state:
+            st.session_state["seletor_uf_painel"] = "Todas as UFs (Brasil)"
+        if "seletor_mun_painel" in st.session_state:
+            st.session_state["seletor_mun_painel"] = "Todos os Municípios"
+
     with col_nav2:
         if mun_selecionado is not None:
-            if st.button(f"🔙 Voltar ao Estado ({uf_selecionada})", width="stretch", key="btn_voltar_estado"):
-                st.session_state["painel_mun_ativo"] = None
-                if "seletor_mun_painel" in st.session_state:
-                    st.session_state["seletor_mun_painel"] = "Todos os Municípios"
-                st.rerun()
+            st.button(f"🔙 Voltar ao Estado ({uf_selecionada})", width="stretch", key="btn_voltar_estado", on_click=clicar_voltar_estado)
         elif uf_selecionada is not None:
-            if st.button("🔙 Voltar à Visão Nacional", width="stretch", key="btn_voltar_nacional"):
-                st.session_state["painel_uf_ativa"] = None
-                st.session_state["painel_mun_ativo"] = None
-                if "seletor_uf_painel" in st.session_state:
-                    st.session_state["seletor_uf_painel"] = "Todas as UFs (Brasil)"
-                if "seletor_mun_painel" in st.session_state:
-                    st.session_state["seletor_mun_painel"] = "Todos os Municípios"
-                st.rerun()
+            st.button("🔙 Voltar à Visão Nacional", width="stretch", key="btn_voltar_nacional", on_click=clicar_voltar_nacional)
 
     # Barra de Progresso de Totalização
     st.markdown(
-        f'<div style="margin-bottom: 1.25rem;">'
-        f'<div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 700; color: #94a3b8; margin-bottom: 4px;">'
+        f'<div style="margin-bottom: 0.45rem;">'
+        f'<div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 700; color: #94a3b8; margin-bottom: 3px;">'
         f'<span>SEÇÕES TOTALIZADAS: {fmt_float_br(pct_totalizacao)}% ({fmt_int_br(secoes_apuradas)} de {fmt_int_br(total_secoes)})</span>'
         f'<span>ÚLTIMA ATUALIZAÇÃO OFICIAL</span>'
         f'</div>'
-        f'<div style="width: 100%; height: 6px; background-color: #30363d; border-radius: 9999px; overflow: hidden;">'
+        f'<div style="width: 100%; height: 5px; background-color: #30363d; border-radius: 9999px; overflow: hidden;">'
         f'<div style="width: {pct_totalizacao}%; height: 100%; background: linear-gradient(90deg, #10b981, #059669);"></div>'
         f'</div>'
         f'</div>',
@@ -590,22 +592,22 @@ def renderizar_painel_votacao(
         fmt_float_br=fmt_float_br
     )
 
-    # Linha divisória
-    st.markdown("<hr style='margin: 1.25rem 0; border: none; border-top: 1px solid #30363d;'>", unsafe_allow_html=True)
+    # Espaçamento vertical ultra-compacto
+    st.markdown("<div style='margin-bottom: 0.35rem;'></div>", unsafe_allow_html=True)
 
     # 2. ÁREA INTERATIVA DO MAPA & SELEÇÃO
     col_mapa, col_painel = st.columns([1.7, 1.0])
 
     with col_mapa:
         if uf_selecionada is None:
-            st.markdown("#### 🗺️ Mapa de Vencedores por Estado")
+            st.markdown('<div style="font-size: 1.05rem; font-weight: 700; margin-bottom: 0.2rem;">🗺️ Mapa de Vencedores por Estado</div>', unsafe_allow_html=True)
             renderizar_mapa_nacional(df, cand_1, cand_2, modo_escuro, plotly_theme)
         else:
             nome_uf = NOMES_UFS.get(uf_selecionada, uf_selecionada)
             if mun_selecionado:
-                st.markdown(f"#### 🗺️ Vencedores por Município — {nome_uf} ({uf_selecionada}) • 📍 {mun_selecionado}")
+                st.markdown(f'<div style="font-size: 1.05rem; font-weight: 700; margin-bottom: 0.2rem;">🗺️ Vencedores por Município — {nome_uf} ({uf_selecionada}) • 📍 {mun_selecionado}</div>', unsafe_allow_html=True)
             else:
-                st.markdown(f"#### 🗺️ Vencedores por Município — {nome_uf} ({uf_selecionada})")
+                st.markdown(f'<div style="font-size: 1.05rem; font-weight: 700; margin-bottom: 0.2rem;">🗺️ Vencedores por Município — {nome_uf} ({uf_selecionada})</div>', unsafe_allow_html=True)
 
             renderizar_mapa_estadual(
                 df[df["uf"] == uf_selecionada], 
@@ -620,15 +622,14 @@ def renderizar_painel_votacao(
     with col_painel:
         if uf_selecionada is None:
             # Visão Nacional
-            st.markdown("##### 📊 Indicadores Cívicos Nacionais")
+            st.markdown('<div style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.25rem;">📊 Indicadores Cívicos Nacionais</div>', unsafe_allow_html=True)
             col_m1, col_m2 = st.columns(2)
             with col_m1:
                 st.metric("Comparecimento", f"{fmt_float_br(pct_comp)}%", f"{fmt_int_br(comp_tot)} eleitores")
             with col_m2:
                 st.metric("Abstenção", f"{fmt_float_br(pct_abst)}%", f"{fmt_int_br(abst_tot)} faltosos", delta_color="inverse")
 
-            st.markdown("<div style='margin-top: 1rem;'></div>", unsafe_allow_html=True)
-            st.markdown("##### 🏆 Maiores Colégios Eleitorais")
+            st.markdown('<div style="font-size: 0.95rem; font-weight: 700; margin-top: 0.45rem; margin-bottom: 0.25rem;">🏆 Maiores Colégios Eleitorais</div>', unsafe_allow_html=True)
             
             df_top_ufs = df.groupby("uf", observed=True).agg({
                 "pres_total_validos": "sum",
@@ -657,6 +658,7 @@ def renderizar_painel_votacao(
                 tabela_resumo,
                 hide_index=True,
                 width="stretch",
+                height=205,
                 column_config={
                     "Válidos": st.column_config.NumberColumn(format="%d"),
                     f"% {cand_1['partido']}": st.column_config.NumberColumn(format="%.1f%%"),
@@ -668,7 +670,7 @@ def renderizar_painel_votacao(
             # Visão Estadual ou Municipal
             nome_uf_display = NOMES_UFS.get(uf_selecionada, uf_selecionada)
             rotulo_civicos = f"Indicadores Cívicos — {mun_selecionado}" if mun_selecionado else f"Indicadores Cívicos — {nome_uf_display}"
-            st.markdown(f"##### 📊 {rotulo_civicos}")
+            st.markdown(f'<div style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.25rem;">📊 {rotulo_civicos}</div>', unsafe_allow_html=True)
             col_m1, col_m2 = st.columns(2)
             with col_m1:
                 st.metric("Comparecimento", f"{fmt_float_br(pct_comp)}%", f"{fmt_int_br(comp_tot)} eleitores")
@@ -677,8 +679,7 @@ def renderizar_painel_votacao(
 
             # Se um município com múltiplas zonas estiver selecionado, exibe ranking por zona eleitoral
             if mun_selecionado and df_foco["zona"].nunique() > 1:
-                st.markdown("<div style='margin-top: 1rem;'></div>", unsafe_allow_html=True)
-                st.markdown(f"##### 🏛️ Zonas Eleitorais de {mun_selecionado}")
+                st.markdown(f'<div style="font-size: 0.95rem; font-weight: 700; margin-top: 0.45rem; margin-bottom: 0.25rem;">🏛️ Zonas Eleitorais de {mun_selecionado}</div>', unsafe_allow_html=True)
                 df_z_rank = df_foco.groupby("zona", observed=True).agg({
                     "pres_total_validos": "sum",
                     cand_1["coluna_votos"]: "sum",
@@ -705,6 +706,7 @@ def renderizar_painel_votacao(
                     tabela_zonas,
                     hide_index=True,
                     width="stretch",
+                    height=205,
                     column_config={
                         "Válidos": st.column_config.NumberColumn(format="%d"),
                         f"% {cand_1['partido']}": st.column_config.NumberColumn(format="%.1f%%"),
@@ -713,8 +715,7 @@ def renderizar_painel_votacao(
                 )
 
             # Ranking dos maiores municípios da UF como referência
-            st.markdown("<div style='margin-top: 1rem;'></div>", unsafe_allow_html=True)
-            st.markdown(f"##### 🏆 Mais Votados de {nome_uf_display} ({uf_selecionada})")
+            st.markdown(f'<div style="font-size: 0.95rem; font-weight: 700; margin-top: 0.45rem; margin-bottom: 0.25rem;">🏆 Mais Votados de {nome_uf_display} ({uf_selecionada})</div>', unsafe_allow_html=True)
             df_estado_muns = df[df["uf"] == uf_selecionada]
             df_m_rank = df_estado_muns.groupby("municipio_nome", observed=True).agg({
                 "pres_total_validos": "sum",
@@ -742,6 +743,7 @@ def renderizar_painel_votacao(
                 tabela_muns,
                 hide_index=True,
                 width="stretch",
+                height=205,
                 column_config={
                     "Válidos": st.column_config.NumberColumn(format="%d"),
                     f"% {cand_1['partido']}": st.column_config.NumberColumn(format="%.1f%%"),
