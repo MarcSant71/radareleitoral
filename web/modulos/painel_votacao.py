@@ -485,28 +485,36 @@ def renderizar_painel_votacao(
                                      uf_selecionada, cand_1, cand_2, modo_escuro, plotly_theme)
 
     with col_painel:
-        if uf_selecionada is None:
-            st.markdown("#### 🔍 Explorar Estado")
-            st.caption("Selecione um estado para abrir o mapa municipal detalhado:")
+        st.markdown("#### 🔍 Seleção de Estado")
+        
+        lista_ufs = sorted(list(df["uf"].unique()))
+        lista_ufs = [u for u in lista_ufs if u in NOMES_UFS]
+        opcoes_estados = ["🇧🇷 Brasil (Visão Nacional)"] + [f"{NOMES_UFS[u]} ({u})" for u in lista_ufs]
 
-            lista_ufs = sorted(list(df["uf"].unique()))
-            # Remove exterior se houver
-            lista_ufs = [u for u in lista_ufs if u in NOMES_UFS]
+        idx_uf = 0
+        if uf_selecionada and uf_selecionada in lista_ufs:
+            idx_uf = lista_ufs.index(uf_selecionada) + 1
 
-            opcoes_display = [f"{NOMES_UFS[u]} ({u})" for u in lista_ufs]
-            
-            sel_uf_idx = st.selectbox(
-                "Estado:",
-                options=range(len(opcoes_display)),
-                format_func=lambda i: opcoes_display[i],
-                key="seletor_uf_drilldown"
-            )
-
-            if st.button("📍 Abrir Detalhe do Estado", use_container_width=True, type="primary"):
-                st.session_state["painel_uf_ativa"] = lista_ufs[sel_uf_idx]
+        def ao_mudar_estado():
+            escolha = st.session_state.get("seletor_uf_global")
+            if not escolha or escolha == "🇧🇷 Brasil (Visão Nacional)":
+                st.session_state["painel_uf_ativa"] = None
                 st.session_state["painel_mun_ativo"] = None
-                st.rerun()
+            else:
+                sigla = escolha.split("(")[-1].replace(")", "").strip()
+                st.session_state["painel_uf_ativa"] = sigla
+                st.session_state["painel_mun_ativo"] = None
 
+        st.selectbox(
+            "Visualização / Estado:",
+            options=opcoes_estados,
+            index=idx_uf,
+            key="seletor_uf_global",
+            on_change=ao_mudar_estado,
+            help="Selecione um estado para alternar automaticamente para o mapa municipal."
+        )
+
+        if uf_selecionada is None:
             # Resumo dos Maiores Colégios Eleitorais
             st.markdown("<div style='margin-top: 1.25rem;'></div>", unsafe_allow_html=True)
             st.markdown("##### 🏆 Maiores Colégios Eleitorais")
@@ -547,7 +555,7 @@ def renderizar_painel_votacao(
 
         else:
             # Visão Estadual Ativa: Seletor de Município
-            st.markdown(f"#### 🔍 Municípios de {NOMES_UFS.get(uf_selecionada, uf_selecionada)}")
+            st.markdown(f"#### 🏙️ Municípios de {NOMES_UFS.get(uf_selecionada, uf_selecionada)}")
             
             df_estado_muns = df[df["uf"] == uf_selecionada]
             lista_muns = sorted(list(df_estado_muns["municipio_nome"].unique()))
@@ -576,7 +584,7 @@ def renderizar_painel_votacao(
                 st.metric("Abstenção", f"{fmt_float_br(pct_abst)}%", f"{fmt_int_br(abst_tot)} faltosos", delta_color="inverse")
 
             # Ranking dos maiores municípios da UF
-            st.markdown("##### 🏙️ Mais Votados do Estado")
+            st.markdown("##### 🏆 Mais Votados do Estado")
             df_m_rank = df_estado_muns.groupby("municipio_nome", observed=True).agg({
                 "pres_total_validos": "sum",
                 cand_1["coluna_votos"]: "sum",
