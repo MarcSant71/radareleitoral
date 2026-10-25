@@ -27,6 +27,7 @@ from dados.carregador import (
     MAPA_REGIOES
 )
 from motores.estatistica import aplicar_motor_estatistico, aplicar_motor_abstencao
+from modulos.painel_votacao import renderizar_painel_votacao
 from modulos.auditoria import renderizar_auditoria
 from modulos.abstencao import renderizar_abstencao
 from modulos.mapa import renderizar_mapa
@@ -1936,6 +1937,10 @@ def gerar_skeleton_sidebar_html() -> str:
 
 
 MAPA_FERRAMENTAS = {
+    "🗳️ Painel de Votação": {
+        "titulo": "📡 Radar Eleitoral - Painel de Votação",
+        "caption": f"Telão Interativo da Apuração Eleitoral • Resultados Oficiais e Mapas • Base Oficial TSE • **{VERSAO_DISPLAY}**",
+    },
     "🗳️ Auditoria de Urnas": {
         "titulo": "📡 Radar Eleitoral - Auditoria de Urnas",
         "caption": f"Plataforma Independente de Análise Estatística e Auditoria Eleitoral • Base Oficial TSE • **{VERSAO_DISPLAY}**",
@@ -1972,16 +1977,16 @@ if st.session_state.get("exibir_governanca", False):
     placeholder_titulo.title("📡 Radar Eleitoral - Governança Pública & LGPD")
     placeholder_caption.caption(f"Diretrizes Institucionais, Conformidade Legal e Histórico de Versões • **{VERSAO_DISPLAY}**")
 else:
-    ferramenta_inicial = "🗳️ Auditoria de Urnas"
+    ferramenta_inicial = "🗳️ Painel de Votação"
     qp_f = st.query_params.get("ferramenta", "").lower()
-    if qp_f == "abstencao":
+    if qp_f in ["auditoria", "urnas"]:
+        ferramenta_inicial = "🗳️ Auditoria de Urnas"
+    elif qp_f == "abstencao":
         ferramenta_inicial = "📉 Análise de Abstenção"
     elif qp_f == "mapa":
         ferramenta_inicial = "🗺️ Mapa de Fiscais & Seções"
-    elif st.session_state.get("ferramenta_ativa") == "📉 Análise de Abstenção":
-        ferramenta_inicial = "📉 Análise de Abstenção"
-    elif st.session_state.get("ferramenta_ativa") == "🗺️ Mapa de Fiscais & Seções":
-        ferramenta_inicial = "🗺️ Mapa de Fiscais & Seções"
+    elif st.session_state.get("ferramenta_ativa") in ["🗳️ Painel de Votação", "🗳️ Auditoria de Urnas", "📉 Análise de Abstenção", "🗺️ Mapa de Fiscais & Seções"]:
+        ferramenta_inicial = st.session_state["ferramenta_ativa"]
 
     cabecalho_inicial = obter_cabecalho_ferramenta(ferramenta_inicial)
     placeholder_titulo.title(cabecalho_inicial["titulo"])
@@ -2027,6 +2032,7 @@ st.sidebar.markdown(
 )
 
 opcoes_ferramenta = [
+    "🗳️ Painel de Votação",
     "🗳️ Auditoria de Urnas",
     "📉 Análise de Abstenção",
     "🗺️ Mapa de Fiscais & Seções"
@@ -2034,17 +2040,21 @@ opcoes_ferramenta = [
 
 idx_ferramenta_inicial = 0
 qp_f = st.query_params.get("ferramenta", "").lower()
-if qp_f == "abstencao":
+if qp_f in ["auditoria", "urnas"]:
     idx_ferramenta_inicial = 1
-elif qp_f == "mapa":
+elif qp_f == "abstencao":
     idx_ferramenta_inicial = 2
+elif qp_f == "mapa":
+    idx_ferramenta_inicial = 3
 elif st.session_state.get("ferramenta_ativa") in opcoes_ferramenta:
     idx_ferramenta_inicial = opcoes_ferramenta.index(st.session_state["ferramenta_ativa"])
 
 def ao_mudar_ferramenta():
     st.session_state["exibir_governanca"] = False
     sel = st.session_state.get("ferramenta_ativa")
-    if sel == "📉 Análise de Abstenção":
+    if sel == "🗳️ Painel de Votação":
+        st.query_params["ferramenta"] = "painel"
+    elif sel == "📉 Análise de Abstenção":
         st.query_params["ferramenta"] = "abstencao"
     elif sel == "🗺️ Mapa de Fiscais & Seções":
         st.query_params["ferramenta"] = "mapa"
@@ -2116,6 +2126,10 @@ if ferramenta_ativa != "🗺️ Mapa de Fiscais & Seções":
 plataforma = ferramenta_ativa
 if st.session_state.get("exibir_governanca", False):
     renderizar_governanca(modo_escuro, plotly_theme)
+elif ferramenta_ativa == "🗳️ Painel de Votação":
+    ano_num = int(eleicao_ativa)
+    turno_num = 1 if turno_ativo == "1º Turno" else 2
+    renderizar_painel_votacao(df, ano=ano_num, turno=turno_num, modo_escuro=modo_escuro, plotly_theme=plotly_theme, fmt_int_br=fmt_int_br, fmt_float_br=fmt_float_br)
 elif ferramenta_ativa == "📉 Análise de Abstenção":
     renderizar_abstencao(df, modo_escuro, plotly_theme, fmt_int_br, fmt_float_br)
 elif ferramenta_ativa == "🗺️ Mapa de Fiscais & Seções":

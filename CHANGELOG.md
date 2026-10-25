@@ -7,6 +7,15 @@ e este projeto adere estritamente ao [Semantic Versioning (SemVer 2.0.0)](https:
 
 ---
 
+## [2.9.0] - 2026-10-25
+
+### Adicionado
+- **Painel de Votação (Telão Interativo da Apuração):** Nova ferramenta principal posicionada na abertura da plataforma, apresentando o placar da eleição presidencial em tempo real com cartões comparativos dos candidatos, barra proporcional de disputa e status oficial de apuração.
+- **Mapeamento Coroplético e Navegação Hierárquica:** Visualização geoespacial com mapa completo do Brasil indicando o candidato vencedor por estado, com suporte a navegação em detalhe (*drill-down*) para visualização municipal por Unidade Federativa.
+- **Geometria Local-First e Alta Performance:** Processamento geoespacial otimizado integrado à base analítica da plataforma, permitindo renderização instantânea dos mapas sem dependência de serviços externos.
+
+---
+
 ## [2.8.1] - 2026-10-25
 
 ### Modificado
