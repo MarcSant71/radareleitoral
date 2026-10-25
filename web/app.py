@@ -1131,7 +1131,7 @@ css_global = """
     }
 
     /* Botões Circulares Minimalistas no Topo Direito: Ajuda/Governança (?) e Alternância de Tema */
-    div.st-key-btn_help {
+    div.st-key-btn_theme_toggle {
         position: fixed !important;
         top: 0.35rem !important;
         right: 3.90rem !important;
@@ -1141,7 +1141,7 @@ css_global = """
         margin: 0 !important;
         padding: 0 !important;
     }
-    div.st-key-btn_theme_toggle {
+    div.st-key-btn_help {
         position: fixed !important;
         top: 0.35rem !important;
         right: 1.25rem !important;
@@ -1196,11 +1196,11 @@ css_global = """
         justify-content: center !important;
     }
     @media (max-width: 768px) {
-        div.st-key-btn_help {
+        div.st-key-btn_theme_toggle {
             top: 0.35rem !important;
             right: 3.35rem !important;
         }
-        div.st-key-btn_theme_toggle {
+        div.st-key-btn_help {
             top: 0.35rem !important;
             right: 0.75rem !important;
         }
@@ -1798,17 +1798,17 @@ is_gov = st.session_state.get("exibir_governanca", False)
 btn_help_label = "✕" if is_gov else "?"
 btn_help_tooltip = "Fechar Governança e voltar à ferramenta" if is_gov else "Governança Pública, Termos da LGPD, Criptografia e Histórico de Versões"
 
+if st.button("🌙" if not modo_escuro else "☀️", key="btn_theme_toggle", help="Alternar tema claro / escuro"):
+    st.session_state["modo_escuro"] = not modo_escuro
+    st.query_params["tema"] = "escuro" if st.session_state["modo_escuro"] else "claro"
+    st.rerun()
+
 if st.button(btn_help_label, key="btn_help", help=btn_help_tooltip):
     st.session_state["exibir_governanca"] = not is_gov
     if not st.session_state["exibir_governanca"] and "ferramenta" in st.query_params:
         del st.query_params["ferramenta"]
     elif st.session_state["exibir_governanca"]:
         st.query_params["ferramenta"] = "governanca"
-    st.rerun()
-
-if st.button("🌙" if not modo_escuro else "☀️", key="btn_theme_toggle", help="Alternar tema claro / escuro"):
-    st.session_state["modo_escuro"] = not modo_escuro
-    st.query_params["tema"] = "escuro" if st.session_state["modo_escuro"] else "claro"
     st.rerun()
 
 def fmt_int_br(val) -> str:

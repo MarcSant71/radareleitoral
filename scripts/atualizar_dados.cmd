@@ -53,7 +53,7 @@ echo [*] ETAPA 1/2: Baixando novos dados e consolidando bases locais...
 echo ===============================================================================
 echo.
 
-python -u -m pipeline --forcar %*
+python -u -m pipeline update --forcar %*
 
 set PIPELINE_EXIT=%ERRORLEVEL%
 if %PIPELINE_EXIT% NEQ 0 (

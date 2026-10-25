@@ -103,21 +103,23 @@ def detectar_turnos_disponiveis(ano: int = 2026, dados_dir: Optional[Path] = Non
     return sorted(turnos_detectados)
 
 
-def exibir_banner_e_confirmar(turnos: List[int], ano: int, zerar_banco: bool, forcar: bool) -> None:
+def exibir_banner_e_confirmar(turnos: List[int], ano: int, zerar_banco: bool, forcar: bool, modo: str = "update") -> None:
     """
-    Exibe os alertas mandatórios de governança antes de iniciar o processo.
-    Abrangência estritamente nacional (todas as 27 UFs).
+    Exibe os alertas de governança e confirmação antes de iniciar o processo.
+    Adapta títulos, banners e instruções conforme o modo de operação:
+    - 'init': Inicialização completa ou reconstrução da base.
+    - 'update': Atualização e sincronização incremental com a CDN do TSE.
     """
+    eh_init = (modo == "init" or zerar_banco)
+
     if sys.platform == "win32":
         try:
             import ctypes
-            ctypes.windll.kernel32.SetConsoleTitleW(f"Inicialização da Base de Dados Eleitoral ({ano})")
+            titulo_janela = f"Inicialização da Base de Dados Eleitoral ({ano})" if eh_init else f"Atualização da Base de Dados Eleitoral ({ano})"
+            ctypes.windll.kernel32.SetConsoleTitleW(titulo_janela)
         except Exception:
             pass
 
-    print("═" * 80)
-    print(f"      ⚠️   INICIALIZAÇÃO DA BASE DE DADOS ELEITORAL ({ano})   ⚠️")
-    print("═" * 80)
     if turnos == [1, 2]:
         desc_turnos = "1º e 2º Turnos"
     elif turnos == [2]:
@@ -126,40 +128,67 @@ def exibir_banner_e_confirmar(turnos: List[int], ano: int, zerar_banco: bool, fo
         desc_turnos = " e ".join(f"{t}º Turno" for t in turnos)
 
     desc_pleito = f"Eleições Gerais {ano} — {desc_turnos}"
+
+    print("═" * 80)
+    if eh_init:
+        print(f"      ⚠️   INICIALIZAÇÃO DA BASE DE DADOS ELEITORAL ({ano})   ⚠️")
+    else:
+        print(f"      🔄   ATUALIZAÇÃO E SINCRONIZAÇÃO DA BASE ELEITORAL ({ano})   🔄")
+    print("═" * 80)
     print(f"Pleito: {desc_pleito}")
+    print(f"Modo Operacional: {'INICIALIZAÇÃO DA BASE' if eh_init else 'ATUALIZAÇÃO INCREMENTAL'}")
     print(f"Escopo: Território Nacional Completo ({len(UFS_BRASIL)} UFs)")
     print(f"Diretório de Armazenamento: {DEFAULT_OUTPUT_DIR}")
     print(f"Banco Alvo: {DB_PATH}")
     print("─" * 80)
-    print("IMPORTANTE! LEIA COM ATENÇÃO:")
-    print("  1. DOWNLOAD DE DADOS:")
-    multiplicador_turnos = len(turnos)
-    gb_min = 25 * multiplicador_turnos
-    gb_max = 30 * multiplicador_turnos
-    print(f"     Volume estimado de download: cerca de {gb_min} a {gb_max} GB (497.895 seções por turno).")
-    print("     Arquivos já existentes localmente serão verificados e preservados automaticamente.")
-    print("  2. RESET DO BANCO DE DADOS:")
-    if zerar_banco:
-        print("     O banco de dados será inicializado/zerado com a estrutura oficial completa (--zerar ativo).")
-    else:
-        print("     O banco existente será preservado e atualizado de forma incremental (resume inteligente).")
-    print("  3. SEGURANÇA OPERACIONAL:")
-    print("     Execute esta rotina exclusivamente no seu ambiente local (Local-First).")
-    print("     Não execute em servidores VPS em nuvem sob risco de esgotamento de recursos.")
-    print("  4. PROCESSAMENTO INTENSIVO E TEMPO ESTIMADO:")
-    tempo_min = 30 * multiplicador_turnos
-    tempo_max = 50 * multiplicador_turnos
-    print(f"     O tempo total estimado é de aproximadamente {tempo_min} a {tempo_max} minutos.")
-    print("     Os tempos estimados dependem da velocidade da internet e da capacidade do computador.")
-    print("     Recomenda-se manter o computador ligado e desativar o modo de suspensão/hibernação.")
-    print("═" * 80 + "\n")
 
-    if not forcar:
-        confirmacao = input("Digite 'SIM' para continuar: ").strip()
-        if confirmacao != "SIM":
-            print("\n[!] Operação cancelada.")
-            sys.exit(0)
-        print("\n[+] Confirmação aceita. Iniciando processamento...\n")
+    if eh_init:
+        print("INSTRUÇÕES DE INICIALIZAÇÃO:")
+        print("  1. DOWNLOAD DE DADOS:")
+        multiplicador_turnos = len(turnos)
+        gb_min = 25 * multiplicador_turnos
+        gb_max = 30 * multiplicador_turnos
+        print(f"     Volume estimado de download: cerca de {gb_min} a {gb_max} GB (497.895 seções por turno).")
+        print("     Arquivos já existentes localmente serão verificados e preservados automaticamente.")
+        print("  2. ESTRUTURA DO BANCO DE DADOS:")
+        if zerar_banco:
+            print("     O banco de dados será inicializado/zerado com a estrutura oficial completa (--zerar ativo).")
+        else:
+            print("     O schema SQLite será inicializado para receber a carga completa.")
+        print("  3. SEGURANÇA OPERACIONAL:")
+        print("     Execute esta rotina exclusivamente no seu ambiente local (Local-First).")
+        print("     Não execute em servidores VPS em nuvem sob risco de esgotamento de recursos.")
+        print("  4. PROCESSAMENTO INTENSIVO E TEMPO ESTIMADO:")
+        tempo_min = 30 * multiplicador_turnos
+        tempo_max = 50 * multiplicador_turnos
+        print(f"     O tempo total estimado é de aproximadamente {tempo_min} a {tempo_max} minutos.")
+        print("     Recomenda-se manter o computador ligado e desativar o modo de suspensão/hibernação.")
+        print("═" * 80 + "\n")
+
+        if not forcar:
+            confirmacao = input("Digite 'SIM' para continuar com a inicialização: ").strip()
+            if confirmacao != "SIM":
+                print("\n[!] Operação cancelada.")
+                sys.exit(0)
+            print("\n[+] Confirmação aceita. Iniciando inicialização...\n")
+    else:
+        print("INSTRUÇÕES DA ATUALIZAÇÃO:")
+        print("  1. VERIFICAÇÃO NA CDN OFICIAL DO TSE:")
+        print("     Consulta a CDN em busca de pacotes novos, retotalizações ou seções complementares.")
+        print("     Arquivos já baixados e idênticos NÃO serão transferidos novamente.")
+        print("  2. CONSOLIDAÇÃO INCREMENTAL INTELIGENTE:")
+        print("     Apenas UFs com pacotes republicados pelo TSE ou seções pendentes serão processadas.")
+        print("     O banco de dados existente será preservado e atualizado de forma inteligente.")
+        print("  3. ESTIMATIVA DE TEMPO:")
+        print("     Se não houver novos dados do TSE, a verificação levará apenas alguns segundos.")
+        print("═" * 80 + "\n")
+
+        if not forcar:
+            confirmacao = input("Pressione ENTER para verificar atualizações no TSE (ou 'C' para cancelar): ").strip()
+            if confirmacao.upper() == "C":
+                print("\n[!] Operação cancelada.")
+                sys.exit(0)
+            print("\n[+] Iniciando verificação e atualização de dados...\n")
 
 
 def orquestrar_pipeline(
@@ -167,19 +196,24 @@ def orquestrar_pipeline(
     zerar_banco: bool = False,
     pular_download: bool = False,
     threads: int = 24,
-    reprocessar: bool = False
+    reprocessar: bool = False,
+    modo: str = "update"
 ) -> None:
     """
     Executa a cadeia modular do pipeline em ordem estrita de integridade.
     Processa obrigatoriamente todas as 27 UFs para todos os turnos detectados.
     """
+    eh_init = (modo == "init" or zerar_banco)
     ufs = UFS_BRASIL
     turnos = detectar_turnos_disponiveis(ano=ano)
     t_inicio_total = time.time()
 
-    # 1. Inicialização do Banco de Dados
+    # 1. Inicialização / Conexão do Banco de Dados
     print("=" * 80)
-    print("ETAPA 1/5: INICIALIZAÇÃO DO SCHEMA DO BANCO RELACIONAL (SQLite)")
+    if eh_init:
+        print("ETAPA 1/5: INICIALIZAÇÃO DO SCHEMA DO BANCO RELACIONAL (SQLite)")
+    else:
+        print("ETAPA 1/5: CONEXÃO E VALIDAÇÃO DO BANCO RELACIONAL (SQLite)")
     print("=" * 80)
     if zerar_banco:
         print(f"[*] Zerando banco de dados para reconstrução limpa: {DB_PATH.name}")
@@ -201,7 +235,10 @@ def orquestrar_pipeline(
             status_turno = "dados disponíveis para processamento" if t in turnos else "aguardando publicação TSE"
             print(f"[+] Pleito '{cod_pleito}' ({desc_pleito}) registrado no banco ({status_turno}).")
     conn.close()
-    print("[+] Schema do SQLite validado e pleitos estruturados (1º e 2º Turnos).\n")
+    if eh_init:
+        print("[+] Schema do SQLite estruturado e pleitos registrados (1º e 2º Turnos).\n")
+    else:
+        print("[+] Conexão SQLite validada e integridade de pleitos verificada.\n")
 
     # Garante o catálogo oficial de municípios do TSE de forma automatizada
     from pipeline.auditar import garantir_municipios_csv
@@ -214,9 +251,12 @@ def orquestrar_pipeline(
     for idx_t, turno in enumerate(turnos, 1):
         sufixo_turno = f" (TURNO {turno} DE {len(turnos)})" if len(turnos) > 1 else ""
 
-        # 2. Download dos Pacotes Oficiais da CDN do TSE
+        # 2. Download / Verificação dos Pacotes Oficiais da CDN do TSE
         print("=" * 80)
-        print(f"ETAPA 2/5: VERIFICAÇÃO E DOWNLOAD DOS PACOTES OFICIAIS DO TSE{sufixo_turno}")
+        if eh_init:
+            print(f"ETAPA 2/5: DOWNLOAD E VALIDAÇÃO DOS PACOTES OFICIAIS DO TSE{sufixo_turno}")
+        else:
+            print(f"ETAPA 2/5: VERIFICAÇÃO DE NOVIDADES NA CDN OFICIAL DO TSE{sufixo_turno}")
         print("=" * 80)
         pacotes_por_uf = {}
         ufs_atualizadas_turno = set()
@@ -252,11 +292,17 @@ def orquestrar_pipeline(
         if ufs_atualizadas_turno:
             print(f"[!] UFs com pacotes atualizados pela CDN ({len(ufs_atualizadas_turno)}): {', '.join(sorted(ufs_atualizadas_turno))}\n")
         else:
-            print("[i] Nenhuma alteração de pacote detectada na CDN do TSE para este turno.\n")
+            if eh_init:
+                print("[i] Todos os pacotes já se encontram disponíveis localmente.\n")
+            else:
+                print("[i] Nenhuma novidade detectada na CDN do TSE para este turno. Dados idênticos aos oficiais.\n")
 
         # 3. Processamento e Cronologia dos Logs das Urnas (-log.jez)
         print("=" * 80)
-        print(f"ETAPA 3/5: PROCESSAMENTO E CRONOLOGIA DOS LOGS DE URNA (-log.jez){sufixo_turno}")
+        if eh_init:
+            print(f"ETAPA 3/5: PROCESSAMENTO E CRONOLOGIA DOS LOGS DE URNA (-log.jez){sufixo_turno}")
+        else:
+            print(f"ETAPA 3/5: SINCRONIZAÇÃO E AUDITORIA DOS LOGS DE URNA (-log.jez){sufixo_turno}")
         print("=" * 80)
         for uf, zpath in pacotes_por_uf.items():
             deve_forcar = (reprocessar or (uf in ufs_atualizadas_turno))
@@ -265,7 +311,10 @@ def orquestrar_pipeline(
 
         # 4. Consolidação de Boletins de Urna (BUs) & Zonas
         print("=" * 80)
-        print(f"ETAPA 4/5: DECODIFICAÇÃO ASN.1 DOS BOLETINS DE URNA (-bu.dat){sufixo_turno}")
+        if eh_init:
+            print(f"ETAPA 4/5: DECODIFICAÇÃO ASN.1 DOS BOLETINS DE URNA (-bu.dat){sufixo_turno}")
+        else:
+            print(f"ETAPA 4/5: CONSOLIDAÇÃO DE BOLETINS DE URNA ATUALIZADOS (-bu.dat){sufixo_turno}")
         print("=" * 80)
         conn = get_connection(DB_PATH)
         cur = conn.cursor()
@@ -292,7 +341,10 @@ def orquestrar_pipeline(
 
     # 5. Geração do Cache Analítico Colunar de Alta Velocidade (Parquet)
     print("=" * 80)
-    print("ETAPA 5/5: MATERIALIZAÇÃO DO CACHE COLUNAR ANALÍTICO (Parquet)")
+    if eh_init:
+        print("ETAPA 5/5: MATERIALIZAÇÃO DO CACHE COLUNAR ANALÍTICO (Parquet)")
+    else:
+        print("ETAPA 5/5: SINCRONIZAÇÃO DO CACHE COLUNAR ANALÍTICO (Parquet)")
     print("=" * 80)
     df = compilar_dataset_parquet(forcar=True)
 
@@ -335,19 +387,30 @@ def orquestrar_pipeline(
         print("[i] Nenhuma novidade no TSE e nenhum BU novo processado nesta execução.")
 
     print("\n" + "═" * 80)
-    print("      🎉  INICIALIZAÇÃO DA BASE ELEITORAL CONCLUÍDA COM SUCESSO!  🎉")
+    if eh_init:
+        print("      🎉  INICIALIZAÇÃO DA BASE ELEITORAL CONCLUÍDA COM SUCESSO!  🎉")
+    else:
+        print("      ✅  SINCRONIZAÇÃO DA BASE ELEITORAL CONCLUÍDA COM SUCESSO!  ✅")
     print("═" * 80)
     desc_turnos_fim = " e ".join(f"{t}º" for t in turnos) + (" Turno" if len(turnos) == 1 else " Turnos")
     print(f"Turno(s) Processado(s): {desc_turnos_fim}")
+    print(f"Modo Executado: {'Inicialização Completa' if eh_init else 'Atualização Incremental'}")
     print(f"Total de Seções Consolidadas no Dataset: {len(df):,}")
     print(f"Colunas estruturadas: {len(df.columns)}")
     print(f"Arquivo SQLite:  {DB_PATH} ({round(DB_PATH.stat().st_size / (1024*1024), 1)} MB)")
     if PARQUET_PATH.exists():
         print(f"Arquivo Parquet: {PARQUET_PATH} ({round(PARQUET_PATH.stat().st_size / (1024*1024), 1)} MB)")
+    if not eh_init and total_bus_geral == 0 and len(total_ufs_atualizadas_geral) == 0:
+        print("Status da Base: 100% Sincronizada (Nenhum dado novo publicado pelo TSE).")
+    elif total_bus_geral > 0:
+        print(f"BUs Processados/Atualizados nesta execução: {total_bus_geral:,}")
     print(f"Tempo Total de Execução: {round(t_total / 60, 1)} minutos ({round(t_total, 1)}s)")
     print("═" * 80)
-    print("Para subir os dados para o servidor de produção, execute:")
-    print("   powershell -File scripts/subirproducao.ps1")
+    if eh_init:
+        print("Para subir a base inicial para o servidor de produção, execute:")
+        print("   powershell -File scripts/subirproducao.ps1 -IncludeDatabase")
+    else:
+        print("Para enviar atualizações para produção, utilize scripts/atualizar_dados.cmd")
     print("═" * 80)
 
 
@@ -358,27 +421,37 @@ def main():
     _default_workers = max(4, min(_cpu_total - 2, 24))
 
     parser = argparse.ArgumentParser(
-        description="Inicializador Oficial da Base de Dados Eleitoral — Abrangência Nacional Mandatória (27 UFs)",
+        description="Gerenciador Oficial da Base de Dados Eleitoral — Radar Eleitoral",
         formatter_class=argparse.RawTextHelpFormatter
     )
+    parser.add_argument(
+        "acao",
+        nargs="?",
+        default="update",
+        choices=["update", "init"],
+        help="Ação a executar:\n  update (padrão): Sincronização incremental com a CDN do TSE\n  init: Inicialização e carga completa da base de dados"
+    )
+    parser.add_argument("--init", action="store_true", help="Ativa modo explícito de inicialização da base")
     parser.add_argument("--ano", type=int, default=2026, help="Ano da eleição (padrão: 2026)")
     parser.add_argument("--threads", type=int, default=_default_workers, help=f"Número de processos paralelos de CPU (padrão adaptativo: {_default_workers})")
-    parser.add_argument("--zerar", action="store_true", help="Zera o banco de dados antes de recriar")
+    parser.add_argument("--zerar", action="store_true", help="Zera o banco de dados antes de recriar (força modo init)")
     parser.add_argument("--reprocessar", action="store_true", help="Força reprocessamento de BUs e logs de todas as UFs")
     parser.add_argument("--pular-download", action="store_true", help="Utiliza pacotes ZIP já existentes localmente sem consultar a CDN")
     parser.add_argument("--forcar", action="store_true", help="Pula confirmação interativa (para automações e scripts)")
 
     args = parser.parse_args()
 
+    modo = "init" if (args.acao == "init" or args.init or args.zerar) else "update"
     turnos_alvo = detectar_turnos_disponiveis(ano=args.ano)
 
-    exibir_banner_e_confirmar(turnos_alvo, args.ano, args.zerar, args.forcar)
+    exibir_banner_e_confirmar(turnos_alvo, args.ano, args.zerar, args.forcar, modo=modo)
     orquestrar_pipeline(
         ano=args.ano,
         zerar_banco=args.zerar,
         pular_download=args.pular_download,
         threads=args.threads,
-        reprocessar=args.reprocessar
+        reprocessar=args.reprocessar,
+        modo=modo
     )
 
 

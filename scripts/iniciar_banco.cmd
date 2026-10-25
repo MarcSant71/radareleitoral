@@ -43,12 +43,12 @@ echo [*] Diretorio do projeto: %CD%
 echo.
 
 REM ===============================================================================
-REM 4. Execucao do Pipeline de Dados
-REM    - Verifica pacotes na CDN do TSE (baixa apenas arquivos novos/atualizados)
-REM    - Salva os arquivos brutos em dados_brutos\arquivos_urna\
+REM 4. Execucao do Pipeline de Dados em Modo Inicializacao (init)
+REM    - Inicializa/estrutura o schema SQLite
+REM    - Verifica/baixa pacotes oficiais completos da CDN do TSE
 REM    - Audita logs, decodifica BUs e consolida bases SQLite e Parquet
 REM ===============================================================================
-python -u -m pipeline %*
+python -u -m pipeline init %*
 
 set EXIT_CODE=%ERRORLEVEL%
 if %EXIT_CODE% NEQ 0 (

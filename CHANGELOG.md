@@ -7,6 +7,14 @@ e este projeto adere estritamente ao [Semantic Versioning (SemVer 2.0.0)](https:
 
 ---
 
+## [2.8.1] - 2026-10-25
+
+### Modificado
+- **Ergonomia e Navegação Visual:** Reposicionamento dos controles de navegação rápida no cabeçalho superior, posicionando a alternância de contraste (tema) à esquerda e a central de metodologia e governança à extrema direita.
+- **Transparência em Operações de Dados:** Comunicação contextual diferenciada durante sincronizações rotineiras e procedimentos de carga completa, aprimorando a clareza das instruções ao usuário.
+
+---
+
 ## [2.8.0] - 2026-10-25
 
 ### Adicionado
