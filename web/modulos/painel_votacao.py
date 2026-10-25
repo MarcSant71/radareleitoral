@@ -270,9 +270,10 @@ def renderizar_mapa_estadual(
     cand_1: Dict[str, Any],
     cand_2: Dict[str, Any],
     modo_escuro: bool,
-    plotly_theme: str
+    plotly_theme: str,
+    mun_selecionado: Optional[str] = None
 ):
-    """Renderiza o Mapa Coroplético Municipal da UF selecionada."""
+    """Renderiza o Mapa Coroplético Municipal da UF selecionada com destaque para o município ativo."""
     geo_uf = carregar_geojson_uf(uf)
     nome_uf = NOMES_UFS.get(uf, uf)
 
@@ -327,6 +328,41 @@ def renderizar_mapa_estadual(
             "vencedor": "Vencedor no Município"
         }
     )
+
+    # Destaque visual caso um município esteja selecionado
+    if mun_selecionado:
+        df_destaque = df_mun[df_mun["municipio_nome"] == mun_selecionado]
+        if not df_destaque.empty:
+            for tr in fig.data:
+                tr.marker.opacity = 0.35
+
+            cand_venc = df_destaque.iloc[0]["vencedor"]
+            cor_destaque = cand_1["cor"] if cand_venc == cand_1["nome_urna"] else cand_2["cor"]
+
+            val_total_dest = int(df_destaque.iloc[0]["pres_total_validos"])
+            val_fmt = f"{val_total_dest:,}".replace(",", ".")
+            fig.add_trace(
+                go.Choropleth(
+                    geojson=geo_uf,
+                    locations=df_destaque["municipio"],
+                    featureidkey="id",
+                    z=[1],
+                    colorscale=[[0, cor_destaque], [1, cor_destaque]],
+                    showscale=False,
+                    marker_line_color="#fbbf24",
+                    marker_line_width=3.5,
+                    marker_opacity=1.0,
+                    hovertext=(
+                        f"🏙️ <b>{mun_selecionado}</b> (Selecionado)<br>"
+                        f"Vencedor: <b>{cand_venc}</b><br>"
+                        f"{cand_1['partido']}: {df_destaque.iloc[0]['pct_c1']:.2f}%<br>"
+                        f"{cand_2['partido']}: {df_destaque.iloc[0]['pct_c2']:.2f}%<br>"
+                        f"Válidos: {val_fmt}"
+                    ),
+                    hoverinfo="text",
+                    name=f"📍 {mun_selecionado}"
+                )
+            )
 
     fig.update_geos(
         fitbounds="locations",
@@ -416,10 +452,18 @@ def renderizar_painel_votacao(
         )
 
     with col_nav2:
-        if uf_selecionada is not None:
-            if st.button("🔙 Voltar à Visão Nacional", use_container_width=True, key="btn_voltar_nacional"):
+        if mun_selecionado is not None:
+            if st.button(f"🔙 Voltar ao Estado ({uf_selecionada})", width="stretch", key="btn_voltar_estado"):
+                st.session_state["painel_mun_ativo"] = None
+                if "seletor_mun_drilldown" in st.session_state:
+                    st.session_state["seletor_mun_drilldown"] = "(Todos os Municípios)"
+                st.rerun()
+        elif uf_selecionada is not None:
+            if st.button("🔙 Voltar à Visão Nacional", width="stretch", key="btn_voltar_nacional"):
                 st.session_state["painel_uf_ativa"] = None
                 st.session_state["painel_mun_ativo"] = None
+                if "seletor_mun_drilldown" in st.session_state:
+                    st.session_state["seletor_mun_drilldown"] = "(Todos os Municípios)"
                 st.rerun()
 
     # Barra de Progresso de Totalização
@@ -480,9 +524,20 @@ def renderizar_painel_votacao(
             renderizar_mapa_nacional(df, cand_1, cand_2, modo_escuro, plotly_theme)
         else:
             nome_uf = NOMES_UFS.get(uf_selecionada, uf_selecionada)
-            st.markdown(f"#### 🗺️ Vencedores por Município — {nome_uf} ({uf_selecionada})")
-            renderizar_mapa_estadual(df_foco if mun_selecionado is None else df[df["uf"] == uf_selecionada], 
-                                     uf_selecionada, cand_1, cand_2, modo_escuro, plotly_theme)
+            if mun_selecionado:
+                st.markdown(f"#### 🗺️ Vencedores por Município — {nome_uf} ({uf_selecionada}) • 📍 {mun_selecionado}")
+            else:
+                st.markdown(f"#### 🗺️ Vencedores por Município — {nome_uf} ({uf_selecionada})")
+
+            renderizar_mapa_estadual(
+                df[df["uf"] == uf_selecionada], 
+                uf_selecionada, 
+                cand_1, 
+                cand_2, 
+                modo_escuro, 
+                plotly_theme,
+                mun_selecionado=mun_selecionado
+            )
 
     with col_painel:
         st.markdown("#### 🔍 Seleção de Estado")
@@ -504,6 +559,8 @@ def renderizar_painel_votacao(
                 sigla = escolha.split("(")[-1].replace(")", "").strip()
                 st.session_state["painel_uf_ativa"] = sigla
                 st.session_state["painel_mun_ativo"] = None
+            if "seletor_mun_drilldown" in st.session_state:
+                st.session_state["seletor_mun_drilldown"] = "(Todos os Municípios)"
 
         st.selectbox(
             "Visualização / Estado:",
@@ -545,7 +602,7 @@ def renderizar_painel_votacao(
             st.dataframe(
                 tabela_resumo,
                 hide_index=True,
-                use_container_width=True,
+                width="stretch",
                 column_config={
                     "Válidos": st.column_config.NumberColumn(format="%d"),
                     f"% {cand_1['partido']}": st.column_config.NumberColumn(format="%.1f%%"),
@@ -560,31 +617,74 @@ def renderizar_painel_votacao(
             df_estado_muns = df[df["uf"] == uf_selecionada]
             lista_muns = sorted(list(df_estado_muns["municipio_nome"].unique()))
 
-            sel_mun = st.selectbox(
+            def ao_mudar_municipio():
+                escolha = st.session_state.get("seletor_mun_drilldown")
+                if not escolha or escolha == "(Todos os Municípios)":
+                    st.session_state["painel_mun_ativo"] = None
+                else:
+                    st.session_state["painel_mun_ativo"] = escolha
+
+            idx_mun = 0
+            if mun_selecionado and mun_selecionado in lista_muns:
+                idx_mun = lista_muns.index(mun_selecionado) + 1
+
+            st.selectbox(
                 "Filtrar Município:",
                 options=["(Todos os Municípios)"] + lista_muns,
-                index=0 if mun_selecionado is None else (lista_muns.index(mun_selecionado) + 1 if mun_selecionado in lista_muns else 0),
-                key="seletor_mun_drilldown"
+                index=idx_mun,
+                key="seletor_mun_drilldown",
+                on_change=ao_mudar_municipio,
+                help="Selecione um município para focar os resultados e destacá-lo no mapa."
             )
 
-            if sel_mun != "(Todos os Municípios)" and sel_mun != mun_selecionado:
-                st.session_state["painel_mun_ativo"] = sel_mun
-                st.rerun()
-            elif sel_mun == "(Todos os Municípios)" and mun_selecionado is not None:
-                st.session_state["painel_mun_ativo"] = None
-                st.rerun()
-
-            # Métricas cívicas adicionais da localidade
+            # Métricas cívicas adicionais da localidade (Estado ou Município selecionado)
+            rotulo_civicos = f"Indicadores Cívicos — {mun_selecionado}" if mun_selecionado else f"Indicadores Cívicos — {NOMES_UFS.get(uf_selecionada, uf_selecionada)}"
             st.markdown("<div style='margin-top: 1rem;'></div>", unsafe_allow_html=True)
-            st.markdown("##### 📊 Indicadores Cívicos")
+            st.markdown(f"##### 📊 {rotulo_civicos}")
             col_m1, col_m2 = st.columns(2)
             with col_m1:
                 st.metric("Comparecimento", f"{fmt_float_br(pct_comp)}%", f"{fmt_int_br(comp_tot)} eleitores")
             with col_m2:
                 st.metric("Abstenção", f"{fmt_float_br(pct_abst)}%", f"{fmt_int_br(abst_tot)} faltosos", delta_color="inverse")
 
-            # Ranking dos maiores municípios da UF
-            st.markdown("##### 🏆 Mais Votados do Estado")
+            # Se um município com múltiplas zonas estiver selecionado, exibe ranking por zona eleitoral
+            if mun_selecionado and df_foco["zona"].nunique() > 1:
+                st.markdown(f"##### 🏛️ Zonas Eleitorais de {mun_selecionado}")
+                df_z_rank = df_foco.groupby("zona", observed=True).agg({
+                    "pres_total_validos": "sum",
+                    cand_1["coluna_votos"]: "sum",
+                    cand_2["coluna_votos"]: "sum"
+                }).reset_index()
+
+                df_z_rank["zona"] = df_z_rank["zona"].astype(str)
+                v1_c = cand_1["coluna_votos"]
+                v2_c = cand_2["coluna_votos"]
+                df_z_rank["pct_1"] = (df_z_rank[v1_c] / df_z_rank["pres_total_validos"] * 100).round(1)
+                df_z_rank["pct_2"] = (df_z_rank[v2_c] / df_z_rank["pres_total_validos"] * 100).round(1)
+                df_z_rank["Vencedor"] = df_z_rank.apply(lambda r: cand_1["partido"] if r[v1_c] >= r[v2_c] else cand_2["partido"], axis=1)
+                df_z_rank = df_z_rank.sort_values(by="pres_total_validos", ascending=False)
+
+                tabela_zonas = pd.DataFrame({
+                    "Zona": "Zona " + df_z_rank["zona"],
+                    "Vencedor": df_z_rank["Vencedor"],
+                    f"% {cand_1['partido']}": df_z_rank["pct_1"],
+                    f"% {cand_2['partido']}": df_z_rank["pct_2"],
+                    "Válidos": df_z_rank["pres_total_validos"]
+                })
+
+                st.dataframe(
+                    tabela_zonas,
+                    hide_index=True,
+                    width="stretch",
+                    column_config={
+                        "Válidos": st.column_config.NumberColumn(format="%d"),
+                        f"% {cand_1['partido']}": st.column_config.NumberColumn(format="%.1f%%"),
+                        f"% {cand_2['partido']}": st.column_config.NumberColumn(format="%.1f%%")
+                    }
+                )
+
+            # Ranking dos maiores municípios da UF como referência
+            st.markdown(f"##### 🏆 Mais Votados do Estado ({uf_selecionada})")
             df_m_rank = df_estado_muns.groupby("municipio_nome", observed=True).agg({
                 "pres_total_validos": "sum",
                 cand_1["coluna_votos"]: "sum",
@@ -592,8 +692,10 @@ def renderizar_painel_votacao(
             }).reset_index()
 
             df_m_rank["municipio_nome"] = df_m_rank["municipio_nome"].astype(str)
-            df_m_rank["pct_1"] = (df_m_rank[cand_1["coluna_votos"]] / df_m_rank["pres_total_validos"] * 100).round(1)
-            df_m_rank["pct_2"] = (df_m_rank[cand_2["coluna_votos"]] / df_m_rank["pres_total_validos"] * 100).round(1)
+            v1_c = cand_1["coluna_votos"]
+            v2_c = cand_2["coluna_votos"]
+            df_m_rank["pct_1"] = (df_m_rank[v1_c] / df_m_rank["pres_total_validos"] * 100).round(1)
+            df_m_rank["pct_2"] = (df_m_rank[v2_c] / df_m_rank["pres_total_validos"] * 100).round(1)
             df_m_rank["Vencedor"] = df_m_rank.apply(lambda r: cand_1["partido"] if r[cand_1["coluna_votos"]] >= r[cand_2["coluna_votos"]] else cand_2["partido"], axis=1)
             df_m_rank = df_m_rank.sort_values(by="pres_total_validos", ascending=False).head(5)
 
@@ -608,7 +710,7 @@ def renderizar_painel_votacao(
             st.dataframe(
                 tabela_muns,
                 hide_index=True,
-                use_container_width=True,
+                width="stretch",
                 column_config={
                     "Válidos": st.column_config.NumberColumn(format="%d"),
                     f"% {cand_1['partido']}": st.column_config.NumberColumn(format="%.1f%%"),
