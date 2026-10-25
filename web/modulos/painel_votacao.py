@@ -87,6 +87,45 @@ def carregar_geojson_uf(uf: str) -> Optional[Dict[str, Any]]:
         return None
 
 
+def gerar_card_candidato_html(
+    cand: Dict[str, Any],
+    votos: int,
+    total_validos: int,
+    na_frente: bool,
+    modo_escuro: bool,
+    fmt_int_br,
+    fmt_float_br
+) -> str:
+    """Gera o HTML compacto do card do candidato sem identação para evitar conflito com Markdown."""
+    pct = (votos / total_validos * 100) if total_validos > 0 else 0.0
+    bg_card = "#161b22" if modo_escuro else "#ffffff"
+    border_color = "#30363d" if modo_escuro else "#e2e8f0"
+    text_color = "#f0f2f6" if modo_escuro else "#0f172a"
+    sub_color = "#94a3b8" if modo_escuro else "#64748b"
+
+    cor = cand["cor"]
+    borda = cor if na_frente else border_color
+    shadow = f"box-shadow: 0 0 16px {cor}33;" if na_frente else ""
+    badge_html = f'<span style="background-color: {cor}; color: #ffffff; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 9999px;">LIDERANÇA</span>' if na_frente else '<span></span>'
+
+    return (
+        f'<div style="background-color: {bg_card}; border: 2px solid {borda}; border-radius: 12px; padding: 1.25rem; {shadow}">'
+        f'<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">'
+        f'<div style="display: flex; align-items: center; gap: 0.5rem;">'
+        f'<span style="background-color: {cor}; color: #ffffff; font-weight: 800; font-size: 0.9rem; padding: 2px 8px; border-radius: 6px;">{cand["numero"]}</span>'
+        f'<span style="font-weight: 700; color: {cor}; font-size: 0.95rem;">{cand["partido"]}</span>'
+        f'</div>'
+        f'{badge_html}'
+        f'</div>'
+        f'<h3 style="margin: 0 0 0.5rem 0; font-size: 1.35rem; font-weight: 800; color: {text_color}; letter-spacing: -0.02em;">{cand["nome_urna"]}</h3>'
+        f'<div style="display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.35rem;">'
+        f'<span style="font-size: 2.5rem; font-weight: 900; color: {cor}; line-height: 1;">{fmt_float_br(pct)}%</span>'
+        f'<span style="font-size: 0.95rem; color: {sub_color}; font-weight: 600;">{fmt_int_br(votos)} votos</span>'
+        f'</div>'
+        f'</div>'
+    )
+
+
 def renderizar_placar_candidatos(
     meta_eleicao: Dict[str, Any],
     cand_1: Dict[str, Any],
@@ -102,110 +141,41 @@ def renderizar_placar_candidatos(
     p1 = (v1 / total_validos * 100) if total_validos > 0 else 0.0
     p2 = (v2 / total_validos * 100) if total_validos > 0 else 0.0
     
-    # Identifica quem está na frente
     na_frente_1 = v1 >= v2
     delta_votos = abs(v1 - v2)
     delta_pct = abs(p1 - p2)
-
-    bg_card = "#161b22" if modo_escuro else "#ffffff"
-    border_color = "#30363d" if modo_escuro else "#e2e8f0"
-    text_color = "#f0f2f6" if modo_escuro else "#0f172a"
     sub_color = "#94a3b8" if modo_escuro else "#64748b"
-
-    c1_cor = cand_1["cor"]
-    c2_cor = cand_2["cor"]
-    borda_1 = c1_cor if na_frente_1 else border_color
-    borda_2 = c2_cor if not na_frente_1 else border_color
-    shadow_1 = f"0 0 15px {c1_cor}33" if na_frente_1 else "none"
-    shadow_2 = f"0 0 15px {c2_cor}33" if not na_frente_1 else "none"
-    badge_lider_1 = f'<span style="background-color: {c1_cor}; color: #ffffff; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 9999px;">LIDERANÇA</span>' if na_frente_1 else ""
-    badge_lider_2 = f'<span style="background-color: {c2_cor}; color: #ffffff; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 9999px;">LIDERANÇA</span>' if not na_frente_1 else ""
 
     col_c1, col_c2 = st.columns(2)
 
     with col_c1:
         st.markdown(
-            f"""
-            <div style="background-color: {bg_card}; border: 2px solid {borda_1}; 
-                        border-radius: 12px; padding: 1.25rem; box-shadow: {shadow_1};">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <span style="background-color: {c1_cor}; color: #ffffff; font-weight: 800; font-size: 0.9rem; padding: 2px 8px; border-radius: 6px;">
-                            {cand_1['numero']}
-                        </span>
-                        <span style="font-weight: 700; color: {c1_cor}; font-size: 0.95rem;">
-                            {cand_1['partido']}
-                        </span>
-                    </div>
-                    {badge_lider_1}
-                </div>
-                <h3 style="margin: 0 0 0.5rem 0; font-size: 1.35rem; font-weight: 800; color: {text_color}; letter-spacing: -0.02em;">
-                    {cand_1['nome_urna']}
-                </h3>
-                <div style="display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.35rem;">
-                    <span style="font-size: 2.5rem; font-weight: 900; color: {c1_cor}; line-height: 1;">
-                        {fmt_float_br(p1)}%
-                    </span>
-                    <span style="font-size: 0.95rem; color: {sub_color}; font-weight: 600;">
-                        {fmt_int_br(v1)} votos
-                    </span>
-                </div>
-            </div>
-            """,
+            gerar_card_candidato_html(cand_1, v1, total_validos, na_frente_1, modo_escuro, fmt_int_br, fmt_float_br),
             unsafe_allow_html=True
         )
 
     with col_c2:
         st.markdown(
-            f"""
-            <div style="background-color: {bg_card}; border: 2px solid {borda_2}; 
-                        border-radius: 12px; padding: 1.25rem; box-shadow: {shadow_2};">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <span style="background-color: {c2_cor}; color: #ffffff; font-weight: 800; font-size: 0.9rem; padding: 2px 8px; border-radius: 6px;">
-                            {cand_2['numero']}
-                        </span>
-                        <span style="font-weight: 700; color: {c2_cor}; font-size: 0.95rem;">
-                            {cand_2['partido']}
-                        </span>
-                    </div>
-                    {badge_lider_2}
-                </div>
-                <h3 style="margin: 0 0 0.5rem 0; font-size: 1.35rem; font-weight: 800; color: {text_color}; letter-spacing: -0.02em;">
-                    {cand_2['nome_urna']}
-                </h3>
-                <div style="display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.35rem;">
-                    <span style="font-size: 2.5rem; font-weight: 900; color: {c2_cor}; line-height: 1;">
-                        {fmt_float_br(p2)}%
-                    </span>
-                    <span style="font-size: 0.95rem; color: {sub_color}; font-weight: 600;">
-                        {fmt_int_br(v2)} votos
-                    </span>
-                </div>
-            </div>
-            """,
+            gerar_card_candidato_html(cand_2, v2, total_validos, not na_frente_1, modo_escuro, fmt_int_br, fmt_float_br),
             unsafe_allow_html=True
         )
 
     # Barra proporcional horizontal de disputa (Tug-of-war)
-    st.markdown(
-        f"""
-        <div style="margin-top: 1rem; margin-bottom: 0.5rem;">
-            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 700; color: {sub_color}; margin-bottom: 4px;">
-                <span>{cand_1['nome_urna']} ({fmt_float_br(p1)}%)</span>
-                <span>Diferença: {fmt_int_br(delta_votos)} votos ({fmt_float_br(delta_pct)} pp)</span>
-                <span>{cand_2['nome_urna']} ({fmt_float_br(p2)}%)</span>
-            </div>
-            <div style="width: 100%; height: 14px; background-color: #30363d; border-radius: 9999px; overflow: hidden; display: flex; position: relative;">
-                <div style="width: {p1}%; height: 100%; background-color: {cand_1['cor']};"></div>
-                <div style="width: {p2}%; height: 100%; background-color: {cand_2['cor']};"></div>
-                <!-- Marcador de 50% -->
-                <div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background-color: #ffffff; opacity: 0.8; z-index: 2;"></div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
+    bar_html = (
+        f'<div style="margin-top: 1rem; margin-bottom: 0.5rem;">'
+        f'<div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 700; color: {sub_color}; margin-bottom: 4px;">'
+        f'<span>{cand_1["nome_urna"]} ({fmt_float_br(p1)}%)</span>'
+        f'<span>Diferença: {fmt_int_br(delta_votos)} votos ({fmt_float_br(delta_pct)} pp)</span>'
+        f'<span>{cand_2["nome_urna"]} ({fmt_float_br(p2)}%)</span>'
+        f'</div>'
+        f'<div style="width: 100%; height: 14px; background-color: #30363d; border-radius: 9999px; overflow: hidden; display: flex; position: relative;">'
+        f'<div style="width: {p1}%; height: 100%; background-color: {cand_1["cor"]};"></div>'
+        f'<div style="width: {p2}%; height: 100%; background-color: {cand_2["cor"]};"></div>'
+        f'<div style="position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background-color: #ffffff; opacity: 0.8; z-index: 2;"></div>'
+        f'</div>'
+        f'</div>'
     )
+    st.markdown(bar_html, unsafe_allow_html=True)
 
 
 def renderizar_mapa_nacional(
@@ -231,6 +201,7 @@ def renderizar_mapa_nacional(
     v1_col = cand_1["coluna_votos"]
     v2_col = cand_2["coluna_votos"]
 
+    df_uf["uf"] = df_uf["uf"].astype(str)
     df_uf["pct_c1"] = (df_uf[v1_col] / df_uf["pres_total_validos"] * 100).round(2)
     df_uf["pct_c2"] = (df_uf[v2_col] / df_uf["pres_total_validos"] * 100).round(2)
     
@@ -238,7 +209,7 @@ def renderizar_mapa_nacional(
         lambda r: cand_1["nome_urna"] if r[v1_col] >= r[v2_col] else cand_2["nome_urna"],
         axis=1
     )
-    df_uf["nome_uf"] = df_uf["uf"].map(NOMES_UFS).fillna(df_uf["uf"])
+    df_uf["nome_uf"] = df_uf["uf"].map(NOMES_UFS).fillna(df_uf["uf"]).astype(str)
 
     cor_map = {
         cand_1["nome_urna"]: cand_1["cor"],
@@ -319,6 +290,8 @@ def renderizar_mapa_estadual(
         v2_col: "sum"
     }).reset_index()
 
+    df_mun["municipio"] = df_mun["municipio"].astype(str)
+    df_mun["municipio_nome"] = df_mun["municipio_nome"].astype(str)
     df_mun["pct_c1"] = (df_mun[v1_col] / df_mun["pres_total_validos"] * 100).round(2)
     df_mun["pct_c2"] = (df_mun[v2_col] / df_mun["pres_total_validos"] * 100).round(2)
 
@@ -426,25 +399,19 @@ def renderizar_painel_votacao(
     col_nav1, col_nav2 = st.columns([3, 1])
     with col_nav1:
         if uf_selecionada is None:
-            breadcrumb_txt = "🇧🇷 **BRASIL — APURAÇÃO NACIONAL**"
+            breadcrumb_txt = "🇧🇷 <strong>BRASIL — APURAÇÃO NACIONAL</strong>"
         else:
             nome_uf = NOMES_UFS.get(uf_selecionada, uf_selecionada)
             if mun_selecionado is None:
-                breadcrumb_txt = f"🇧🇷 Brasil  ›  📍 **{nome_uf.upper()} ({uf_selecionada})**"
+                breadcrumb_txt = f"🇧🇷 Brasil  &rsaquo;  📍 <strong>{nome_uf.upper()} ({uf_selecionada})</strong>"
             else:
-                breadcrumb_txt = f"🇧🇷 Brasil  ›  📍 {nome_uf}  ›  🏙️ **{mun_selecionado.upper()}**"
+                breadcrumb_txt = f"🇧🇷 Brasil  &rsaquo;  📍 {nome_uf}  &rsaquo;  🏙️ <strong>{mun_selecionado.upper()}</strong>"
 
         st.markdown(
-            f"""
-            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
-                <span style="font-size: 1.15rem; font-weight: 800; letter-spacing: -0.01em;">
-                    {breadcrumb_txt}
-                </span>
-                <span style="background-color: {meta['status_cor']}; color: #000000; font-size: 0.75rem; font-weight: 800; padding: 2px 8px; border-radius: 9999px;">
-                    {meta['status_oficial']}
-                </span>
-            </div>
-            """,
+            f'<div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">'
+            f'<span style="font-size: 1.15rem; font-weight: 800; letter-spacing: -0.01em;">{breadcrumb_txt}</span>'
+            f'<span style="background-color: {meta["status_cor"]}; color: #000000; font-size: 0.75rem; font-weight: 800; padding: 2px 8px; border-radius: 9999px;">{meta["status_oficial"]}</span>'
+            f'</div>',
             unsafe_allow_html=True
         )
 
@@ -457,17 +424,15 @@ def renderizar_painel_votacao(
 
     # Barra de Progresso de Totalização
     st.markdown(
-        f"""
-        <div style="margin-bottom: 1.25rem;">
-            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 700; color: #94a3b8; margin-bottom: 4px;">
-                <span>SEÇÕES TOTALIZADAS: {fmt_float_br(pct_totalizacao)}% ({fmt_int_br(secoes_apuradas)} de {fmt_int_br(total_secoes)})</span>
-                <span>ÚLTIMA ATUALIZAÇÃO OFICIAL</span>
-            </div>
-            <div style="width: 100%; height: 6px; background-color: #30363d; border-radius: 9999px; overflow: hidden;">
-                <div style="width: {pct_totalizacao}%; height: 100%; background: linear-gradient(90deg, #10b981, #059669);"></div>
-            </div>
-        </div>
-        """,
+        f'<div style="margin-bottom: 1.25rem;">'
+        f'<div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 700; color: #94a3b8; margin-bottom: 4px;">'
+        f'<span>SEÇÕES TOTALIZADAS: {fmt_float_br(pct_totalizacao)}% ({fmt_int_br(secoes_apuradas)} de {fmt_int_br(total_secoes)})</span>'
+        f'<span>ÚLTIMA ATUALIZAÇÃO OFICIAL</span>'
+        f'</div>'
+        f'<div style="width: 100%; height: 6px; background-color: #30363d; border-radius: 9999px; overflow: hidden;">'
+        f'<div style="width: {pct_totalizacao}%; height: 100%; background: linear-gradient(90deg, #10b981, #059669);"></div>'
+        f'</div>'
+        f'</div>',
         unsafe_allow_html=True
     )
 
@@ -552,6 +517,7 @@ def renderizar_painel_votacao(
                 cand_2["coluna_votos"]: "sum"
             }).reset_index()
 
+            df_top_ufs["uf"] = df_top_ufs["uf"].astype(str)
             v1_c = cand_1["coluna_votos"]
             v2_c = cand_2["coluna_votos"]
             df_top_ufs["pct_1"] = (df_top_ufs[v1_c] / df_top_ufs["pres_total_validos"] * 100).round(1)
@@ -617,6 +583,7 @@ def renderizar_painel_votacao(
                 cand_2["coluna_votos"]: "sum"
             }).reset_index()
 
+            df_m_rank["municipio_nome"] = df_m_rank["municipio_nome"].astype(str)
             df_m_rank["pct_1"] = (df_m_rank[cand_1["coluna_votos"]] / df_m_rank["pres_total_validos"] * 100).round(1)
             df_m_rank["pct_2"] = (df_m_rank[cand_2["coluna_votos"]] / df_m_rank["pres_total_validos"] * 100).round(1)
             df_m_rank["Vencedor"] = df_m_rank.apply(lambda r: cand_1["partido"] if r[cand_1["coluna_votos"]] >= r[cand_2["coluna_votos"]] else cand_2["partido"], axis=1)
