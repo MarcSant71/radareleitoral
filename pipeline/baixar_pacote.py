@@ -12,7 +12,7 @@ import argparse
 import urllib.request
 import urllib.error
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 
 _pipeline_dir = Path(__file__).resolve().parent
 if str(_pipeline_dir) not in sys.path:
@@ -28,12 +28,12 @@ else:
     DEFAULT_OUTPUT_DIR = project_root / "dados_brutos" / "arquivos_urna"
 
 
-def baixar_pacote_uf(uf: str, destino_dir: Optional[Path] = None, turno: int = 1) -> Path:
+def baixar_pacote_uf(uf: str, destino_dir: Optional[Path] = None, turno: int = 1) -> Tuple[Path, bool]:
     """
     Baixa ou atualiza o pacote de dados oficiais da urna para a UF e turno informados.
-    Se o arquivo local for íntegro e idêntico à CDN do TSE, pula o download.
-    Se o TSE publicou nova versão oficial (tamanho diferente), baixa via .part temporário
-    e substitui com segurança atômica sem corromper arquivos prévios.
+    Se o arquivo local for íntegro e idêntico à CDN do TSE, pula o download e retorna (caminho, False).
+    Se o TSE publicou nova versão oficial (tamanho diferente), baixa via .part temporário,
+    substitui com segurança atômica e retorna (caminho, True).
     """
     uf = uf.upper()
     destino_dir = destino_dir or DEFAULT_OUTPUT_DIR
@@ -60,6 +60,7 @@ def baixar_pacote_uf(uf: str, destino_dir: Optional[Path] = None, turno: int = 1
         pass
 
     # 2. Se o arquivo já existe localmente
+    foi_atualizado = False
     if caminho_local.exists():
         tamanho_existente = caminho_local.stat().st_size
         if total_remoto > 0 and tamanho_existente == total_remoto:
@@ -73,18 +74,22 @@ def baixar_pacote_uf(uf: str, destino_dir: Optional[Path] = None, turno: int = 1
                 sys.stdout.write(f"\rBaixando {uf} ({turno}ºT): 100.0% - Concluído! (Arquivo oficial íntegro)                          \n")
                 sys.stdout.flush()
                 caminho_part.unlink(missing_ok=True)
-                return caminho_local
+                return (caminho_local, False)
             except Exception:
                 # Arquivo corrompido -> precisa ser rebaixado limpo
                 sys.stdout.write(f"\rBaixando {uf} ({turno}ºT): Arquivo local corrompido detectado. Baixando versão oficial limpa...\n")
                 sys.stdout.flush()
                 caminho_local.unlink(missing_ok=True)
+                foi_atualizado = True
         elif total_remoto > 0 and tamanho_existente != total_remoto:
             # Tamanho diferente -> TSE publicou nova versão oficial!
             rem_mb = round(total_remoto / (1024 * 1024), 1)
             loc_mb = round(tamanho_existente / (1024 * 1024), 1)
             sys.stdout.write(f"\rBaixando {uf} ({turno}ºT): Nova versão na CDN ({rem_mb} MB vs {loc_mb} MB local). Atualizando...\n")
             sys.stdout.flush()
+            foi_atualizado = True
+    else:
+        foi_atualizado = True
 
     # 3. Gerenciamento do arquivo temporário de download (.part)
     tamanho_part = caminho_part.stat().st_size if caminho_part.exists() else 0
@@ -171,9 +176,9 @@ def baixar_pacote_uf(uf: str, destino_dir: Optional[Path] = None, turno: int = 1
         caminho_part.rename(caminho_local)
         sys.stdout.write(f"\rBaixando {uf} ({turno}ºT): 100.0% - Concluído! (Base oficial atualizada com sucesso)             \n")
         sys.stdout.flush()
-        return caminho_local
+        return (caminho_local, True)
     elif caminho_local.exists() and caminho_local.stat().st_size == total_remoto:
-        return caminho_local
+        return (caminho_local, foi_atualizado)
     else:
         raise RuntimeError(f"Tamanho baixado ({caminho_part.stat().st_size if caminho_part.exists() else 0}) não confere com remoto ({total_remoto}) para {uf}")
 

@@ -74,7 +74,7 @@ def _parse_bu_worker(item: Tuple[int, bytes]) -> Optional[Tuple]:
     except Exception:
         return None
 
-def processar_pacote_uf(zip_path: Path, secoes_map: Dict[Tuple[str, str, str, str, str], int], processados: set, num_threads: int = 16):
+def processar_pacote_uf(zip_path: Path, secoes_map: Dict[Tuple[str, str, str, str, str], int], processados: set, num_threads: int = 16, forcar_reprocessamento: bool = False):
     uf = zip_path.stem.split("_")[-1]
     t0 = time.time()
     
@@ -82,16 +82,33 @@ def processar_pacote_uf(zip_path: Path, secoes_map: Dict[Tuple[str, str, str, st
         all_bu_files = [n for n in z.namelist() if n.endswith('-bu.dat')]
         total_bu = len(all_bu_files)
         
-        # Filtra apenas seções pendentes
+        # Filtra apenas seções pendentes caso não seja reprocessamento forçado
         arquivos_pendentes = []
+        conn_init = None
         for f in all_bu_files:
             meta = extrair_meta_bu(f)
             if not meta:
                 continue
             chave = (meta["pleito"], meta["uf"], meta["municipio"], meta["zona"], meta["secao"])
             secao_id = secoes_map.get(chave)
-            if secao_id and secao_id not in processados:
-                arquivos_pendentes.append((f, secao_id))
+            if not secao_id:
+                if conn_init is None:
+                    conn_init = get_connection()
+                cur_init = conn_init.cursor()
+                with conn_init:
+                    cur_init.execute("INSERT OR IGNORE INTO secoes (pleito, uf, municipio, zona, secao) VALUES (?, ?, ?, ?, ?)",
+                                     (meta["pleito"], meta["uf"], meta["municipio"], meta["zona"], meta["secao"]))
+                    cur_init.execute("SELECT id FROM secoes WHERE pleito=? AND uf=? AND municipio=? AND zona=? AND secao=?",
+                                     (meta["pleito"], meta["uf"], meta["municipio"], meta["zona"], meta["secao"]))
+                    row = cur_init.fetchone()
+                    if row:
+                        secao_id = row[0]
+                        secoes_map[chave] = secao_id
+            if secao_id:
+                if forcar_reprocessamento or (secao_id not in processados):
+                    arquivos_pendentes.append((f, secao_id))
+        if conn_init is not None:
+            conn_init.close()
                 
         if not arquivos_pendentes:
             sys.stdout.write(f"\rConsolidando {uf}: 100.0% - Concluído! (Arquivo já processado)                          \n")

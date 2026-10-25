@@ -13,7 +13,8 @@ db/*.db
 db/*.db-wal
 db/*.db-shm
 db/*.parquet
-*.db
+db/.*
+!db/.gitkeep
 *.parquet
 !db/.gitkeep
 evidencias/
@@ -23,6 +24,7 @@ dados_brutos/**
 !dados_brutos/**/
 !dados_brutos/**/.gitkeep
 !dados_brutos/.gitkeep
+obsoleto/
 antigos/
 *.zip
 *.tar.gz

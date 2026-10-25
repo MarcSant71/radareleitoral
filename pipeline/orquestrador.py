@@ -166,7 +166,8 @@ def orquestrar_pipeline(
     ano: int = 2026,
     zerar_banco: bool = False,
     pular_download: bool = False,
-    threads: int = 24
+    threads: int = 24,
+    reprocessar: bool = False
 ) -> None:
     """
     Executa a cadeia modular do pipeline em ordem estrita de integridade.
@@ -207,6 +208,7 @@ def orquestrar_pipeline(
     garantir_municipios_csv()
 
     total_bus_geral = 0
+    total_ufs_atualizadas_geral = set()
 
     # Processa Etapas 2, 3 e 4 para cada turno disponível
     for idx_t, turno in enumerate(turnos, 1):
@@ -217,6 +219,7 @@ def orquestrar_pipeline(
         print(f"ETAPA 2/5: VERIFICAÇÃO E DOWNLOAD DOS PACOTES OFICIAIS DO TSE{sufixo_turno}")
         print("=" * 80)
         pacotes_por_uf = {}
+        ufs_atualizadas_turno = set()
         for uf in ufs:
             if pular_download:
                 nome_esperado = f"bu_imgbu_logjez_rdv_vscmr_{ano}_{turno}t_{uf.upper()}.zip"
@@ -234,18 +237,30 @@ def orquestrar_pipeline(
                     sys.stdout.flush()
                     pacotes_por_uf[uf] = local_zip
                 else:
-                    pacotes_por_uf[uf] = baixar_pacote_uf(uf, turno=turno)
+                    zpath, mudou = baixar_pacote_uf(uf, turno=turno)
+                    pacotes_por_uf[uf] = zpath
+                    if mudou:
+                        ufs_atualizadas_turno.add(uf)
             else:
-                pacotes_por_uf[uf] = baixar_pacote_uf(uf, turno=turno)
+                zpath, mudou = baixar_pacote_uf(uf, turno=turno)
+                pacotes_por_uf[uf] = zpath
+                if mudou:
+                    ufs_atualizadas_turno.add(uf)
 
-        print(f"[+] Total de pacotes prontos ({turno}º Turno): {len(pacotes_por_uf)}\n")
+        total_ufs_atualizadas_geral.update(ufs_atualizadas_turno)
+        print(f"[+] Total de pacotes prontos ({turno}º Turno): {len(pacotes_por_uf)}")
+        if ufs_atualizadas_turno:
+            print(f"[!] UFs com pacotes atualizados pela CDN ({len(ufs_atualizadas_turno)}): {', '.join(sorted(ufs_atualizadas_turno))}\n")
+        else:
+            print("[i] Nenhuma alteração de pacote detectada na CDN do TSE para este turno.\n")
 
         # 3. Processamento e Cronologia dos Logs das Urnas (-log.jez)
         print("=" * 80)
         print(f"ETAPA 3/5: PROCESSAMENTO E CRONOLOGIA DOS LOGS DE URNA (-log.jez){sufixo_turno}")
         print("=" * 80)
         for uf, zpath in pacotes_por_uf.items():
-            executar_auditoria_local_zip(zpath, threads=threads)
+            deve_forcar = (reprocessar or (uf in ufs_atualizadas_turno))
+            executar_auditoria_local_zip(zpath, threads=threads, forcar_reprocessamento=deve_forcar)
         print(f"[+] Cronologia e métricas de logs ({turno}º Turno) processadas com sucesso.\n")
 
         # 4. Consolidação de Boletins de Urna (BUs) & Zonas
@@ -262,7 +277,10 @@ def orquestrar_pipeline(
 
         total_bus_turno = 0
         for uf, zpath in pacotes_por_uf.items():
-            total_bus_turno += processar_pacote_uf(zpath, secoes_map, processados, num_threads=threads)
+            deve_forcar = (reprocessar or (uf in ufs_atualizadas_turno))
+            total_bus_turno += processar_pacote_uf(
+                zpath, secoes_map, processados, num_threads=threads, forcar_reprocessamento=deve_forcar
+            )
 
         total_bus_geral += total_bus_turno
         print(f"[+] Total de BUs processados ({turno}º Turno): {total_bus_turno:,}\n")
@@ -297,6 +315,25 @@ def orquestrar_pipeline(
 
     t_total = time.time() - t_inicio_total
 
+    # 7. Gravação do Indicador de Alterações Consolidadas
+    novos_dados = (len(total_ufs_atualizadas_geral) > 0 or total_bus_geral > 0 or zerar_banco or reprocessar)
+    status_file = _root_dir / "db" / ".novos_dados_consolidados"
+    if novos_dados:
+        try:
+            status_file.write_text(
+                f"timestamp={int(time.time())}\nbus={total_bus_geral}\nufs={','.join(sorted(total_ufs_atualizadas_geral))}\n",
+                encoding="utf-8"
+            )
+            print(f"[+] Indicador de atualizações gravado: {status_file.name} (Pronto para deploy em produção).")
+        except Exception:
+            pass
+    else:
+        try:
+            status_file.unlink(missing_ok=True)
+        except Exception:
+            pass
+        print("[i] Nenhuma novidade no TSE e nenhum BU novo processado nesta execução.")
+
     print("\n" + "═" * 80)
     print("      🎉  INICIALIZAÇÃO DA BASE ELEITORAL CONCLUÍDA COM SUCESSO!  🎉")
     print("═" * 80)
@@ -327,6 +364,7 @@ def main():
     parser.add_argument("--ano", type=int, default=2026, help="Ano da eleição (padrão: 2026)")
     parser.add_argument("--threads", type=int, default=_default_workers, help=f"Número de processos paralelos de CPU (padrão adaptativo: {_default_workers})")
     parser.add_argument("--zerar", action="store_true", help="Zera o banco de dados antes de recriar")
+    parser.add_argument("--reprocessar", action="store_true", help="Força reprocessamento de BUs e logs de todas as UFs")
     parser.add_argument("--pular-download", action="store_true", help="Utiliza pacotes ZIP já existentes localmente sem consultar a CDN")
     parser.add_argument("--forcar", action="store_true", help="Pula confirmação interativa (para automações e scripts)")
 
@@ -339,7 +377,8 @@ def main():
         ano=args.ano,
         zerar_banco=args.zerar,
         pular_download=args.pular_download,
-        threads=args.threads
+        threads=args.threads,
+        reprocessar=args.reprocessar
     )
 
 

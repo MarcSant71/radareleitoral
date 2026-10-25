@@ -1,4 +1,5 @@
 @echo off
+cls
 setlocal enabledelayedexpansion
 title Atualizacao da Base de Dados Eleitoral e Deploy em Producao
 
@@ -67,7 +68,35 @@ if %PIPELINE_EXIT% NEQ 0 (
 )
 
 REM ===============================================================================
-REM 5. Upload dos Dados Consolidados para o Servidor de Producao (Hetzner VPS)
+REM 5. Verificacao Inteligente de Deploy:
+REM    Se nenhuma UF foi atualizada no TSE e nenhum BU novo foi processado, dispensa deploy.
+REM ===============================================================================
+set FORCAR_DEPLOY=0
+for %%a in (%*) do (
+    if /i "%%a"=="--forcar-deploy" set FORCAR_DEPLOY=1
+)
+
+if not exist "db\.novos_dados_consolidados" (
+    if !FORCAR_DEPLOY! EQU 0 (
+        echo.
+        echo ===============================================================================
+        echo [i] Nenhuma novidade detectada na CDN do TSE.
+        echo [i] Todas as secoes ja estao 100%% consolidadas e identicas a versao oficial.
+        echo [i] O deploy para producao foi dispensado (nenhum dado novo a transmitir).
+        echo ===============================================================================
+        echo Dica: Para forcar o deploy na VPS mesmo sem alteracoes de dados, execute:
+        echo      scripts\atualizar_dados.cmd --forcar-deploy
+        echo ===============================================================================
+        echo.
+        pause
+        exit /b 0
+    ) else (
+        echo [*] Parametro --forcar-deploy detectado. Prosseguindo com o envio para producao...
+    )
+)
+
+REM ===============================================================================
+REM 6. Upload dos Dados Consolidados para o Servidor de Producao (Hetzner VPS)
 REM    - Empacota codigo, Parquets analiticos e banco SQLite (-IncludeDatabase)
 REM    - Envia via SCP e recria os conteineres Docker na nuvem
 REM ===============================================================================
@@ -90,6 +119,8 @@ if %DEPLOY_EXIT% NEQ 0 (
     pause
     exit /b %DEPLOY_EXIT%
 )
+
+if exist "db\.novos_dados_consolidados" del "db\.novos_dados_consolidados" >nul 2>nul
 
 echo.
 echo ===============================================================================

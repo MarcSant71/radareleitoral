@@ -1,4 +1,5 @@
 @echo off
+cls
 title Radar Eleitoral - Inteligencia de Dados e Auditoria
 cd /d "%~dp0\.."
 

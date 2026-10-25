@@ -1,4 +1,5 @@
 @echo off
+cls
 setlocal enabledelayedexpansion
 title Inicializacao da Base de Dados Eleitoral - Radar Eleitoral
 

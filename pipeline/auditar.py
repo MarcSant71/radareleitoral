@@ -305,14 +305,14 @@ def executar_auditoria(uf: str = "BA", municipio: Optional[str] = None, limite: 
     sys.stdout.flush()
     exibir_ranking(limit=15, uf=uf)
 
-def executar_auditoria_local_zip(caminho_zip: Path, municipio: Optional[str] = None, limite: Optional[int] = None, threads: int = 8, exibir_ranking_final: bool = False) -> None:
+def executar_auditoria_local_zip(caminho_zip: Path, municipio: Optional[str] = None, limite: Optional[int] = None, threads: int = 8, exibir_ranking_final: bool = False, forcar_reprocessamento: bool = False) -> int:
     import zipfile
     init_db()
     carregar_mapa_municipios()
     caminho = Path(caminho_zip)
     if not caminho.exists():
         print(f"Erro: Arquivo local {caminho} não encontrado.", file=sys.stderr)
-        return
+        return 0
 
     z = zipfile.ZipFile(caminho, 'r')
     todos_logs = [f for f in z.namelist() if f.endswith("-log.jez")]
@@ -326,7 +326,7 @@ def executar_auditoria_local_zip(caminho_zip: Path, municipio: Optional[str] = N
     # Detecção de seções já auditadas para evitar reprocessamento (resume inteligente)
     uf_m = re.search(r"_([A-Z]{2})\.zip$", caminho.name)
     uf_zip = uf_m.group(1) if uf_m else "UF"
-    if uf_zip:
+    if not forcar_reprocessamento and uf_zip:
         try:
             conn = get_connection()
             cur = conn.cursor()
@@ -349,7 +349,7 @@ def executar_auditoria_local_zip(caminho_zip: Path, municipio: Optional[str] = N
         sys.stdout.write(f"\rConsolidando {uf_zip}: 100.0% - Concluído! (Arquivo já processado)                          \n")
         sys.stdout.flush()
         z.close()
-        return
+        return 0
 
 
     num_cpus = os.cpu_count() or 16
@@ -395,6 +395,7 @@ def executar_auditoria_local_zip(caminho_zip: Path, municipio: Optional[str] = N
     sys.stdout.flush()
     if exibir_ranking_final:
         exibir_ranking(limit=25)
+    return processados
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Auditor de Urnas Eleitorais 2026")
