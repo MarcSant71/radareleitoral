@@ -261,7 +261,7 @@ def renderizar_mapa_nacional(
         height=520
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def renderizar_mapa_estadual(
@@ -350,7 +350,7 @@ def renderizar_mapa_estadual(
         height=520
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def renderizar_painel_votacao(
