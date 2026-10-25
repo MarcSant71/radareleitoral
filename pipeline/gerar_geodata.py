@@ -1,8 +1,9 @@
 """
 Pipeline de Geração e Otimização de Geometrias GeoJSON (Local-First).
 Baixa as malhas vetoriais oficiais com simplificação web do IBGE (qualidade mínima),
-armazena os dados brutos em dados_brutos/geodata/ e compila versões ultraleves
-e enriquecidas com códigos TSE em db/geodata/.
+armazena os dados brutos em dados_brutos/geodata/ e compila versões ultraleves,
+enriquecidas com códigos TSE e com orientação esférica corrigida (rewind) para
+evitar inversões em D3.js e Plotly.
 """
 
 import os
@@ -90,15 +91,40 @@ def fetch_json(url: str, timeout: int = 15) -> dict:
             pass
         return json.loads(raw.decode("utf-8"))
 
-def gerar_estados():
-    """Gera db/geodata/br_estados.json a partir do IBGE."""
-    print("-> Baixando malha dos estados do Brasil (IBGE qualidade mínima)...")
-    url = "https://servicodados.ibge.gov.br/api/v3/malhas/paises/BR?formato=application/vnd.geo+json&qualidade=minima&intrarregiao=UF"
-    data = fetch_json(url)
+def rewind_ring(ring, expected_negative: bool = True):
+    """
+    Garante a orientação correta dos anéis de coordenadas para o D3.js e Plotly.
+    Em projeções esféricas do D3, o anel externo precisa ter área sinalizada negativa
+    (sentido horário plano) para que o polígono não envolva o restante do planeta Terra.
+    """
+    area = 0.0
+    for i in range(len(ring) - 1):
+        area += (ring[i][0] * ring[i+1][1] - ring[i+1][0] * ring[i][1])
+    is_negative = area < 0
+    if is_negative != expected_negative:
+        return list(reversed(ring))
+    return ring
 
+def rewind_geometry(geom):
+    """Aplica a correção de orientação (winding order) em Polígonos e MultiPolígonos."""
+    g_type = geom.get("type")
+    if g_type == "Polygon":
+        geom["coordinates"] = [rewind_ring(ring, i == 0) for i, ring in enumerate(geom["coordinates"])]
+    elif g_type == "MultiPolygon":
+        geom["coordinates"] = [[rewind_ring(ring, i == 0) for i, ring in enumerate(poly)] for poly in geom["coordinates"]]
+
+def gerar_estados():
+    """Gera db/geodata/br_estados.json a partir do IBGE com correção de winding order."""
+    print("-> Processando malha dos estados do Brasil...")
     raw_path = RAW_GEODATA_DIR / "raw_estados.json"
-    with open(raw_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False)
+    if raw_path.exists():
+        with open(raw_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    else:
+        url = "https://servicodados.ibge.gov.br/api/v3/malhas/paises/BR?formato=application/vnd.geo+json&qualidade=minima&intrarregiao=UF"
+        data = fetch_json(url)
+        with open(raw_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False)
 
     for feat in data.get("features", []):
         code = feat.get("properties", {}).get("codarea")
@@ -107,6 +133,7 @@ def gerar_estados():
             feat["id"] = sigla
             feat["properties"]["sigla"] = sigla
             feat["properties"]["nome"] = nome
+        rewind_geometry(feat["geometry"])
 
     dest_path = DB_GEODATA_DIR / "br_estados.json"
     with open(dest_path, "w", encoding="utf-8") as f:
@@ -121,34 +148,31 @@ def carregar_municipios_tse() -> pd.DataFrame:
         raise FileNotFoundError(f"Base de eleições não encontrada em {PARQUET_PATH}")
     df = pd.read_parquet(PARQUET_PATH, columns=["uf", "municipio", "municipio_nome"])
     muns = df.groupby(["uf", "municipio", "municipio_nome"], observed=True).size().reset_index()
-    muns = muns[muns["uf"] != "ZZ"] # Desconsidera exterior
+    muns = muns[muns["uf"] != "ZZ"]
     return muns
 
 def gerar_municipios():
-    """Gera arquivos GeoJSON municipais por UF em db/geodata/ufs/{UF}.json."""
-    print("-> Carregando cadastro oficial de municípios do IBGE...")
-    url_muns = "https://servicodados.ibge.gov.br/api/v1/localidades/municipios"
-    ibge_muns = fetch_json(url_muns)
-
+    """Gera arquivos GeoJSON municipais por UF em db/geodata/ufs/{UF}.json com rewind."""
+    print("-> Processando malha municipal por UF...")
     raw_muns_path = RAW_GEODATA_DIR / "raw_municipios.json"
-    with open(raw_muns_path, "w", encoding="utf-8") as f:
-        json.dump(ibge_muns, f, ensure_ascii=False)
+    if raw_muns_path.exists():
+        with open(raw_muns_path, "r", encoding="utf-8") as f:
+            ibge_muns = json.load(f)
+    else:
+        url_muns = "https://servicodados.ibge.gov.br/api/v1/localidades/municipios"
+        ibge_muns = fetch_json(url_muns)
+        with open(raw_muns_path, "w", encoding="utf-8") as f:
+            json.dump(ibge_muns, f, ensure_ascii=False)
 
-    # Mapeia (UF, norm_nome) -> ibge_id e nome_oficial
-    ibge_to_info = {} # ibge_id -> (uf, nome_oficial)
-    nome_to_ibge = {} # (uf, norm_nome) -> ibge_id
+    nome_to_ibge = {}
     for m in ibge_muns:
         ibge_id = str(m["id"])
         uf_cod = ibge_id[:2]
         if uf_cod in IBGE_UF:
             uf_sigla = IBGE_UF[uf_cod][0]
-            nome = m["nome"]
-            ibge_to_info[ibge_id] = (uf_sigla, nome)
-            nome_to_ibge[(uf_sigla, normalizar_texto(nome))] = ibge_id
+            nome_to_ibge[(uf_sigla, normalizar_texto(m["nome"]))] = ibge_id
 
-    # Lê municípios do TSE
     df_tse = carregar_municipios_tse()
-    # Mapeia ibge_id -> (cod_tse, nome_tse)
     ibge_to_tse = {}
     for _, r in df_tse.iterrows():
         uf = str(r["uf"])
@@ -156,7 +180,6 @@ def gerar_municipios():
         nome_tse = str(r["municipio_nome"])
         norm_tse = normalizar_texto(nome_tse)
         
-        # Checa alias se necessário
         if (uf, norm_tse) in ALIASES_TSE_IBGE:
             norm_tse = ALIASES_TSE_IBGE[(uf, norm_tse)]
 
@@ -164,25 +187,25 @@ def gerar_municipios():
         if ibge_id:
             ibge_to_tse[ibge_id] = (cod_tse, nome_tse)
 
-    print(f"   [OK] {len(ibge_to_tse)} municípios TSE vinculados ao IBGE com sucesso.")
-
-    # Baixa e processa a malha de cada UF
     ufs_ordenadas = sorted([v[0] for v in IBGE_UF.values()])
     t0_all = time.time()
     
     for uf in ufs_ordenadas:
-        url_uf = f"https://servicodados.ibge.gov.br/api/v3/malhas/estados/{uf}?formato=application/vnd.geo+json&qualidade=minima&intrarregiao=municipio"
-        try:
-            geo_uf = fetch_json(url_uf)
-        except Exception as e:
-            print(f"   [ERRO] Falha ao baixar malha da UF {uf}: {e}")
-            continue
-
         raw_uf_path = RAW_UFS_DIR / f"{uf}.json"
-        with open(raw_uf_path, "w", encoding="utf-8") as f:
-            json.dump(geo_uf, f, ensure_ascii=False)
+        if raw_uf_path.exists():
+            with open(raw_uf_path, "r", encoding="utf-8") as f:
+                geo_uf = json.load(f)
+        else:
+            url_uf = f"https://servicodados.ibge.gov.br/api/v3/malhas/estados/{uf}?formato=application/vnd.geo+json&qualidade=minima&intrarregiao=municipio"
+            try:
+                geo_uf = fetch_json(url_uf)
+                with open(raw_uf_path, "w", encoding="utf-8") as f:
+                    json.dump(geo_uf, f, ensure_ascii=False)
+            except Exception as e:
+                print(f"   [ERRO] Falha ao baixar malha da UF {uf}: {e}")
+                continue
 
-        # Enriquece cada polígono municipal com o código TSE
+        # Enriquece cada polígono municipal e corrige orientação (rewind)
         for feat in geo_uf.get("features", []):
             ibge_id = feat.get("properties", {}).get("codarea")
             if ibge_id in ibge_to_tse:
@@ -193,17 +216,17 @@ def gerar_municipios():
                 feat["properties"]["uf"] = uf
                 feat["properties"]["ibge_id"] = ibge_id
             else:
-                # Fallback caso não mapeado
                 feat["id"] = ibge_id
                 feat["properties"]["cod_tse"] = ibge_id
                 feat["properties"]["uf"] = uf
+            rewind_geometry(feat["geometry"])
 
         dest_uf_path = DB_UFS_DIR / f"{uf}.json"
         with open(dest_uf_path, "w", encoding="utf-8") as f:
             json.dump(geo_uf, f, separators=(",", ":"), ensure_ascii=False)
 
         size_kb = dest_uf_path.stat().st_size / 1024
-        print(f"   UF {uf:2s}: {len(geo_uf.get('features', [])):3d} municípios -> {dest_uf_path.name} ({size_kb:.1f} KB)")
+        print(f"   UF {uf:2s}: {len(geo_uf.get('features', [])):3d} municípios corrigidos -> {dest_uf_path.name} ({size_kb:.1f} KB)")
 
     print(f"\n[SUCESSO] Processamento geoespacial concluído em {time.time()-t0_all:.1f}s.")
 
@@ -214,7 +237,7 @@ def main():
     DB_UFS_DIR.mkdir(parents=True, exist_ok=True)
 
     print("==================================================")
-    print("GERAÇÃO DE DADOS GEOESPACIAIS LOCAL-FIRST (IBGE)")
+    print("GERAÇÃO E CORREÇÃO DE DADOS GEOESPACIAIS (REWIND)")
     print("==================================================")
     gerar_estados()
     gerar_municipios()
