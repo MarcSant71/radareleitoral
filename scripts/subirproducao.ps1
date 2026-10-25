@@ -55,7 +55,7 @@ if (Test-Path "$ProjectDir\db\locais_secoes.parquet") {
 
 # Resolve versao do CHANGELOG.md e commit hash do Git de forma automatica
 Write-Host "[*] Resolvendo metadados de versao e commit..." -ForegroundColor Yellow
-$GitCommit = try { (git rev-parse --short HEAD).Trim() } catch { "prod" }
+$GitCommit = try { (git -C "$ProjectDir" rev-parse --short HEAD).Trim() } catch { "prod" }
 $Changelog = if (Test-Path "$ProjectDir\CHANGELOG.md") { Get-Content "$ProjectDir\CHANGELOG.md" -Raw } else { "" }
 $VersionMatch = [regex]::Match($Changelog, '##\s*\[(\d+\.\d+\.\d+)\]\s*-\s*([0-9-]+)')
 if (-not $VersionMatch.Success) {

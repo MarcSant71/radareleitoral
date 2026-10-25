@@ -10,14 +10,9 @@ e este projeto adere estritamente ao [Semantic Versioning (SemVer 2.0.0)](https:
 ## [2.8.0] - 2026-10-25
 
 ### Adicionado
-- **Sincronização Autônoma e Resiliente da CDN Oficial:** Motor de download atômico com validação estrutural de arquivos e detecção instantânea de retotalizações e pacotes republicados pelo TSE.
-- **Invalidação Inteligente de Cache:** Reprocessamento automatizado de boletins de urna (BUs) e logs de seções eleitorais cujos pacotes sofreram atualizações oficiais, garantindo convergência com a apuração definitiva.
-- **Automação Eficiente de Atualizações:** Fluxo de atualização que dispensa transferências redundantes para a nuvem quando a base local já se encontra 100% íntegra e sincronizada com o TSE.
-- **Suporte a Reprocessamento Sob Demanda:** Introdução do parâmetro `--reprocessar` para reavaliação completa de todas as 497.895 seções do país.
-
-### Modificado
-- **Experiência Visual de Terminal:** Padronização com limpeza de tela inicial (`cls`) e mensagens operacionais claras em todos os scripts de controle.
-- **Governança de Código Legado:** Diretório histórico padronizado para `obsoleto/`, mantido estritamente para consulta fria.
+- **Sincronização Contínua com a Base Oficial:** Rotina aprimorada de validação de dados que detecta automaticamente retotalizações, votos complementares e pacotes atualizados publicados pelo TSE.
+- **Convergência Dinâmica de Boletins de Urna:** Atualização imediata dos modelos analíticos sempre que houver novas publicações da Justiça Eleitoral, garantindo que o painel reflita rigorosamente a apuração mais recente.
+- **Otimização de Integridade de Dados:** Validação estrutural avançada na consolidação dos dados oficiais, assegurando 100% de consistência em todas as seções e zonas eleitorais do país.
 
 ---
 
