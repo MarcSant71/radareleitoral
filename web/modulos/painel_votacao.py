@@ -426,6 +426,82 @@ def renderizar_painel_votacao(
     uf_selecionada = st.session_state["painel_uf_ativa"]
     mun_selecionado = st.session_state["painel_mun_ativo"]
 
+    # ==========================================
+    # FILTROS LATERAIS (SIDEBAR)
+    # ==========================================
+    st.sidebar.markdown(
+        """
+        <div style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.82rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-top: 0.65rem; margin-bottom: 0.35rem;">
+            <span style="font-size: 0.95em; line-height: 1;">📍</span>
+            <span>Filtros Geográficos</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    lista_ufs = sorted(list(df["uf"].unique()))
+    lista_ufs = [u for u in lista_ufs if u in NOMES_UFS]
+    opcoes_estados = ["Todas as UFs (Brasil)"] + [f"{NOMES_UFS[u]} ({u})" for u in lista_ufs]
+
+    idx_uf = 0
+    if uf_selecionada and uf_selecionada in lista_ufs:
+        idx_uf = lista_ufs.index(uf_selecionada) + 1
+
+    def ao_mudar_estado():
+        escolha = st.session_state.get("seletor_uf_painel")
+        if not escolha or escolha == "Todas as UFs (Brasil)":
+            st.session_state["painel_uf_ativa"] = None
+            st.session_state["painel_mun_ativo"] = None
+        else:
+            sigla = escolha.split("(")[-1].replace(")", "").strip()
+            st.session_state["painel_uf_ativa"] = sigla
+            st.session_state["painel_mun_ativo"] = None
+        if "seletor_mun_painel" in st.session_state:
+            st.session_state["seletor_mun_painel"] = "Todos os Municípios"
+
+    st.sidebar.selectbox(
+        "Estado (UF):",
+        options=opcoes_estados,
+        index=idx_uf,
+        key="seletor_uf_painel",
+        on_change=ao_mudar_estado,
+        help="Selecione um estado para alternar automaticamente para o mapa municipal."
+    )
+
+    # Seletor de Município na Sidebar
+    if uf_selecionada is None:
+        opcoes_muns = ["Todos os Municípios"]
+        idx_mun = 0
+        mun_disabled = True
+    else:
+        df_estado_muns_sb = df[df["uf"] == uf_selecionada]
+        lista_muns = sorted(list(df_estado_muns_sb["municipio_nome"].unique()))
+        opcoes_muns = ["Todos os Municípios"] + lista_muns
+        idx_mun = 0
+        if mun_selecionado and mun_selecionado in lista_muns:
+            idx_mun = lista_muns.index(mun_selecionado) + 1
+        mun_disabled = False
+
+    def ao_mudar_municipio():
+        escolha = st.session_state.get("seletor_mun_painel")
+        if not escolha or escolha == "Todos os Municípios":
+            st.session_state["painel_mun_ativo"] = None
+        else:
+            st.session_state["painel_mun_ativo"] = escolha
+
+    st.sidebar.selectbox(
+        "Município:",
+        options=opcoes_muns,
+        index=idx_mun,
+        key="seletor_mun_painel",
+        on_change=ao_mudar_municipio,
+        disabled=mun_disabled,
+        help="Selecione um município para focar os resultados e destacá-lo no mapa."
+    )
+
+    uf_selecionada = st.session_state["painel_uf_ativa"]
+    mun_selecionado = st.session_state["painel_mun_ativo"]
+
     # Barra superior de status da apuração estilo TV Globo
     total_secoes = len(df)
     secoes_apuradas = len(df[df["pres_total_validos"] > 0])
@@ -455,15 +531,17 @@ def renderizar_painel_votacao(
         if mun_selecionado is not None:
             if st.button(f"🔙 Voltar ao Estado ({uf_selecionada})", width="stretch", key="btn_voltar_estado"):
                 st.session_state["painel_mun_ativo"] = None
-                if "seletor_mun_drilldown" in st.session_state:
-                    st.session_state["seletor_mun_drilldown"] = "(Todos os Municípios)"
+                if "seletor_mun_painel" in st.session_state:
+                    st.session_state["seletor_mun_painel"] = "Todos os Municípios"
                 st.rerun()
         elif uf_selecionada is not None:
             if st.button("🔙 Voltar à Visão Nacional", width="stretch", key="btn_voltar_nacional"):
                 st.session_state["painel_uf_ativa"] = None
                 st.session_state["painel_mun_ativo"] = None
-                if "seletor_mun_drilldown" in st.session_state:
-                    st.session_state["seletor_mun_drilldown"] = "(Todos os Municípios)"
+                if "seletor_uf_painel" in st.session_state:
+                    st.session_state["seletor_uf_painel"] = "Todas as UFs (Brasil)"
+                if "seletor_mun_painel" in st.session_state:
+                    st.session_state["seletor_mun_painel"] = "Todos os Municípios"
                 st.rerun()
 
     # Barra de Progresso de Totalização
@@ -540,40 +618,16 @@ def renderizar_painel_votacao(
             )
 
     with col_painel:
-        st.markdown("#### 🔍 Seleção de Estado")
-        
-        lista_ufs = sorted(list(df["uf"].unique()))
-        lista_ufs = [u for u in lista_ufs if u in NOMES_UFS]
-        opcoes_estados = ["🇧🇷 Brasil (Visão Nacional)"] + [f"{NOMES_UFS[u]} ({u})" for u in lista_ufs]
-
-        idx_uf = 0
-        if uf_selecionada and uf_selecionada in lista_ufs:
-            idx_uf = lista_ufs.index(uf_selecionada) + 1
-
-        def ao_mudar_estado():
-            escolha = st.session_state.get("seletor_uf_global")
-            if not escolha or escolha == "🇧🇷 Brasil (Visão Nacional)":
-                st.session_state["painel_uf_ativa"] = None
-                st.session_state["painel_mun_ativo"] = None
-            else:
-                sigla = escolha.split("(")[-1].replace(")", "").strip()
-                st.session_state["painel_uf_ativa"] = sigla
-                st.session_state["painel_mun_ativo"] = None
-            if "seletor_mun_drilldown" in st.session_state:
-                st.session_state["seletor_mun_drilldown"] = "(Todos os Municípios)"
-
-        st.selectbox(
-            "Visualização / Estado:",
-            options=opcoes_estados,
-            index=idx_uf,
-            key="seletor_uf_global",
-            on_change=ao_mudar_estado,
-            help="Selecione um estado para alternar automaticamente para o mapa municipal."
-        )
-
         if uf_selecionada is None:
-            # Resumo dos Maiores Colégios Eleitorais
-            st.markdown("<div style='margin-top: 1.25rem;'></div>", unsafe_allow_html=True)
+            # Visão Nacional
+            st.markdown("##### 📊 Indicadores Cívicos Nacionais")
+            col_m1, col_m2 = st.columns(2)
+            with col_m1:
+                st.metric("Comparecimento", f"{fmt_float_br(pct_comp)}%", f"{fmt_int_br(comp_tot)} eleitores")
+            with col_m2:
+                st.metric("Abstenção", f"{fmt_float_br(pct_abst)}%", f"{fmt_int_br(abst_tot)} faltosos", delta_color="inverse")
+
+            st.markdown("<div style='margin-top: 1rem;'></div>", unsafe_allow_html=True)
             st.markdown("##### 🏆 Maiores Colégios Eleitorais")
             
             df_top_ufs = df.groupby("uf", observed=True).agg({
@@ -611,35 +665,9 @@ def renderizar_painel_votacao(
             )
 
         else:
-            # Visão Estadual Ativa: Seletor de Município
-            st.markdown(f"#### 🏙️ Municípios de {NOMES_UFS.get(uf_selecionada, uf_selecionada)}")
-            
-            df_estado_muns = df[df["uf"] == uf_selecionada]
-            lista_muns = sorted(list(df_estado_muns["municipio_nome"].unique()))
-
-            def ao_mudar_municipio():
-                escolha = st.session_state.get("seletor_mun_drilldown")
-                if not escolha or escolha == "(Todos os Municípios)":
-                    st.session_state["painel_mun_ativo"] = None
-                else:
-                    st.session_state["painel_mun_ativo"] = escolha
-
-            idx_mun = 0
-            if mun_selecionado and mun_selecionado in lista_muns:
-                idx_mun = lista_muns.index(mun_selecionado) + 1
-
-            st.selectbox(
-                "Filtrar Município:",
-                options=["(Todos os Municípios)"] + lista_muns,
-                index=idx_mun,
-                key="seletor_mun_drilldown",
-                on_change=ao_mudar_municipio,
-                help="Selecione um município para focar os resultados e destacá-lo no mapa."
-            )
-
-            # Métricas cívicas adicionais da localidade (Estado ou Município selecionado)
-            rotulo_civicos = f"Indicadores Cívicos — {mun_selecionado}" if mun_selecionado else f"Indicadores Cívicos — {NOMES_UFS.get(uf_selecionada, uf_selecionada)}"
-            st.markdown("<div style='margin-top: 1rem;'></div>", unsafe_allow_html=True)
+            # Visão Estadual ou Municipal
+            nome_uf_display = NOMES_UFS.get(uf_selecionada, uf_selecionada)
+            rotulo_civicos = f"Indicadores Cívicos — {mun_selecionado}" if mun_selecionado else f"Indicadores Cívicos — {nome_uf_display}"
             st.markdown(f"##### 📊 {rotulo_civicos}")
             col_m1, col_m2 = st.columns(2)
             with col_m1:
@@ -649,6 +677,7 @@ def renderizar_painel_votacao(
 
             # Se um município com múltiplas zonas estiver selecionado, exibe ranking por zona eleitoral
             if mun_selecionado and df_foco["zona"].nunique() > 1:
+                st.markdown("<div style='margin-top: 1rem;'></div>", unsafe_allow_html=True)
                 st.markdown(f"##### 🏛️ Zonas Eleitorais de {mun_selecionado}")
                 df_z_rank = df_foco.groupby("zona", observed=True).agg({
                     "pres_total_validos": "sum",
@@ -684,7 +713,9 @@ def renderizar_painel_votacao(
                 )
 
             # Ranking dos maiores municípios da UF como referência
-            st.markdown(f"##### 🏆 Mais Votados do Estado ({uf_selecionada})")
+            st.markdown("<div style='margin-top: 1rem;'></div>", unsafe_allow_html=True)
+            st.markdown(f"##### 🏆 Mais Votados de {nome_uf_display} ({uf_selecionada})")
+            df_estado_muns = df[df["uf"] == uf_selecionada]
             df_m_rank = df_estado_muns.groupby("municipio_nome", observed=True).agg({
                 "pres_total_validos": "sum",
                 cand_1["coluna_votos"]: "sum",
